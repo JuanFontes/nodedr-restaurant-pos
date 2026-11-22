@@ -114,6 +114,7 @@ export function useCheckoutOrder(branchId: string | null) {
       api.post<CheckoutResult>(`/orders/${orderId}/checkout?branchId=${branchId}`, dto),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["dues"] });
       queryClient.invalidateQueries({ queryKey: ["floors", branchId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "summary", branchId] });
     },

@@ -39,6 +39,7 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Customers</h1>
           <Link href="/ratings" className="mt-1 inline-block text-sm underline">Customer ratings</Link>
+          <Link href="/customers/dues" className="ml-3 mt-1 inline-block text-sm underline">Customer dues</Link>
           <p className="text-sm text-muted-foreground">Profiles, loyalty, and order history</p>
         </div>
         <AddCustomerDialog branchId={branchId} />
