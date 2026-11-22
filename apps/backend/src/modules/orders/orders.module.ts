@@ -10,6 +10,7 @@ import { ReferralsModule } from '../referrals/referrals.module';
 import { VerifactuModule } from '../verifactu/verifactu.module';
 import { KotPrintService } from './kot-print.service';
 import { OrdersController } from './orders.controller';
+import { OrdersDuesService } from './orders-dues.service';
 import { OrdersService } from './orders.service';
 import { ScheduledOrdersService } from './scheduled-orders.service';
 
@@ -27,6 +28,7 @@ import { ScheduledOrdersService } from './scheduled-orders.service';
   controllers: [OrdersController],
   providers: [
     OrdersService,
+    OrdersDuesService,
     KotPrintService,
     ScheduledOrdersService,
     BranchAccessService,
