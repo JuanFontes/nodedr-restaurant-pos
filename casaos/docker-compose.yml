@@ -187,6 +187,16 @@ x-casaos:
   update_at: "2026-11-18"
   release_notes:
     en_US: |-
+      1.42.0: customer dues, a ledger of unpaid and part-paid bills with filters, later payments and a WhatsApp reminder you review and send; a guest bill QR; reservations can no longer double-book a table; the phone backup now keeps unsent expenses, refunds and reservations; currency follows the restaurant setting; stock rows are locked during receipts and transfers; security, payment-recovery, backup and updater fixes from community pull requests. No database migration.
+
+      1.41.1: fixes a server that would not start in 1.41.0. No database migration.
+
+      1.41.0: the phone app asks whether to connect to a server or run on the phone alone, add several tables at once, a clearer credit-sale (part payment) screen with a dues ageing summary, and Android file downloads in server mode. No database migration.
+
+      1.40.1: a hardware barcode scanner works anywhere on the phone Sell screen, web POS scanning by barcode or SKU, archived menu items hidden, and an AI Operations Copilot that respects the signed-in user's permissions. No database migration.
+
+      1.40.0: Stock Journal recipes per product and reopenable drafts, optional customer PIN code and status, and the Stock Journal on the phone. Database migration applied automatically on update.
+
       1.39.2: optional "Show cost today" switch on the POS, and new finished products from the Stock Journal go on the menu by default. No database migration.
 
       1.39.1: Stock Journal Manager role, and producing menu items directly from the Stock Journal. Database migration applied automatically on update.
