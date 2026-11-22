@@ -59,7 +59,7 @@ Pick the one that fits. The server (back office, tills, kitchen display) runs on
 | **Ubuntu / Debian server** (amd64, arm64) | `curl -fsSL https://orderrestro.nodedr.com/install-linux.sh \| sudo bash`, then open `http://<server>:1995` |
 | **Any Linux / macOS / WSL2 with Docker** | `git clone https://github.com/Raktim94/nodedr-restaurant-pos.git && cd nodedr-restaurant-pos && ./install.sh` |
 | **CasaOS / ZimaOS** | App Store, then **Install a customized app**, and paste `https://raw.githubusercontent.com/Raktim94/nodedr-restaurant-pos/master/casaos/docker-compose.yml` ([steps](casaos/README.md)) |
-| **Windows 10/11 desktop client** | MSIX package, built and tested by CI ([`windows/msix/README.md`](windows/msix/README.md)). A Microsoft Store listing is not live yet. |
+| **Windows 10/11** | [Get it from the Microsoft Store](https://apps.microsoft.com/detail/9NRG9BVFCMN5), or run `winget install --id 9NRG9BVFCMN5 --source msstore` in PowerShell ([build notes](windows/msix/README.md)) |
 | **Downloads and checksums** | [Latest release](https://github.com/Raktim94/nodedr-restaurant-pos/releases/latest) (`.deb` for amd64 and arm64, with `.sha256` files) |
 
 After the server is up, open it in a browser and create your restaurant at `/signup`. Details, Docker setup and manual install are in [Quick start](#quick-start).
