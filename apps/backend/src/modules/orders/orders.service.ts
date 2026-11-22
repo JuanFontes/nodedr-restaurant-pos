@@ -1631,7 +1631,7 @@ export class OrdersService {
       effectiveCustomerId = customer.id;
     }
 
-    const { bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
+    let { bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
       branchId,
       order,
       dto,
@@ -1670,9 +1670,25 @@ export class OrdersService {
           where: { id: orderId },
           data: { updatedAt: new Date() },
         });
-        const freshPayments = (await tx.payment.findMany({
-          where: { orderId },
-        })) as Array<{ amount: Prisma.Decimal; clientRequestId: string | null }>;
+        // Re-read the whole bill after the lock: the earlier read can observe a
+        // different committed state than the payments (READ COMMITTED), and a
+        // concurrent discount change must not leave a stale total in `bill`.
+        const freshOrder = await tx.order.findFirst({
+          where: { id: orderId, branchId },
+          include: { items: true, payments: true, customer: true },
+        });
+        if (!freshOrder) throw new NotFoundException('Order not found');
+        ({ bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
+          branchId,
+          freshOrder,
+          dto,
+          effectiveCustomerId,
+        ));
+        balance = round2(bill.totalDue - paid);
+        const freshPayments = freshOrder.payments as Array<{
+          amount: Prisma.Decimal;
+          clientRequestId: string | null;
+        }>;
         // The first read happened before the row lock. A concurrent copy of
         // the SAME request may have committed in between; that is a replay,
         // not a conflict, and must return its normal replay result.
