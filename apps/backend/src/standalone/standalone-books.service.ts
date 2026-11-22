@@ -1,3 +1,4 @@
+import { round2 } from '../common/money';
 import {
   BadRequestException,
   ConflictException,
@@ -15,7 +16,6 @@ import type {
 } from './standalone.schema';
 
 const dayStart = (d: string) => new Date(`${d}T00:00:00.000Z`);
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const isUniqueClash = (e: unknown) =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 
