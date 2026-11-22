@@ -1659,6 +1659,7 @@ export class OrdersService {
     let stockSkipped: { menuItemId: string; name: string; reason: string }[] =
       [];
     let settlement!: ReturnType<typeof settlePayments>;
+    let replayedInTx = false;
     try {
       await this.prisma.$transaction(async (tx) => {
         // Serialize checkouts for this bill. A partial payment deliberately
@@ -1669,7 +1670,19 @@ export class OrdersService {
           where: { id: orderId },
           data: { updatedAt: new Date() },
         });
-        const freshPayments = await tx.payment.findMany({ where: { orderId } });
+        const freshPayments = (await tx.payment.findMany({
+          where: { orderId },
+        })) as Array<{ amount: Prisma.Decimal; clientRequestId: string | null }>;
+        // The first read happened before the row lock. A concurrent copy of
+        // the SAME request may have committed in between; that is a replay,
+        // not a conflict, and must return its normal replay result.
+        if (
+          dto.requestId &&
+          freshPayments.some((p) => p.clientRequestId === dto.requestId)
+        ) {
+          replayedInTx = true;
+          return;
+        }
         if (!locked && freshPayments.length > 0) {
           throw new ConflictException(
             'The bill was paid by another request while you were checking out. Refresh and retry.',
@@ -1896,6 +1909,7 @@ export class OrdersService {
       }
       throw err;
     }
+    if (replayedInTx) return this.checkoutResult(branchId, orderId);
 
     const updated = await this.prisma.order.findUniqueOrThrow({
       where: { id: orderId },
