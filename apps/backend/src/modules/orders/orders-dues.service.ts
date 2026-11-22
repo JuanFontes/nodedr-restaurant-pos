@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { round2 } from '../../common/money';
 import { OrdersService } from './orders.service';
@@ -38,7 +42,7 @@ export class OrdersDuesService {
 
   async list(branchId: string, f: DuesFilters = {}) {
     const wantPaid = f.status === 'PAID';
-    const rows = await this.prisma.order.findMany({
+    const rows = (await this.prisma.order.findMany({
       where: {
         branchId,
         customerId: f.customerId ?? { not: null },
@@ -52,22 +56,52 @@ export class OrdersDuesService {
           orderBy: { createdAt: 'asc' },
         },
       },
-      // Bounded but much larger than the old 300-row cap, which silently
-      // understated money owed on busy branches.
-      take: 5000,
+      // Scan all matching orders: totals and customer aggregates must cover
+      // every due. Only the returned `rows` array is sliced at the end.
       orderBy: { createdAt: 'asc' },
-    });
+    })) as Array<{
+      id: string;
+      orderNumber: string;
+      type: string;
+      createdAt: Date;
+      totalAmount: unknown;
+      customer: {
+        id: string;
+        name: string | null;
+        phone: string | null;
+      } | null;
+      payments: Array<{
+        id: string;
+        method: string;
+        amount: unknown;
+        createdAt: Date;
+      }>;
+    }>;
 
     // Bill previews hit the pricing engine; run them concurrently instead of
     // one sequential await per order. An order cancelled mid-scan is skipped.
-    const previews = new Map<string, Awaited<ReturnType<OrdersService['previewBill']>> | null>();
+    const previews = new Map<
+      string,
+      Awaited<ReturnType<OrdersService['previewBill']>> | null
+    >();
     if (!wantPaid) {
       await Promise.all(
         rows.map(async (o) => {
           try {
-            previews.set(o.id, await this.orders.previewBill(branchId, o.id, {}));
-          } catch {
-            previews.set(o.id, null);
+            const view = await this.orders.previewBill(branchId, o.id, {});
+            previews.set(o.id, view);
+          } catch (err) {
+            // Only an order that vanished or was cancelled can be skipped;
+            // any other failure must fail the request, not understate dues.
+            if (
+              err instanceof NotFoundException ||
+              (err instanceof BadRequestException &&
+                /cancel/i.test(err.message))
+            ) {
+              previews.set(o.id, null);
+              return;
+            }
+            throw err;
           }
         }),
       );
@@ -139,8 +173,10 @@ export class OrdersDuesService {
       byCustomer.set(r.customer.id, c);
     }
     return {
-      rows: out,
+      // Aggregates cover every matching order; only the detail list is capped.
+      rows: out.slice(0, 5000),
       totalOutstanding: round2(out.reduce((s, r) => s + r.balance, 0)),
+      totalCount: out.length,
       customers: [...byCustomer.values()].sort((a, b) => b.owed - a.owed),
     };
   }

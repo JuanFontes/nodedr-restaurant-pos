@@ -191,7 +191,7 @@ export class GoodsReceiptsService {
               : // Prior stock was nonpositive: an average over a negative base
                 // is meaningless (and can overflow Decimal(12,4)). Use the
                 // receipt cost for the new positive balance instead.
-                Number(item.unitCost)
+                round4(Number(item.unitCost))
             : Number(ingredient.costPerUnit);
 
         await tx.ingredient.update({
