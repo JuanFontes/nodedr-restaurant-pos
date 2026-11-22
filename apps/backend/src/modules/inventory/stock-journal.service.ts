@@ -173,8 +173,9 @@ export class StockJournalService {
       });
       if (dup) return dup;
     }
-    return this.prisma.$transaction(async (tx) => {
-      const ids = [...new Set(dto.lines.map((l) => l.ingredientId))].sort();
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const ids = [...new Set(dto.lines.map((l) => l.ingredientId))].sort();
       if (ids.length !== dto.lines.length)
         throw new BadRequestException('An item is on the sheet twice');
       for (const id of ids)
@@ -316,7 +317,25 @@ export class StockJournalService {
         where: { id: take.id },
         data: { lines: out },
       });
-    });
+      });
+    } catch (e) {
+      if (
+        dto.idempotencyKey &&
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        const winner = await this.prisma.stockTake.findUnique({
+          where: {
+            branchId_idempotencyKey: {
+              branchId,
+              idempotencyKey: dto.idempotencyKey,
+            },
+          },
+        });
+        if (winner) return winner;
+      }
+      throw e;
+    }
   }
 
   listStockTakes(branchId: string) {

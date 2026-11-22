@@ -59,6 +59,7 @@ export function EditItemDialog({
   const [savingOptions, setSavingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const stockTrackingHandleRef = useRef<StockTrackingHandle | null>(null);
+  const [stockReady, setStockReady] = useState(false);
   const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState<string | undefined>(item.imageUrl ?? undefined);
   const [imagePreview, setImagePreview] = useState<string | undefined>(item.imageUrl ?? undefined);
@@ -66,7 +67,7 @@ export function EditItemDialog({
 
   const { data: stations } = useStations(branchId);
   const { data: settings } = useDisplaySettings(branchId);
-  const { data: me } = useCurrentUser();
+  const { data: me, isLoading: meLoading } = useCurrentUser();
   const updateItem = useUpdateMenuItem(branchId);
   const uploadImage = useUploadItemImage();
   const priceLabel =
@@ -112,6 +113,13 @@ export function EditItemDialog({
     }
     setSavingOptions(false);
 
+    // Never silently skip stock rules: if the user may manage inventory but
+    // the rules are still loading (or failed), refuse the save with a message.
+    if (hasPermission(me?.user, "inventory.manage") && !stockTrackingHandleRef.current) {
+      toast.error("Stock rules are still loading. Try again in a moment.");
+      setIsSubmitting(false);
+      return;
+    }
     // Atomically save stock tracking / recipe rules
     if (stockTrackingHandleRef.current) {
       const stockSuccess = await stockTrackingHandleRef.current.save();
@@ -139,7 +147,7 @@ export function EditItemDialog({
       {
         onSuccess: () => {
           setIsSubmitting(false);
-          toast.success(`"${name}" updated and stock tracking saved`);
+          toast.success(`"${name}" updated${stockTrackingHandleRef.current ? " and stock tracking saved" : ""}`);
           onClose();
         },
         onError: (err) => {
@@ -309,6 +317,7 @@ export function EditItemDialog({
                 isCombo={item.isCombo}
                 onHandleReady={(handle) => {
                   stockTrackingHandleRef.current = handle;
+                  setStockReady(true);
                 }}
               />
             )}
@@ -329,7 +338,7 @@ export function EditItemDialog({
             <Button
               type="submit"
               className="w-full sm:w-auto h-10 px-6 rounded-xl font-semibold active:scale-95 transition-transform shadow-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isSubmitting || updateItem.isPending || uploadImage.isPending || savingOptions}
+              disabled={isSubmitting || updateItem.isPending || uploadImage.isPending || savingOptions || meLoading || (hasPermission(me?.user, "inventory.manage") && !stockReady)}
             >
               {isSubmitting || updateItem.isPending || savingOptions ? "Saving…" : "Save changes"}
             </Button>

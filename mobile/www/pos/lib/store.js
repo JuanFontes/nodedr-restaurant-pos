@@ -125,6 +125,17 @@ export async function readEverything() {
     }
     const k = t.objectStore('kv').get('snapshot');
     k.onsuccess = () => (out.snapshot = k.result);
+    // Numbering counters live in kv, not in a store. Back them up too, or a
+    // restored phone reissues receipt/bill/KOT numbers from 001.
+    out.counters = {};
+    const keys = t.objectStore('kv').getAllKeys();
+    keys.onsuccess = () => {
+      for (const key of keys.result || []) {
+        if (!/^(seq|ordseq|kotseq):/.test(key)) continue;
+        const req = t.objectStore('kv').get(key);
+        req.onsuccess = () => { out.counters[key] = req.result; };
+      }
+    };
     t.oncomplete = resolve;
     t.onerror = t.onabort = () => reject(t.error);
   });
@@ -147,6 +158,11 @@ export async function replaceEverything(b) {
       for (const row of b[n] || []) st.put(row);
     }
     t.objectStore('kv').put(b.snapshot, 'snapshot');
+    if (b.counters) {
+      for (const [key, value] of Object.entries(b.counters)) {
+        if (/^(seq|ordseq|kotseq):/.test(key)) t.objectStore('kv').put(value, key);
+      }
+    }
     t.objectStore('kv').put(Date.now(), 'snapshotAt');
     t.objectStore('kv').delete('currentOrderId');
     t.oncomplete = resolve;
