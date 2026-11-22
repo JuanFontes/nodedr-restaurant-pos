@@ -147,12 +147,6 @@ const providers = [
       { id: "gpt-4o", name: "GPT-4o" },
     ],
   },
-  {
-    name: "Anthropic",
-    models: [
-      { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet" },
-    ],
-  },
 ];
 
 const allModels = providers.flatMap((p) => p.models);
@@ -168,6 +162,8 @@ export default function AskAssistantPage() {
   const [effort, setEffort] = React.useState<string>(efforts[1].id);
   const [threads, setThreads] = React.useState<ChatThread[]>([]);
   const [activeThreadId, setActiveThreadId] = React.useState<string>("");
+  const activeThreadIdRef = React.useRef(activeThreadId);
+  const chatAbortRef = React.useRef<AbortController | null>(null);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [text, setText] = React.useState("");
@@ -187,6 +183,11 @@ export default function AskAssistantPage() {
 
   // Messages state starts empty
   const [messages, setMessages] = React.useState<MessageItem[]>([]);
+
+  React.useEffect(() => {
+    activeThreadIdRef.current = activeThreadId;
+  }, [activeThreadId]);
+  React.useEffect(() => () => chatAbortRef.current?.abort(), []);
 
   // Auto-scroll to bottom whenever messages or status changes
   React.useEffect(() => {
@@ -239,6 +240,7 @@ export default function AskAssistantPage() {
   };
 
   const switchThread = (threadId: string) => {
+    chatAbortRef.current?.abort();
     setActiveThreadId(threadId);
     try {
       localStorage.setItem(STORAGE_KEY_ACTIVE_THREAD, threadId);
@@ -570,8 +572,11 @@ export default function AskAssistantPage() {
     setMessages(msgsWithThinking);
 
     const firstImage = filesToSend[0];
+    const abortController = new AbortController();
+    chatAbortRef.current = abortController;
 
     fetch("/api/v1/ai/chat", {
+      signal: abortController.signal,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -646,7 +651,9 @@ export default function AskAssistantPage() {
           role: "assistant",
           parts: assistantParts,
         });
-        persistMessages(currentThreadId, finalMsgs);
+        if (activeThreadIdRef.current === currentThreadId && !abortController.signal.aborted) {
+          persistMessages(currentThreadId, finalMsgs);
+        }
       })
       .catch((err) => {
         console.error("AI chat error:", err);
@@ -666,7 +673,9 @@ export default function AskAssistantPage() {
             },
           ],
         });
-        persistMessages(currentThreadId, fallbackMsgs);
+        if (activeThreadIdRef.current === currentThreadId && !abortController.signal.aborted) {
+          persistMessages(currentThreadId, fallbackMsgs);
+        }
       })
       .finally(() => {
         setStatus("ready");

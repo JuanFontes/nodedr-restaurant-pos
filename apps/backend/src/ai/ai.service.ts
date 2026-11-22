@@ -79,7 +79,7 @@ export class AiService {
     }
 
     if (openaiKey) {
-      return this.callOpenAI(messages, openaiKey);
+      return this.callOpenAI(messages, openaiKey, options.model);
     }
 
     // Graceful offline fallback: Contextual restaurant assistant response
@@ -219,8 +219,14 @@ export class AiService {
       }));
 
       // In KitchenOS and modern Gemini endpoints, 'gemini-flash-latest' or 'gemini-3.8-flash' is active
+      // Only allow known Gemini model ids into the provider URL; an unknown
+      // id (e.g. an OpenAI/Claude id from an older UI) falls back to the default.
+      const allowedGeminiModels = new Set([
+        'gemini-flash-latest',
+        'gemini-2.5-flash-lite',
+      ]);
       const modelToUse =
-        selectedModel && selectedModel !== 'gemini-1.5-flash'
+        selectedModel && allowedGeminiModels.has(selectedModel)
           ? selectedModel
           : 'gemini-flash-latest';
 
@@ -338,7 +344,11 @@ export class AiService {
     }
   }
 
-  private async callOpenAI(messages: ChatMessage[], apiKey: string) {
+  private async callOpenAI(
+    messages: ChatMessage[],
+    apiKey: string,
+    selectedModel?: string,
+  ) {
     try {
       const formattedMessages = [
         { role: 'system', content: SYSTEM_GUIDE_PROMPT },
@@ -352,7 +362,10 @@ export class AiService {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model:
+            selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini'
+              ? selectedModel
+              : 'gpt-4o-mini',
           messages: formattedMessages,
         }),
       });

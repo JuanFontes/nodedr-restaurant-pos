@@ -60,7 +60,7 @@ export function EditItemDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const stockTrackingHandleRef = useRef<StockTrackingHandle | null>(null);
   const queryClient = useQueryClient();
-  const [imageUrl, setImageUrl] = useState<string | undefined>(item.imageUrl ?? undefined);
+  const [imageUrl, setImageUrl] = useState<string | null | undefined>(item.imageUrl ?? undefined);
   const [imagePreview, setImagePreview] = useState<string | undefined>(item.imageUrl ?? undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,7 +175,7 @@ export function EditItemDialog({
                   <button
                     type="button"
                     onClick={() => {
-                      setImageUrl(undefined);
+                      setImageUrl(null); // explicit null so the PATCH clears it
                       setImagePreview(undefined);
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
