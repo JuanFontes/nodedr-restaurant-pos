@@ -180,13 +180,18 @@ export class GoodsReceiptsService {
         const newStock = round3(newStockDec.toNumber());
         const newCost =
           newStock > 0
-            ? round4(
-                oldStock
-                  .mul(ingredient.costPerUnit)
-                  .plus(new Prisma.Decimal(item.quantity).mul(item.unitCost))
-                  .div(newStockDec)
-                  .toNumber(),
-              )
+            ? oldStock.gt(0)
+              ? round4(
+                  oldStock
+                    .mul(ingredient.costPerUnit)
+                    .plus(new Prisma.Decimal(item.quantity).mul(item.unitCost))
+                    .div(newStockDec)
+                    .toNumber(),
+                )
+              : // Prior stock was nonpositive: an average over a negative base
+                // is meaningless (and can overflow Decimal(12,4)). Use the
+                // receipt cost for the new positive balance instead.
+                Number(item.unitCost)
             : Number(ingredient.costPerUnit);
 
         await tx.ingredient.update({

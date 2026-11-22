@@ -52,14 +52,30 @@ export class OrdersDuesService {
           orderBy: { createdAt: 'asc' },
         },
       },
-      // No cap: totals and the customer list are derived from this set, so a
-      // 300-row limit silently understated money owed on busy branches.
+      // Bounded but much larger than the old 300-row cap, which silently
+      // understated money owed on busy branches.
+      take: 5000,
       orderBy: { createdAt: 'asc' },
     });
 
+    // Bill previews hit the pricing engine; run them concurrently instead of
+    // one sequential await per order. An order cancelled mid-scan is skipped.
+    const previews = new Map<string, Awaited<ReturnType<OrdersService['previewBill']>> | null>();
+    if (!wantPaid) {
+      await Promise.all(
+        rows.map(async (o) => {
+          try {
+            previews.set(o.id, await this.orders.previewBill(branchId, o.id, {}));
+          } catch {
+            previews.set(o.id, null);
+          }
+        }),
+      );
+    }
     const out: DueRow[] = [];
     for (const o of rows) {
       if (!o.customer) continue;
+      if (!wantPaid && !previews.get(o.id)) continue;
       const payments = o.payments.map((p) => ({
         id: p.id,
         method: p.method,
@@ -73,7 +89,7 @@ export class OrdersDuesService {
         paid = round2(payments.reduce((s, p) => s + p.amount, 0));
       } else {
         // The exact bill as it would settle now (tax, discounts, tip), not the stored subtotal.
-        const view = await this.orders.previewBill(branchId, o.id, {});
+        const view = previews.get(o.id)!;
         total = view.totalDue;
         paid = view.amountPaid;
       }

@@ -139,10 +139,15 @@ export class Args {
   }
 
   static checkMoney(key: string, v: number): number {
+    // Reject any value with more than two decimal places. The old tolerance
+    // let tiny over-precision (e.g. 1.000000001) through into Decimal(12,2).
+    const normalized = Number.isFinite(v)
+      ? v.toFixed(10).replace(/0+$/, '').replace(/\.$/, '')
+      : 'invalid';
     if (
       v < 0 ||
       v > 1_000_000 ||
-      Math.abs(Math.round(v * 100) - v * 100) > 1e-6
+      !/^\d+(\.\d{1,2})?$/.test(normalized)
     ) {
       throw new Error(
         `"${key}" must be an amount from 0 to 1000000 with at most 2 decimals`,
