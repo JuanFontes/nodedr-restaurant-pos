@@ -52,8 +52,9 @@ export class OrdersDuesService {
           orderBy: { createdAt: 'asc' },
         },
       },
+      // No cap: totals and the customer list are derived from this set, so a
+      // 300-row limit silently understated money owed on busy branches.
       orderBy: { createdAt: 'asc' },
-      take: 300,
     });
 
     const out: DueRow[] = [];

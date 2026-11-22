@@ -172,15 +172,22 @@ export class GoodsReceiptsService {
         });
 
         // These balances were read after locking the ingredient rows above.
-        const oldStock = Math.max(0, Number(ingredient.currentStock));
-        const oldCost = Number(ingredient.costPerUnit);
-        const newStock = round3(oldStock + item.quantity);
+        // Use the real signed balance. Clamping to zero here made the cached
+        // stock disagree with the movement ledger (and distorted the weighted
+        // average cost) whenever an earlier sale had driven stock negative.
+        const oldStock = new Prisma.Decimal(ingredient.currentStock);
+        const newStockDec = oldStock.plus(item.quantity);
+        const newStock = round3(newStockDec.toNumber());
         const newCost =
           newStock > 0
             ? round4(
-                (oldStock * oldCost + item.quantity * item.unitCost) / newStock,
+                oldStock
+                  .mul(ingredient.costPerUnit)
+                  .plus(new Prisma.Decimal(item.quantity).mul(item.unitCost))
+                  .div(newStockDec)
+                  .toNumber(),
               )
-            : oldCost;
+            : Number(ingredient.costPerUnit);
 
         await tx.ingredient.update({
           where: { id: item.ingredientId },

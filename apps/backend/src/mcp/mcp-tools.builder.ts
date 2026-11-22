@@ -1959,7 +1959,7 @@ export class McpToolsBuilder {
           await this.assertBranch(actor, branchId);
           const name = args.string('name');
           const categoryName = args.optionalString('category') || 'Specialties';
-          const price = args.optionalNumber('price') || 120;
+          const price = args.optionalMoney('price') ?? 120;
           const isVeg = (args.rawArg('isVeg') as boolean) ?? true;
           const rawBomLines =
             (args.optionalArray('bomLines') as
