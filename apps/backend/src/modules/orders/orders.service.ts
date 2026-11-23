@@ -2139,6 +2139,41 @@ export class OrdersService {
     }
   }
 
+  /**
+   * A refund issued back to a gift card restores the value that checkout took
+   * from it. Pro-rated across every redemption on the order (a partially paid
+   * bill can be settled in more than one visit), capped at the refund ratio so
+   * the sum of all refunds can never credit more than was redeemed.
+   */
+  private async creditGiftCardsForRefund(
+    tx: Prisma.TransactionClient,
+    args: {
+      branchId: string;
+      orderId: string;
+      refundAmount: number;
+      totalAmount: number;
+    },
+  ): Promise<void> {
+    if (args.totalAmount <= 0 || args.refundAmount <= 0) return;
+    const redemptions = await tx.giftCardRedemption.findMany({
+      where: { orderId: args.orderId },
+      select: { giftCardId: true, amount: true },
+    });
+    if (!redemptions.length) return;
+    const ratio = Math.min(1, args.refundAmount / args.totalAmount);
+    for (const redemption of redemptions) {
+      const credit = round2(Number(redemption.amount) * ratio);
+      if (credit > 0) {
+        await this.giftCards.credit(
+          tx,
+          args.branchId,
+          redemption.giftCardId,
+          credit,
+        );
+      }
+    }
+  }
+
   async refund(
     branchId: string,
     orderId: string,
@@ -2227,6 +2262,17 @@ export class OrdersService {
         await tx.gatewayRefund.update({
           where: { id: excludeReservationId },
           data: { refundId: created.id },
+        });
+      }
+      // Only a refund *back to the card* restores its balance. A cash or
+      // store-credit refund pays the customer through that other channel;
+      // crediting the card as well would pay them twice.
+      if (dto.method === 'GIFT_CARD') {
+        await this.creditGiftCardsForRefund(tx, {
+          branchId,
+          orderId,
+          refundAmount: dto.amount,
+          totalAmount: Number(order.totalAmount),
         });
       }
       await this.verifactu.recordRefund(tx, orderId, created.id, dto.amount);
