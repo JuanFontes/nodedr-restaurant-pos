@@ -2142,8 +2142,12 @@ export class OrdersService {
   /**
    * A refund issued back to a gift card restores the value that checkout took
    * from it. Pro-rated across every redemption on the order (a partially paid
-   * bill can be settled in more than one visit), capped at the refund ratio so
-   * the sum of all refunds can never credit more than was redeemed.
+   * bill can be settled in more than one visit).
+   *
+   * The credit is the *difference* between the newly rounded cumulative
+   * entitlement and the previous one, using only earlier GIFT_CARD refunds.
+   * Rounding each partial refund independently would credit 16.67 twice on a
+   * 33.33 redemption and over-pay the card by a cent.
    */
   private async creditGiftCardsForRefund(
     tx: Prisma.TransactionClient,
@@ -2152,6 +2156,7 @@ export class OrdersService {
       orderId: string;
       refundAmount: number;
       totalAmount: number;
+      priorGiftCardRefunded: number;
     },
   ): Promise<void> {
     if (args.totalAmount <= 0 || args.refundAmount <= 0) return;
@@ -2160,9 +2165,14 @@ export class OrdersService {
       select: { giftCardId: true, amount: true },
     });
     if (!redemptions.length) return;
-    const ratio = Math.min(1, args.refundAmount / args.totalAmount);
     for (const redemption of redemptions) {
-      const credit = round2(Number(redemption.amount) * ratio);
+      const redeemed = Number(redemption.amount);
+      const share = (amount: number) =>
+        round2(Math.min(redeemed, (amount / args.totalAmount) * redeemed));
+      const credit = round2(
+        share(args.priorGiftCardRefunded + args.refundAmount) -
+          share(args.priorGiftCardRefunded),
+      );
       if (credit > 0) {
         await this.giftCards.credit(
           tx,
@@ -2268,11 +2278,17 @@ export class OrdersService {
       // store-credit refund pays the customer through that other channel;
       // crediting the card as well would pay them twice.
       if (dto.method === 'GIFT_CARD') {
+        const priorGiftCardRefunded = round2(
+          refunds
+            .filter((r) => r.method === 'GIFT_CARD')
+            .reduce((sum, r) => sum + Number(r.amount), 0),
+        );
         await this.creditGiftCardsForRefund(tx, {
           branchId,
           orderId,
           refundAmount: dto.amount,
           totalAmount: Number(order.totalAmount),
+          priorGiftCardRefunded,
         });
       }
       await this.verifactu.recordRefund(tx, orderId, created.id, dto.amount);

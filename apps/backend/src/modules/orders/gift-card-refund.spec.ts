@@ -2,7 +2,10 @@
 import { OrdersService } from './orders.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
 
-function setup(redemptions: { giftCardId: string; amount: number }[] = []) {
+function setup(
+  redemptions: { giftCardId: string; amount: number }[] = [],
+  priorRefunds: { method: string; amount: number }[] = [],
+) {
   const credits: { giftCardId: string; amount: number }[] = [];
   const giftCards: any = {
     credit: jest.fn(
@@ -14,7 +17,7 @@ function setup(redemptions: { giftCardId: string; amount: number }[] = []) {
   const tx: any = {
     order: { update: jest.fn(async () => ({})) },
     refund: {
-      findMany: jest.fn(async () => []),
+      findMany: jest.fn(async () => priorRefunds),
       create: jest.fn(async () => ({ id: 'ref1' })),
     },
     gatewayRefund: { findMany: jest.fn(async () => []) },
@@ -72,6 +75,20 @@ describe('gift card value on refund', () => {
       { giftCardId: 'gc1', amount: 15 },
       { giftCardId: 'gc2', amount: 10 },
     ]);
+  });
+
+  it('does not over-credit through repeated partial refunds (cent rounding)', async () => {
+    const first = setup([{ giftCardId: 'gc1', amount: 33.33 }]);
+    await refund(first.svc, 'GIFT_CARD', 50);
+    expect(first.credits).toEqual([{ giftCardId: 'gc1', amount: 16.67 }]);
+
+    const second = setup(
+      [{ giftCardId: 'gc1', amount: 33.33 }],
+      [{ method: 'GIFT_CARD', amount: 50 }],
+    );
+    await refund(second.svc, 'GIFT_CARD', 50);
+    expect(second.credits).toEqual([{ giftCardId: 'gc1', amount: 16.66 }]);
+    expect(first.credits[0].amount + second.credits[0].amount).toBe(33.33);
   });
 
   it('does not credit the card for a cash refund', async () => {
