@@ -2,7 +2,7 @@
 
 import type { SessionUser } from "@nodedr-restaurant/types";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { EntityDialogHost } from "@/components/layout/entity-dialog-host";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -68,6 +68,14 @@ export function AppShell({
   // tabbing into it shows it expanded as an overlay without moving the page. Only an explicit "0" means "pinned open".
   const [collapsed, setCollapsed] = useState(true);
   const [peek, setPeek] = useState(false);
+  // Hover opens the sidebar only when the mouse rests on it (a short delay), and closes it a moment after leaving,
+  // so sweeping across it to reach the page does not make it flicker open and shut.
+  const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schedulePeek = (on: boolean) => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setPeek(on), on ? 150 : 250);
+  };
+  useEffect(() => () => { if (peekTimer.current) clearTimeout(peekTimer.current); }, []);
   useEffect(() => {
     let v = true;
     try { v = localStorage.getItem("orderrestro.sidebar.collapsed") !== "0"; } catch { /* storage blocked */ }
@@ -96,8 +104,8 @@ export function AppShell({
         id="app-sidebar"
         aria-label="Main navigation"
         className={`relative hidden shrink-0 transition-[width] duration-200 motion-reduce:transition-none lg:block ${collapsed ? "w-[4.5rem]" : "w-64"}`}
-        onPointerEnter={(e) => { if (e.pointerType === "mouse") setPeek(true); }}
-        onPointerLeave={() => setPeek(false)}
+        onPointerEnter={(e) => { if (e.pointerType === "mouse") schedulePeek(true); }}
+        onPointerLeave={() => schedulePeek(false)}
         onFocus={() => setPeek(true)}
         onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(false); }}
       >
