@@ -781,9 +781,13 @@ export class GatewayPaymentsService {
         await this.prisma.gatewayRefund.update({
           where: { id: r.id },
           data: {
-            status: 'FAILED',
+            // A linked row still backs a local Refund that reduces the order's
+            // refundable balance. Leave it in the review list with its note;
+            // marking it FAILED would hide it from the only place an operator
+            // can see that manual intervention is needed.
+            status: r.refundId ? 'NEEDS_REVIEW' : 'FAILED',
             note: r.refundId
-              ? 'The provider confirms this refund failed, but a local Refund was already recorded. Reverse that refund in OrderRestro before refunding again.'
+              ? 'The provider confirms this refund failed, but a local Refund was already recorded and still counts against the order. There is no self-service reversal — an owner must correct this record before refunding again.'
               : 'The provider confirms this refund failed.',
           },
         });
