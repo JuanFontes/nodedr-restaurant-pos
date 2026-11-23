@@ -104,6 +104,25 @@ describe('AccountingService reports', () => {
     expect(r.totalTax).toBe(7.63);
   });
 
+  it('does not reduce GST taxable value by loyalty points (they are tender)', async () => {
+    const { svc, prisma } = setup();
+    prisma.order.findMany.mockResolvedValue([
+      {
+        id: 'o1',
+        totalAmount: 80,
+        subtotal: 100,
+        discountAmount: 0,
+        loyaltyDiscountAmount: 20,
+        items: [{ lineTotal: 100, taxRateSnapshot: 18 }],
+      },
+    ]);
+    prisma.refund.groupBy.mockResolvedValue([]);
+    const r = await svc.gstReport('b1', '2026-10-01', '2026-10-31');
+    // The bill stored 15.25 of tax on the 100 line; redeeming 20 of loyalty
+    // points is a tender, so the report must still show that tax.
+    expect(r.totalTax).toBe(15.25);
+  });
+
   it('refuses a cash expense on an already closed day', async () => {
     const { svc, prisma } = setup();
     prisma.cashClosing.findUnique.mockResolvedValue({ id: 'close1' });

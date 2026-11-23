@@ -334,6 +334,9 @@ export class LedgerService {
       where: { id, branchId },
     });
     if (!t) throw new NotFoundException('Bank transaction not found');
+    // Only money-out lines represent spend that can be reconciled to an
+    // expense. A credit (deposit, refund received) has no expense to match.
+    if (Number(t.amount) >= 0) return [];
     const taken = (
       await this.prisma.bankTransaction.findMany({
         where: { branchId, expenseId: { not: null } },
@@ -362,6 +365,11 @@ export class LedgerService {
     ]);
     if (!t || !e)
       throw new NotFoundException('Transaction or expense not found');
+    if (Number(t.amount) >= 0) {
+      throw new BadRequestException(
+        'Only money-out bank lines can be matched to an expense',
+      );
+    }
     const used = await this.prisma.bankTransaction.findFirst({
       where: { branchId, expenseId, NOT: { id } },
     });

@@ -257,8 +257,10 @@ export class AccountingService {
     );
     const lines = orders.flatMap((o) => {
       const subtotal = Number(o.subtotal);
-      const charged =
-        subtotal - Number(o.discountAmount) - Number(o.loyaltyDiscountAmount);
+      // Loyalty points are tender, not a price reduction: computeBill() keeps
+      // them out of the stored tax, so reducing the taxable value here would
+      // make this report disagree with what was actually charged on the bill.
+      const charged = subtotal - Number(o.discountAmount);
       // A refund reverses the taxable sale for GST purposes just as it does
       // for P&L. Prorate every line by how much of this bill was refunded.
       const refundRatio = Math.min(
