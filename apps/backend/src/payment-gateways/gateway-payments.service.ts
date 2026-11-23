@@ -31,6 +31,10 @@ const REUSE_WINDOW_MS = 30 * 60_000;
 const MIN_REFRESH_GAP_MS = 2_000;
 // A claim younger than this is assumed to still have a live checkout owner.
 const RECOVERY_ABANDONED_MS = 2 * 60_000;
+// Refusals that prove the provider did not create the refund. 429 and 5xx are
+// deliberately absent: the request may have succeeded before the response was
+// lost, so those outcomes must never release the hold on the reservation.
+const DEFINITE_REFUND_REJECTIONS = new Set([400, 401, 403, 404, 409, 422]);
 
 export class WebhookRejected extends Error {}
 
@@ -625,6 +629,7 @@ export class GatewayPaymentsService {
     });
 
     let providerRefundId: string;
+    let providerState: 'DONE' | 'PENDING' = 'DONE';
     try {
       const r = await adapter.refund(
         this.gateways.context(restaurantId, conn, p.mode),
@@ -636,8 +641,14 @@ export class GatewayPaymentsService {
         },
       );
       providerRefundId = r.providerRefundId;
+      providerState = r.state ?? 'DONE';
     } catch (e) {
-      const definite = e instanceof GatewayError && e.status !== undefined;
+      // Only an explicit client rejection proves the refund did not happen.
+      // A 429 or 5xx may be returned *after* the provider accepted it, so it
+      // must keep the hold and go to review rather than releasing it here.
+      const status = e instanceof GatewayError ? e.status : undefined;
+      const definite =
+        status !== undefined && DEFINITE_REFUND_REJECTIONS.has(status);
       const msg = e instanceof GatewayError ? e.message : 'Refund failed';
       await this.prisma.gatewayRefund.update({
         where: { id: row.id },
@@ -674,9 +685,17 @@ export class GatewayPaymentsService {
       await this.prisma.gatewayRefund.update({
         where: { id: row.id },
         data: {
-          status: 'SUCCEEDED',
+          // A provider that accepted the refund but has not finalised it must
+          // stay reconcilable. A SUCCEEDED row is never revisited by
+          // refundsNeedingReview(), so a later reversal would go unnoticed.
+          // The local Refund above is linked via `refundId`, so the hold is
+          // already counted in the book's paid-back total either way.
+          status: providerState === 'PENDING' ? 'PENDING' : 'SUCCEEDED',
           providerRefundId,
-          note: null,
+          note:
+            providerState === 'PENDING'
+              ? 'The provider accepted this refund but has not finalised it yet. Its status is checked automatically.'
+              : null,
         },
       });
       return {
@@ -763,7 +782,9 @@ export class GatewayPaymentsService {
           where: { id: r.id },
           data: {
             status: 'FAILED',
-            note: 'The provider confirms this refund failed.',
+            note: r.refundId
+              ? 'The provider confirms this refund failed, but a local Refund was already recorded. Reverse that refund in OrderRestro before refunding again.'
+              : 'The provider confirms this refund failed.',
           },
         });
       }

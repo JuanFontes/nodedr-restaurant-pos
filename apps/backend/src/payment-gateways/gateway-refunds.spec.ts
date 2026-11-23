@@ -145,6 +145,21 @@ describe('refunding through the gateway', () => {
     );
   });
 
+  it.each([429, 500, 502, 503])(
+    'HTTP %s from the provider is ambiguous, so the hold is kept for review',
+    async (status) => {
+      const s = setup();
+      fake.refund.mockRejectedValue(
+        new GatewayError(`The provider answered HTTP ${status}`, status),
+      );
+      await expect(go(s)).rejects.toBeInstanceOf(BadRequestException);
+      expect(s.orders.refund).not.toHaveBeenCalled();
+      const update = s.prisma.gatewayRefund.update.mock.calls[0][0].data;
+      expect(update.status).toBe('NEEDS_REVIEW');
+      expect(update.note).toMatch(/unknown whether the refund went through/);
+    },
+  );
+
   it('a timeout is flagged for review, never retried, and nothing is recorded locally', async () => {
     const s = setup();
     fake.refund.mockRejectedValue(
@@ -156,6 +171,23 @@ describe('refunding through the gateway', () => {
     expect(s.prisma.gatewayRefund.update.mock.calls[0][0].data.status).toBe(
       'NEEDS_REVIEW',
     );
+  });
+
+  it('a PENDING provider result stays reconcilable instead of being finalised as SUCCEEDED', async () => {
+    const s = setup();
+    fake.refund.mockResolvedValue({
+      providerRefundId: 're_pending',
+      state: 'PENDING',
+    });
+    await expect(go(s)).resolves.toMatchObject({ ok: true });
+    expect(s.orders.refund).toHaveBeenCalledTimes(1);
+    const update = s.prisma.gatewayRefund.update.mock.calls.at(-1)[0].data;
+    expect(update.status).toBe('PENDING');
+    expect(update.providerRefundId).toBe('re_pending');
+    expect(update.note).toMatch(/not finalised/);
+    // A PENDING row with a local Refund still expires into the review list,
+    // where reconcileStaleRefund() asks the provider what really happened.
+    expect(s.refunds[0].status).toBe('PENDING');
   });
 
   it('if the provider refunded but the local record fails, it is flagged with the provider id', async () => {
