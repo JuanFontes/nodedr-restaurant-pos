@@ -1415,6 +1415,10 @@ export class ProductionService {
   ) {
     const { reason, ...rest } = dto;
     const newId = await this.prisma.$transaction(async (tx) => {
+      // Lock order must match create()/post(): advisory lock first, ingredient
+      // row locks second. voidInTx() takes the row locks, so taking the
+      // advisory lock afterwards can deadlock against a concurrent post().
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'production:' + branchId}))`;
       await this.voidInTx(tx, branchId, userId, id, `Corrected: ${reason}`);
       const created = await this.createInTx(
         tx,

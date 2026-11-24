@@ -142,18 +142,26 @@ export class StockJournalService {
         });
       });
     } catch (e) {
+      // Concurrent copies of one request race on the unique key (P2002), or give up waiting for the row locks the
+      // first copy holds (P2028 start timeout, P2034 conflict). In all three the first copy is the one that counts:
+      // wait briefly for it to commit and return its result instead of surfacing a 500 for a duplicate.
       if (
         dto.idempotencyKey &&
         e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === 'P2002'
+        ['P2002', 'P2028', 'P2034'].includes(e.code)
       ) {
-        // A concurrent retry won the unique key: return its batch instead of
-        // reporting a 500. The losing transaction rolled back completely.
-        const winner = await this.prisma.stockBatch.findFirst({
-          where: { branchId, idempotencyKey: dto.idempotencyKey },
-          include: { stockMovements: true },
-        });
-        if (winner) return winner;
+        for (let attempt = 0; attempt < 15; attempt++) {
+          const winner = await this.prisma.stockTake.findUnique({
+            where: {
+              branchId_idempotencyKey: {
+                branchId,
+                idempotencyKey: dto.idempotencyKey,
+              },
+            },
+          });
+          if (winner) return winner;
+          await new Promise((r) => setTimeout(r, 300));
+        }
       }
       throw e;
     }
@@ -173,150 +181,169 @@ export class StockJournalService {
       });
       if (dup) return dup;
     }
-    return this.prisma.$transaction(async (tx) => {
-      const ids = [...new Set(dto.lines.map((l) => l.ingredientId))].sort();
-      if (ids.length !== dto.lines.length)
-        throw new BadRequestException('An item is on the sheet twice');
-      for (const id of ids)
-        await tx.$queryRaw`SELECT id FROM ingredients WHERE id = ${id} FOR UPDATE`;
-      const items = await tx.ingredient.findMany({
-        where: { id: { in: ids }, branchId },
-      });
-      if (items.length !== ids.length)
-        throw new NotFoundException('A counted item was not found');
-      const byId = new Map(items.map((i) => [i.id, i]));
-      // When the sheet is for a place the restaurant has set up, the count is compared with what was
-      // recorded IN that place, and the place's level is set to the count; the item's total moves by the difference.
-      const place = dto.area
-        ? await tx.stockLocation.findFirst({
-            where: { branchId, name: dto.area, isActive: true },
-          })
-        : null;
-      const placeLevels = place
-        ? new Map(
-            (
-              await tx.stockLevel.findMany({
-                where: { locationId: place.id, ingredientId: { in: ids } },
-              })
-            ).map((l) => [l.ingredientId, l.quantity]),
-          )
-        : null;
-      const take = await tx.stockTake.create({
-        data: {
-          branchId,
-          takenAt: dto.takenAt ?? new Date(),
-          area: dto.area,
-          note: dto.note,
-          idempotencyKey: dto.idempotencyKey,
-          deviceId: dto.deviceId,
-          createdById: userId,
-          lines: [],
-        },
-      });
-      const out: {
-        ingredientId: string;
-        name: string;
-        unit: string;
-        expected: string;
-        counted: string;
-        difference: string;
-      }[] = [];
-      for (const l of dto.lines) {
-        const ing = byId.get(l.ingredientId)!;
-        const counted = Dec(l.counted).isZero()
-          ? Dec(0)
-          : toBaseQuantity(
-              l.counted,
-              l.unit,
-              ing.unit,
-              ing.conversions,
-              ing.name,
-            );
-        if (Dec(l.counted).isNegative())
-          throw new BadRequestException(
-            `${ing.name}: a count cannot be negative`,
-          );
-        const expected = placeLevels
-          ? Dec(placeLevels.get(ing.id) ?? 0)
-          : Dec(ing.currentStock);
-        const diff = counted.minus(expected);
-        out.push({
-          ingredientId: ing.id,
-          name: ing.name,
-          unit: ing.unit,
-          expected: expected.toString(),
-          counted: counted.toString(),
-          difference: diff.toString(),
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const ids = [...new Set(dto.lines.map((l) => l.ingredientId))].sort();
+        if (ids.length !== dto.lines.length)
+          throw new BadRequestException('An item is on the sheet twice');
+        for (const id of ids)
+          await tx.$queryRaw`SELECT id FROM ingredients WHERE id = ${id} FOR UPDATE`;
+        const items = await tx.ingredient.findMany({
+          where: { id: { in: ids }, branchId },
         });
-        if (diff.isZero()) continue;
-        if (place)
-          await tx.stockLevel.upsert({
-            where: {
-              ingredientId_locationId: {
+        if (items.length !== ids.length)
+          throw new NotFoundException('A counted item was not found');
+        const byId = new Map(items.map((i) => [i.id, i]));
+        // When the sheet is for a place the restaurant has set up, the count is compared with what was
+        // recorded IN that place, and the place's level is set to the count; the item's total moves by the difference.
+        const place = dto.area
+          ? await tx.stockLocation.findFirst({
+              where: { branchId, name: dto.area, isActive: true },
+            })
+          : null;
+        const placeLevels = place
+          ? new Map(
+              (
+                await tx.stockLevel.findMany({
+                  where: { locationId: place.id, ingredientId: { in: ids } },
+                })
+              ).map((l) => [l.ingredientId, l.quantity]),
+            )
+          : null;
+        const take = await tx.stockTake.create({
+          data: {
+            branchId,
+            takenAt: dto.takenAt ?? new Date(),
+            area: dto.area,
+            note: dto.note,
+            idempotencyKey: dto.idempotencyKey,
+            deviceId: dto.deviceId,
+            createdById: userId,
+            lines: [],
+          },
+        });
+        const out: {
+          ingredientId: string;
+          name: string;
+          unit: string;
+          expected: string;
+          counted: string;
+          difference: string;
+        }[] = [];
+        for (const l of dto.lines) {
+          const ing = byId.get(l.ingredientId)!;
+          const counted = Dec(l.counted).isZero()
+            ? Dec(0)
+            : toBaseQuantity(
+                l.counted,
+                l.unit,
+                ing.unit,
+                ing.conversions,
+                ing.name,
+              );
+          if (Dec(l.counted).isNegative())
+            throw new BadRequestException(
+              `${ing.name}: a count cannot be negative`,
+            );
+          const expected = placeLevels
+            ? Dec(placeLevels.get(ing.id) ?? 0)
+            : Dec(ing.currentStock);
+          const diff = counted.minus(expected);
+          out.push({
+            ingredientId: ing.id,
+            name: ing.name,
+            unit: ing.unit,
+            expected: expected.toString(),
+            counted: counted.toString(),
+            difference: diff.toString(),
+          });
+          if (diff.isZero()) continue;
+          if (place)
+            await tx.stockLevel.upsert({
+              where: {
+                ingredientId_locationId: {
+                  ingredientId: ing.id,
+                  locationId: place.id,
+                },
+              },
+              create: {
                 ingredientId: ing.id,
                 locationId: place.id,
+                quantity: counted,
               },
-            },
-            create: {
-              ingredientId: ing.id,
-              locationId: place.id,
-              quantity: counted,
-            },
-            update: { quantity: counted },
-          });
-        const note = `Stock take: counted ${counted.toString()}, system had ${expected.toString()}${dto.area ? ` (${dto.area})` : ''}`;
-        if (diff.isNegative()) {
-          await this.stock.consumeStock(tx, branchId, ing.id, diff.abs(), {
-            type: 'ADJUSTMENT',
-            note,
-            userId,
-            allowNegative: false,
-            refs: { deviceId: dto.deviceId },
-          });
-        } else {
-          const batch = await tx.stockBatch.create({
-            data: {
-              branchId,
-              ingredientId: ing.id,
-              batchNumber: 'COUNT',
-              quantityReceived: diff,
-              quantityRemaining: diff,
-              unitCost: 0,
-            },
-          });
-          await tx.stockMovement.create({
-            data: {
-              branchId,
-              ingredientId: ing.id,
-              batchId: batch.id,
+              update: { quantity: counted },
+            });
+          const note = `Stock take: counted ${counted.toString()}, system had ${expected.toString()}${dto.area ? ` (${dto.area})` : ''}`;
+          if (diff.isNegative()) {
+            await this.stock.consumeStock(tx, branchId, ing.id, diff.abs(), {
               type: 'ADJUSTMENT',
-              quantity: diff,
               note,
-              createdById: userId,
-              deviceId: dto.deviceId,
-            },
-          });
-          await tx.ingredient.update({
-            where: { id: ing.id },
-            data: { currentStock: Dec(ing.currentStock).plus(diff) },
-          });
+              userId,
+              allowNegative: false,
+              refs: { deviceId: dto.deviceId },
+            });
+          } else {
+            const batch = await tx.stockBatch.create({
+              data: {
+                branchId,
+                ingredientId: ing.id,
+                batchNumber: 'COUNT',
+                quantityReceived: diff,
+                quantityRemaining: diff,
+                unitCost: 0,
+              },
+            });
+            await tx.stockMovement.create({
+              data: {
+                branchId,
+                ingredientId: ing.id,
+                batchId: batch.id,
+                type: 'ADJUSTMENT',
+                quantity: diff,
+                note,
+                createdById: userId,
+                deviceId: dto.deviceId,
+              },
+            });
+            await tx.ingredient.update({
+              where: { id: ing.id },
+              data: { currentStock: Dec(ing.currentStock).plus(diff) },
+            });
+          }
         }
+        await this.audit.record({
+          userId,
+          action: 'stock.take',
+          entity: 'StockTake',
+          entityId: take.id,
+          metadata: {
+            items: out.length,
+            changed: out.filter((o) => o.difference !== '0').length,
+          },
+        });
+        return tx.stockTake.update({
+          where: { id: take.id },
+          data: { lines: out },
+        });
+      });
+    } catch (e) {
+      if (
+        dto.idempotencyKey &&
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        const winner = await this.prisma.stockTake.findUnique({
+          where: {
+            branchId_idempotencyKey: {
+              branchId,
+              idempotencyKey: dto.idempotencyKey,
+            },
+          },
+        });
+        if (winner) return winner;
       }
-      await this.audit.record({
-        userId,
-        action: 'stock.take',
-        entity: 'StockTake',
-        entityId: take.id,
-        metadata: {
-          items: out.length,
-          changed: out.filter((o) => o.difference !== '0').length,
-        },
-      });
-      return tx.stockTake.update({
-        where: { id: take.id },
-        data: { lines: out },
-      });
-    });
+      throw e;
+    }
   }
 
   listStockTakes(branchId: string) {

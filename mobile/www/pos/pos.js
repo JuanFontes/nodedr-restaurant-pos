@@ -1391,6 +1391,7 @@ function openPay() {
   let rows = [{ method: 'CASH', amount: String(bill.total) }];
   let finished = false; // set once the sale commits; stale redraws must not restore Payment
   let savedSale = null; // survives a partially failed save so retry reuses the same sale
+  let stockApplied = false; // guard against a retry decrementing stock twice
   const METHODS = [['CASH', 'Cash'], ['UPI', 'UPI'], ['CARD', 'Card'], ['OTHER', 'Other']];
   const draw = async () => {
     if (finished) return;
@@ -1516,7 +1517,12 @@ function openPay() {
         await sales.put(savedSale);
       }
       const sale = savedSale;
-      if (S.snap.local) S.snap = await useStock(S.snap, sale.items);
+      if (S.snap.local && !stockApplied) {
+        // useStock saves a copy and returns it only on success: a failed write leaves the stock untouched and
+        // stockApplied false, so Tap-to-retry deducts exactly once. Set only after the save has committed.
+        S.snap = await useStock(S.snap, sale.items);
+        stockApplied = true;
+      }
       const o = S.orderId ? await orders.get(S.orderId) : null;
       if (o) await orders.put({ ...o, status: 'PAID', saleId: sale.id, paidAt: new Date().toISOString() }); // frees the table
       resetCart();
@@ -1524,6 +1530,8 @@ function openPay() {
       finished = true;
       openDone(sale);
       gatedSync({ refreshMenu: false });
+    } catch (e) {
+      toast(`Could not finish the sale: ${e.message}. Tap Complete sale to retry.`, 6000);
     } finally {
       checkoutInFlight = false;
     }

@@ -381,6 +381,7 @@ export default function AskAssistantPage() {
             command: targetPart?.command,
             title: targetPart?.actionTitle,
             toolName: targetPart?.proposalData?.toolName,
+            actions: targetPart?.proposalData?.actions,
             items: targetPart?.proposalData?.items,
             bomLines: targetPart?.proposalData?.bomLines,
             ingredients: targetPart?.proposalData?.bomLines?.map((b) => ({
