@@ -240,7 +240,11 @@ export default function AskAssistantPage() {
   };
 
   const switchThread = (threadId: string) => {
+    // A reply still on its way belongs to the thread it was asked in. Cancel it so it can neither land in this
+    // thread nor keep the composer locked: the new thread must be usable straight away.
     chatAbortRef.current?.abort();
+    chatAbortRef.current = null;
+    setStatus("ready");
     setActiveThreadId(threadId);
     try {
       localStorage.setItem(STORAGE_KEY_ACTIVE_THREAD, threadId);
@@ -616,7 +620,11 @@ export default function AskAssistantPage() {
         const assistantParts: ChatMessagePart[] = [
           {
             type: "reasoning",
-            text: data.reasoning || `Processed operational logic for "${userText || "Image"}"`,
+            text:
+              (data.reasoning || `Processed operational logic for "${userText || "Image"}"`) +
+              (data.modelFallback && data.modelUsed
+                ? ` (Answered with ${data.modelUsed}: the model you picked is not set up on this server.)`
+                : ""),
             state: "output-available" as const,
           },
           {
@@ -678,7 +686,11 @@ export default function AskAssistantPage() {
         }
       })
       .finally(() => {
-        setStatus("ready");
+        // A newer request (or a thread switch) owns the status now; a stale one must not flip it back to ready.
+        if (chatAbortRef.current === abortController) {
+          chatAbortRef.current = null;
+          setStatus("ready");
+        }
       });
   };
 
