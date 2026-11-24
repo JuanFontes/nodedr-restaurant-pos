@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return -- supertest bodies are untyped by design */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- supertest bodies are untyped by design */
 // Gift-card refunds against a REAL Postgres: the refund record and the card
 // credit must always agree, mixed tender is capped at what the card paid, and
 // concurrent refunds cannot over-credit. Opt-in:
@@ -167,7 +167,9 @@ run('Gift-card refunds (e2e, real Postgres)', () => {
     const id = await paidOrder(c.code, 60);
     // The card row disappears out from under the refund (redemption cascades with it,
     // so re-add a redemption pointing at a card of another branch to force the failure).
-    const demo = await prisma.branch.findUniqueOrThrow({ where: { id: BRANCH } });
+    const demo = await prisma.branch.findUniqueOrThrow({
+      where: { id: BRANCH },
+    });
     const other = await prisma.branch.create({
       data: { restaurantId: demo.restaurantId, name: `Other ${tag}` },
     });

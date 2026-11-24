@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return -- supertest bodies are untyped by design */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- supertest bodies are untyped by design */
 // Concurrent checkout against a REAL Postgres: two tills must never overpay one
 // open bill, a replayed requestId must never charge twice, and settlement side
 // effects must happen exactly once. Opt-in:
@@ -26,8 +26,7 @@ run('Concurrent checkout (e2e, real Postgres)', () => {
   let itemId: string; // 100.00, no tax -> bill is exactly 100 (200 for qty 2)
   let tableSeq = 0;
 
-  const post = (p: string, b?: object) =>
-    agent.post(`/api/v1${p}`).send(b);
+  const post = (p: string, b?: object) => agent.post(`/api/v1${p}`).send(b);
   const get = (p: string) => agent.get(`/api/v1${p}`);
 
   /** A fresh OPEN dine-in order whose bill is `qty * 100`. */
@@ -53,7 +52,10 @@ run('Concurrent checkout (e2e, real Postgres)', () => {
     });
   const state = async (id: string) => {
     const o = (await get(`/orders/${id}${q}`).expect(200)).body;
-    const paid = o.payments.reduce((s: number, p: any) => s + Number(p.amount), 0);
+    const paid = o.payments.reduce(
+      (s: number, p: any) => s + Number(p.amount),
+      0,
+    );
     return { status: o.status as string, paid, payments: o.payments.length };
   };
 
@@ -108,9 +110,7 @@ run('Concurrent checkout (e2e, real Postgres)', () => {
     expect(s.status).toBe('PAID');
     const settlements = [a.body.settlement, b.body.settlement];
     expect(settlements.filter((x) => x.fullyPaid)).toHaveLength(1);
-    expect(
-      settlements.find((x) => x.fullyPaid).changeDue,
-    ).toBe(40);
+    expect(settlements.find((x) => x.fullyPaid).changeDue).toBe(40);
   });
 
   it('two simultaneous non-cash payments that exceed the bill never overpay', async () => {
