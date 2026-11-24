@@ -23,7 +23,7 @@ services:
       - nodedr-restaurant-pos
 
   backend:
-    image: ghcr.io/raktim94/nodedr-restaurant-pos-backend:1.42.1
+    image: ghcr.io/raktim94/nodedr-restaurant-pos-backend:1.42.2
     container_name: nodedr-restaurant-pos-backend
     hostname: nodedr-restaurant-pos-backend
     restart: unless-stopped
@@ -85,7 +85,7 @@ services:
             en_US: Auto-generated login security key. Created automatically on first launch — leave it alone.
 
   web:
-    image: ghcr.io/raktim94/nodedr-restaurant-pos-web:1.42.1
+    image: ghcr.io/raktim94/nodedr-restaurant-pos-web:1.42.2
     container_name: nodedr-restaurant-pos-web
     hostname: nodedr-restaurant-pos-web
     restart: unless-stopped
@@ -187,6 +187,8 @@ x-casaos:
   update_at: "2026-11-24"
   release_notes:
     en_US: |-
+      1.42.2: fixes a rare failure in 1.42.1 where several payment attempts for the same bill at the same moment could all fail with an error (nothing was charged); stock journal actions are also safe under the same load. Update straight to this version. No database migration.
+
       1.42.1: safety and reliability fixes. Two tills can no longer overpay one bill; gift-card refunds credit exactly what was refunded; unclear online-refund answers keep the hold for review and owners can close a reviewed entry; a DENY permission override also removes an implied permission; GST report matches the bills; customer dues stay fast on big lists; stock receipts, stock takes and recipes are safer; the phone app resumes an interrupted sale and keeps numbering after a restore; backup and sync credentials are encrypted at rest. No database migration.
 
       1.42.0: customer dues, a ledger of unpaid and part-paid bills with filters, later payments and a WhatsApp reminder you review and send; a guest bill QR; reservations can no longer double-book a table; the phone backup now keeps unsent expenses, refunds and reservations; currency follows the restaurant setting; stock rows are locked during receipts and transfers; security, payment-recovery, backup and updater fixes from community pull requests. No database migration.
