@@ -32,6 +32,7 @@ on:
     paths:
       - "apps/backend/**"
       - "apps/web/**"
+      - "updater/**"
       - "packages/types/**"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"

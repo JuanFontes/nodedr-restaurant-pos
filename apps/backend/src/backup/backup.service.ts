@@ -30,10 +30,12 @@ import { AuditService } from '../audit/audit.service';
 import type { NotifyPayload } from '../notifications/notifications.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { openStored, sealStored } from '../integration-hub/secret-box';
 import { uploadsDir } from '../common/upload/image-upload.config';
 
 const execFileAsync = promisify(execFile);
 const CONFIG_ID = 'singleton';
+const BACKUP_CTX = 'backup-config:s3';
 
 async function sha256File(file: string): Promise<string> {
   const hash = createHash('sha256');
@@ -97,7 +99,7 @@ export class BackupService {
         endpoint: row.endpoint,
         bucket: row.bucket,
         accessKeyId: row.accessKeyId,
-        secretAccessKey: row.secretAccessKey,
+        secretAccessKey: openStored(row.secretAccessKey, BACKUP_CTX),
         region: row.region,
         intervalDays: row.intervalDays,
         retainCount: row.retainCount,
@@ -263,7 +265,7 @@ export class BackupService {
         endpoint: candidate.endpoint,
         bucket: candidate.bucket,
         accessKeyId: candidate.accessKeyId,
-        secretAccessKey: candidate.secretAccessKey,
+        secretAccessKey: sealStored(candidate.secretAccessKey, BACKUP_CTX),
         region: candidate.region,
         intervalDays: candidate.intervalDays,
         retainCount: candidate.retainCount,
@@ -273,7 +275,7 @@ export class BackupService {
         endpoint: candidate.endpoint,
         bucket: candidate.bucket,
         accessKeyId: candidate.accessKeyId,
-        secretAccessKey: candidate.secretAccessKey,
+        secretAccessKey: sealStored(candidate.secretAccessKey, BACKUP_CTX),
         region: candidate.region,
         intervalDays: candidate.intervalDays,
         retainCount: candidate.retainCount,
