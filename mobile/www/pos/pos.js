@@ -1518,8 +1518,10 @@ function openPay() {
       }
       const sale = savedSale;
       if (S.snap.local && !stockApplied) {
-        stockApplied = true; // set before await: useStock mutates the snapshot first
+        // useStock saves a copy and returns it only on success: a failed write leaves the stock untouched and
+        // stockApplied false, so Tap-to-retry deducts exactly once. Set only after the save has committed.
         S.snap = await useStock(S.snap, sale.items);
+        stockApplied = true;
       }
       const o = S.orderId ? await orders.get(S.orderId) : null;
       if (o) await orders.put({ ...o, status: 'PAID', saleId: sale.id, paidAt: new Date().toISOString() }); // frees the table

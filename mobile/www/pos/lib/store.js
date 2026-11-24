@@ -142,6 +142,32 @@ export async function readEverything() {
   return out;
 }
 
+/** Highest number already used per counter in a set of rows, read from the numbers themselves. */
+export function counterFloors(b) {
+  const floors = {};
+  const raise = (key, n) => {
+    if (Number.isFinite(n) && n > (floors[key] || 0)) floors[key] = n;
+  };
+  const dayOf = (iso) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  };
+  for (const s of b.sales || []) {
+    const m = /^OFF-(\d{6})-(\d+)$/.exec(String(s.localNumber || s.number || ''));
+    if (m) raise(`seq:${m[1]}`, Number(m[2]));
+  }
+  for (const o of b.orders || []) {
+    const m = /^ORD-(\d{6})-(\d+)$/.exec(String(o.number || ''));
+    if (m) raise(`ordseq:${m[1]}`, Number(m[2]));
+  }
+  for (const k of b.kots || []) {
+    const day = dayOf(k.at || k.createdAt);
+    if (day && Number.isInteger(Number(k.number))) raise(`kotseq:${day}`, Number(k.number));
+  }
+  return floors;
+}
+
 /**
  * Replace everything on the phone with a backup, all or nothing: one
  * transaction, so a failure half way leaves the phone exactly as it was.
@@ -158,9 +184,16 @@ export async function replaceEverything(b) {
       for (const row of b[n] || []) st.put(row);
     }
     t.objectStore('kv').put(b.snapshot, 'snapshot');
+    const kvs = t.objectStore('kv');
     if (b.counters) {
       for (const [key, value] of Object.entries(b.counters)) {
-        if (/^(seq|ordseq|kotseq):/.test(key)) t.objectStore('kv').put(value, key);
+        if (/^(seq|ordseq|kotseq):/.test(key)) kvs.put(value, key);
+      }
+    } else {
+      // A backup made before counters were included: never reissue a number that is in the restored data.
+      for (const [key, floor] of Object.entries(counterFloors(b))) {
+        const g = kvs.get(key);
+        g.onsuccess = () => kvs.put(Math.max(Number(g.result) || 0, floor), key);
       }
     }
     t.objectStore('kv').put(Date.now(), 'snapshotAt');

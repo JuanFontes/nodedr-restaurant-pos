@@ -251,13 +251,16 @@ export async function setSoldOut(snap, id, soldOut) {
 
 /** After a sale: take sold quantities off counted dishes; a dish that reaches 0 switches itself off. */
 export async function useStock(snap, lines) {
+  // Work on a copy and only hand it back once it is saved. If the write fails the caller's snapshot is
+  // untouched, so a retry deducts exactly once instead of twice (or, when guarded, not at all).
+  const next = JSON.parse(JSON.stringify(snap));
   let changed = false;
   for (const l of lines) {
-    const item = snap.items.find((i) => i.id === l.menuItemId);
+    const item = next.items.find((i) => i.id === l.menuItemId);
     if (!item || item.stock == null) continue;
     item.stock = Math.max(0, item.stock - l.quantity);
     if (item.stock === 0) item.soldOut = true;
     changed = true;
   }
-  return changed ? saveSnap(snap) : snap;
+  return changed ? saveSnap(next) : snap;
 }

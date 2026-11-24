@@ -59,7 +59,6 @@ export function EditItemDialog({
   const [savingOptions, setSavingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const stockTrackingHandleRef = useRef<StockTrackingHandle | null>(null);
-  const [stockReady, setStockReady] = useState(false);
   const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState<string | undefined>(item.imageUrl ?? undefined);
   const [imagePreview, setImagePreview] = useState<string | undefined>(item.imageUrl ?? undefined);
@@ -115,8 +114,9 @@ export function EditItemDialog({
 
     // Never silently skip stock rules: if the user may manage inventory but
     // the rules are still loading (or failed), refuse the save with a message.
-    if (hasPermission(me?.user, "inventory.manage") && !stockTrackingHandleRef.current) {
-      toast.error("Stock rules are still loading. Try again in a moment.");
+    if (hasPermission(me?.user, "inventory.manage") && !item.isCombo && !stockTrackingHandleRef.current) {
+      // Combos deduct through their components and have no stock form, so there is nothing to wait for.
+      toast.error("Stock rules have not loaded yet. Wait a moment and try again; if this keeps happening, close and reopen this dialog.");
       setIsSubmitting(false);
       return;
     }
@@ -317,7 +317,6 @@ export function EditItemDialog({
                 isCombo={item.isCombo}
                 onHandleReady={(handle) => {
                   stockTrackingHandleRef.current = handle;
-                  setStockReady(true);
                 }}
               />
             )}
@@ -338,7 +337,7 @@ export function EditItemDialog({
             <Button
               type="submit"
               className="w-full sm:w-auto h-10 px-6 rounded-xl font-semibold active:scale-95 transition-transform shadow-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isSubmitting || updateItem.isPending || uploadImage.isPending || savingOptions || meLoading || (hasPermission(me?.user, "inventory.manage") && !stockReady)}
+              disabled={isSubmitting || updateItem.isPending || uploadImage.isPending || savingOptions || meLoading}
             >
               {isSubmitting || updateItem.isPending || savingOptions ? "Saving…" : "Save changes"}
             </Button>
