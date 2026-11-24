@@ -17,6 +17,9 @@ function fixture() {
     ],
   };
   const tx = {
+    // pg_advisory_xact_lock returns void, so the lock is taken with
+    // $executeRaw (the row locks below still use $queryRaw).
+    $executeRaw: jest.fn(() => 1),
     $queryRaw: jest.fn((sql: TemplateStringsArray) => {
       const statement = sql.join('?');
       if (statement.includes('FROM branches')) count = 7;
