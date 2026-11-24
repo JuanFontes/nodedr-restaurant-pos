@@ -69,7 +69,9 @@ run('Stock take idempotency (e2e)', () => {
   it('parallel copies of one stock take apply once and none fails', async () => {
     const key = `take-${tag}-parallel`;
     const rs = await Promise.all(Array.from({ length: 5 }, () => take(key, 7)));
-    expect(rs.map((r) => r.status)).toEqual(Array(5).fill(201));
+    for (const r of rs)
+      if (r.status !== 201)
+        throw new Error(`stock take answered ${r.status}: ${JSON.stringify(r.body)}`);
     expect(await stock()).toBe(7);
     expect(
       await prisma.stockTake.count({
