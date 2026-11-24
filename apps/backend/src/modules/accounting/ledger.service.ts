@@ -216,49 +216,49 @@ export class LedgerService {
    */
   async autoMatch(branchId: string): Promise<number> {
     return this.prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank-match:${branchId}`}))`;
-    const txs = await tx.bankTransaction.findMany({
-      where: { branchId, status: 'UNMATCHED', amount: { lt: 0 } },
-      orderBy: { postedOn: 'asc' },
-    });
-    if (!txs.length) return 0;
-    const taken = new Set(
-      (
-        await tx.bankTransaction.findMany({
-          where: { branchId, expenseId: { not: null } },
-          select: { expenseId: true },
-        })
-      ).map((t) => t.expenseId as string),
-    );
-    const expenses = await tx.expense.findMany({
-      where: { branchId, paidFromCash: false },
-    });
-    let count = 0;
-    for (const t of txs) {
-      const amt = Math.abs(Number(t.amount));
-      const best = expenses
-        .filter(
-          (e) =>
-            !taken.has(e.id) &&
-            Math.abs(Number(e.amount) - amt) < 0.005 &&
-            Math.abs(e.spentOn.getTime() - t.postedOn.getTime()) <=
-              5 * 86400000,
-        )
-        .sort(
-          (a, b) =>
-            Math.abs(a.spentOn.getTime() - t.postedOn.getTime()) -
-            Math.abs(b.spentOn.getTime() - t.postedOn.getTime()),
-        )[0];
-      if (!best) continue;
-      taken.add(best.id);
-      await tx.bankTransaction.update({
-        where: { id: t.id },
-        data: { status: 'MATCHED', expenseId: best.id },
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank-match:${branchId}`}))`;
+      const txs = await tx.bankTransaction.findMany({
+        where: { branchId, status: 'UNMATCHED', amount: { lt: 0 } },
+        orderBy: { postedOn: 'asc' },
       });
-      count++;
-    }
-    return count;
-  });
+      if (!txs.length) return 0;
+      const taken = new Set(
+        (
+          await tx.bankTransaction.findMany({
+            where: { branchId, expenseId: { not: null } },
+            select: { expenseId: true },
+          })
+        ).map((t) => t.expenseId as string),
+      );
+      const expenses = await tx.expense.findMany({
+        where: { branchId, paidFromCash: false },
+      });
+      let count = 0;
+      for (const t of txs) {
+        const amt = Math.abs(Number(t.amount));
+        const best = expenses
+          .filter(
+            (e) =>
+              !taken.has(e.id) &&
+              Math.abs(Number(e.amount) - amt) < 0.005 &&
+              Math.abs(e.spentOn.getTime() - t.postedOn.getTime()) <=
+                5 * 86400000,
+          )
+          .sort(
+            (a, b) =>
+              Math.abs(a.spentOn.getTime() - t.postedOn.getTime()) -
+              Math.abs(b.spentOn.getTime() - t.postedOn.getTime()),
+          )[0];
+        if (!best) continue;
+        taken.add(best.id);
+        await tx.bankTransaction.update({
+          where: { id: t.id },
+          data: { status: 'MATCHED', expenseId: best.id },
+        });
+        count++;
+      }
+      return count;
+    });
   }
 
   async reconciliation(branchId: string, from?: string, to?: string) {

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- hand-built Prisma/jest mocks */
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- hand-built Prisma/jest mocks */
 import { LedgerService, parseStatement } from './ledger.service';
 
 describe('LedgerService balance sheet', () => {

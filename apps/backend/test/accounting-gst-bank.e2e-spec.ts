@@ -26,13 +26,16 @@ run('GST report and bank matching (e2e)', () => {
   let categoryId: string;
   let seq = 0;
 
-  const post = (p: string, b?: object) =>
-    owner.post(`/api/v1${p}`).send(b);
+  const post = (p: string, b?: object) => owner.post(`/api/v1${p}`).send(b);
   const today = () => new Date().toISOString().slice(0, 10);
   const money = (n: number) => Math.round(n * 100) / 100;
 
   /** Pays a one-line bill; returns the order as stored. */
-  const paidBill = async (price: number, taxRatePercent: number, discountFlat = 0) => {
+  const paidBill = async (
+    price: number,
+    taxRatePercent: number,
+    discountFlat = 0,
+  ) => {
     const item = (
       await post(`/menu/items${q}`, {
         categoryId,
@@ -80,7 +83,9 @@ run('GST report and bank matching (e2e)', () => {
       .send({ email: 'owner@demo.local', password: 'Password123!' })
       .expect(201);
     ownerId = (
-      await prisma.user.findFirstOrThrow({ where: { email: 'owner@demo.local' } })
+      await prisma.user.findFirstOrThrow({
+        where: { email: 'owner@demo.local' },
+      })
     ).id;
     floorId = (await owner.get(`/api/v1/tables/floors${q}`).expect(200)).body[0]
       .id;
