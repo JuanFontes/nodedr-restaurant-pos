@@ -165,6 +165,21 @@ export class InventoryService {
       mergedLinesMap.entries(),
     ).map(([ingredientId, quantity]) => ({ ingredientId, quantity }));
 
+    if (deduplicatedLines.length === 0) {
+      // Emptying the recipe of a dish that is tracked by recipe would leave it
+      // deducting nothing on sale while still claiming to be tracked. Switch
+      // its tracking off first (PATCH .../tracking) if that is what is meant.
+      const item = await this.prisma.menuItem.findFirst({
+        where: { id: menuItemId, branchId },
+        select: { inventoryTracking: true },
+      });
+      if (item?.inventoryTracking === 'RECIPE') {
+        throw new BadRequestException(
+          'This dish is tracked by recipe. Add at least one ingredient, or turn recipe tracking off first.',
+        );
+      }
+    }
+
     const ingredientIds = deduplicatedLines.map((l) => l.ingredientId);
     if (ingredientIds.length > 0) {
       const count = await this.prisma.ingredient.count({

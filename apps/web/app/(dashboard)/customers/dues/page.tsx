@@ -119,6 +119,12 @@ export default function CustomerDuesPage() {
         </Card>
       ) : (
         <Card className="flex flex-col divide-y divide-border p-0">
+          {data.rowsTruncated && (
+            <p role="status" className="p-3 text-sm text-muted-foreground">
+              Showing the oldest {data.rows.length} of {data.totalCount} bills. The total above and the customer
+              list include all of them; narrow the dates or pick a customer to see the rest.
+            </p>
+          )}
           {data.rows.map((r) => {
             const reminder = buildReminderLink({
               customerName: r.customer.name,

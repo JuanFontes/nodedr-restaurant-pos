@@ -20,6 +20,9 @@ export interface DueRow {
 
 export interface DuesResponse {
   rows: DueRow[];
+  /** True when more bills match than `rows` holds; totals still cover every bill. */
+  rowsTruncated?: boolean;
+  totalCount?: number;
   totalOutstanding: number;
   customers: { customerId: string; name: string | null; phone: string | null; bills: number; owed: number; oldest: string }[];
 }

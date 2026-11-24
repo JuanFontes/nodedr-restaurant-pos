@@ -139,11 +139,11 @@ export class Args {
   }
 
   static checkMoney(key: string, v: number): number {
-    if (
-      v < 0 ||
-      v > 1_000_000 ||
-      Math.abs(Math.round(v * 100) - v * 100) > 1e-6
-    ) {
+    // Reject any value with more than two decimal places. The old tolerance
+    // let tiny over-precision (e.g. 1.000000001) through into Decimal(12,2).
+    const rounded2 = Number.isFinite(v) ? Number(v.toFixed(2)) : NaN;
+    const valid = Number.isFinite(v) && Math.abs(v - rounded2) < 1e-9;
+    if (v < 0 || v > 1_000_000 || !valid) {
       throw new Error(
         `"${key}" must be an amount from 0 to 1000000 with at most 2 decimals`,
       );
@@ -1959,7 +1959,7 @@ export class McpToolsBuilder {
           await this.assertBranch(actor, branchId);
           const name = args.string('name');
           const categoryName = args.optionalString('category') || 'Specialties';
-          const price = args.optionalNumber('price') || 120;
+          const price = args.optionalMoney('price') ?? 120;
           const isVeg = (args.rawArg('isVeg') as boolean) ?? true;
           const rawBomLines =
             (args.optionalArray('bomLines') as
