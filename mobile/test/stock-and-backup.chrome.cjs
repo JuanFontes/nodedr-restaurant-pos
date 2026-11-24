@@ -26,11 +26,11 @@ const srv = http.createServer((q, r) => {
 
     // 1. a failed save leaves the snapshot untouched; the retry deducts exactly once
     const s0 = snap();
-    const realSet = store.kv.set;
-    store.kv.set = async () => { throw new Error('disk full'); };
+    const realSet = store.kv.setMany;
+    store.kv.setMany = async () => { throw new Error('disk full'); };
     let threw = false;
     try { await local.useStock(s0, [{ menuItemId: 'd1', quantity: 2 }]); } catch { threw = true; }
-    store.kv.set = realSet;
+    store.kv.setMany = realSet;
     out.failedSaveThrew = threw;
     out.stockAfterFailure = s0.items[0].stock;
     const s1 = await local.useStock(s0, [{ menuItemId: 'd1', quantity: 2 }]);
@@ -38,6 +38,17 @@ const srv = http.createServer((q, r) => {
     out.persisted = (await store.kv.get('snapshot')).items[0].stock;
     const s2 = await local.useStock(s1, [{ menuItemId: 'd1', quantity: 9 }]);
     out.floorsAtZero = [s2.items[0].stock, s2.items[0].soldOut];
+
+    // 1b. the stock levels and the 'stock deducted' marker commit together
+    const s3 = snap();
+    const after = await local.useStock(s3, [{ menuItemId: 'd1', quantity: 1 }], [['pendingSale', { saleId: 'x', stockApplied: true }]]);
+    out.markerWithStock = [after.items[0].stock, (await store.kv.get('pendingSale')).stockApplied, (await store.kv.get('snapshot')).items[0].stock];
+    await store.kv.del('pendingSale');
+    const s4 = snap();
+    store.kv.setMany = async () => { throw new Error('disk full'); };
+    try { await local.useStock(s4, [{ menuItemId: 'd1', quantity: 1 }], [['pendingSale', { saleId: 'y', stockApplied: true }]]); } catch {}
+    store.kv.setMany = realSet;
+    out.noMarkerOnFailure = (await store.kv.get('pendingSale')) === undefined;
 
     // 2. a backup carries counters and restore resumes after them
     const a = await store.nextLocalNumber(new Date(2026, 10, 24));
@@ -74,6 +85,8 @@ const srv = http.createServer((q, r) => {
   eq('stock untouched after failed save', res.stockAfterFailure, 5);
   eq('retry deducts once', res.stockAfterRetry, 3);
   eq('persisted', res.persisted, 3);
+  eq('marker commits with stock', res.markerWithStock, [4, true, 4]);
+  eq('no marker when the save fails', res.noMarkerOnFailure, true);
   eq('sold out at zero', res.floorsAtZero, [0, true]);
   eq('counters in backup', res.counterKeys, ['kotseq:261124', 'ordseq:261124', 'seq:261124']);
   eq('restore resumes numbering', res.nextAfterRestore, 'OFF-261124-003');

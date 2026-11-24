@@ -151,6 +151,9 @@ const billOf = (extra = {}) =>
   );
 const cartCount = () => cartLines().reduce((n, l) => n + l.qty, 0);
 
+/** What identifies "the same cart, same money" so an interrupted checkout can be resumed instead of repeated. */
+const checkoutSig = (sale) => JSON.stringify([sale.bill.total, (sale.items || []).map((i) => [i.menuItemId, i.quantity])]);
+
 function saleFrom(localNumber, bill, payments, change) {
   return {
     id: newId(),
@@ -1391,7 +1394,7 @@ function openPay() {
   let rows = [{ method: 'CASH', amount: String(bill.total) }];
   let finished = false; // set once the sale commits; stale redraws must not restore Payment
   let savedSale = null; // survives a partially failed save so retry reuses the same sale
-  let stockApplied = false; // guard against a retry decrementing stock twice
+  let pendingStock = false; // true once this sale's stock deduction has committed (also kept on disk)
   const METHODS = [['CASH', 'Cash'], ['UPI', 'UPI'], ['CARD', 'Card'], ['OTHER', 'Other']];
   const draw = async () => {
     if (finished) return;
@@ -1509,23 +1512,40 @@ function openPay() {
     checkoutInFlight = true;
     try {
       await flushPersist();
+      // The unfinished checkout is remembered on disk (not only in this closure) so killing the app between
+      // "sale saved" and "stock deducted" cannot produce a second sale or a second deduction on retry: the same
+      // cart reuses the saved sale and skips a deduction that already committed.
       if (!savedSale) {
-        const number = await nextLocalNumber();
-        savedSale = saleFrom(number, bill, st.rows.map((r) => ({ ...r })), st.change);
-        if (payLater) savedSale.payLater = true;
-        savedSale.note = saleNote(savedSale.items);
-        await sales.put(savedSale);
+        const draft = saleFrom('', bill, st.rows.map((r) => ({ ...r })), st.change);
+        const sig = checkoutSig(draft);
+        const pending = await kv.get('pendingSale');
+        const existing = pending && pending.sig === sig ? await sales.get(pending.saleId) : null;
+        if (existing) {
+          savedSale = existing;
+          pendingStock = !!pending.stockApplied;
+        } else {
+          const number = await nextLocalNumber();
+          savedSale = saleFrom(number, bill, st.rows.map((r) => ({ ...r })), st.change);
+          if (payLater) savedSale.payLater = true;
+          savedSale.note = saleNote(savedSale.items);
+          await sales.put(savedSale);
+          await kv.set('pendingSale', { saleId: savedSale.id, sig, stockApplied: false });
+          pendingStock = false;
+        }
       }
       const sale = savedSale;
-      if (S.snap.local && !stockApplied) {
-        // useStock saves a copy and returns it only on success: a failed write leaves the stock untouched and
-        // stockApplied false, so Tap-to-retry deducts exactly once. Set only after the save has committed.
-        S.snap = await useStock(S.snap, sale.items);
-        stockApplied = true;
+      if (S.snap.local && !pendingStock) {
+        // useStock saves a copy and returns it only on success: a failed write leaves the stock untouched, so
+        // Tap-to-retry deducts exactly once. The marker is written right after the save has committed.
+        S.snap = await useStock(S.snap, sale.items, [
+          ['pendingSale', { saleId: sale.id, sig: checkoutSig(sale), stockApplied: true }],
+        ]);
+        pendingStock = true; // the marker committed in the same transaction as the new stock levels
       }
       const o = S.orderId ? await orders.get(S.orderId) : null;
       if (o) await orders.put({ ...o, status: 'PAID', saleId: sale.id, paidAt: new Date().toISOString() }); // frees the table
       resetCart();
+      await kv.del('pendingSale'); // the checkout is complete: nothing left to resume
       toast(payLater ? `Saved. ${inr(dueOf(sale))} to collect later.` : 'Sale saved');
       finished = true;
       openDone(sale);

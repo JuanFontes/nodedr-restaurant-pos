@@ -250,7 +250,7 @@ export async function setSoldOut(snap, id, soldOut) {
 }
 
 /** After a sale: take sold quantities off counted dishes; a dish that reaches 0 switches itself off. */
-export async function useStock(snap, lines) {
+export async function useStock(snap, lines, alsoSet = []) {
   // Work on a copy and only hand it back once it is saved. If the write fails the caller's snapshot is
   // untouched, so a retry deducts exactly once instead of twice (or, when guarded, not at all).
   const next = JSON.parse(JSON.stringify(snap));
@@ -262,5 +262,12 @@ export async function useStock(snap, lines) {
     if (item.stock === 0) item.soldOut = true;
     changed = true;
   }
-  return changed ? saveSnap(next) : snap;
+  if (!changed) {
+    if (alsoSet.length) await kv.setMany(alsoSet);
+    return snap;
+  }
+  // The snapshot and any marker the caller wants (e.g. "this sale's stock is deducted") commit together.
+  next.generatedAt = new Date().toISOString();
+  await kv.setMany([['snapshot', next], ...alsoSet]);
+  return next;
 }

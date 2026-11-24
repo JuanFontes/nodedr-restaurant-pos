@@ -49,6 +49,11 @@ export const kv = {
   get: (k) => tx('kv', 'readonly', (s) => s.get(k)),
   set: (k, v) => tx('kv', 'readwrite', (s) => s.put(v, k)),
   del: (k) => tx('kv', 'readwrite', (s) => s.delete(k)),
+  /** Several keys in ONE transaction: all land or none do. */
+  setMany: (entries) =>
+    tx('kv', 'readwrite', (s) => {
+      for (const [k, v] of entries) s.put(v, k);
+    }),
 };
 
 export const sales = {
