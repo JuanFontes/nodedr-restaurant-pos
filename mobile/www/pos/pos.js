@@ -469,25 +469,9 @@ function bindPrint(root, sale, provisional) {
 }
 
 // -------------------------------------------------------------- sign in ----
-function renderWelcome() {
-  $('app').innerHTML = `
-  <div class="login" id="welcome">
-    <img src="../assets/logo.png" alt="">
-    <h1 class="center">Welcome to OrderRestro</h1>
-    <p class="mute center">How do you want to start? You can change your mind later: nothing you do now is lost.</p>
-    <button class="btn block mt" id="w-phone" type="button">Start on this phone<br><small>Best if you have no server yet. Takes about a minute.</small></button>
-    <ul class="mute" style="margin:.5rem 0 1rem;padding-left:1.1rem">
-      <li>Menu, tables, bookings, KOT printing and sales all work with no internet.</li>
-      <li>Connect a server whenever you are ready: your sales and bookings are sent to it and the menu comes back.</li>
-    </ul>
-    <button class="btn line block" id="w-server" type="button">I already have a restaurant server<br><small>Sign in and download your menu.</small></button>
-  </div>`;
-  $('w-phone').onclick = () => renderSetup();
-  $('w-server').onclick = () => renderLogin();
-}
-
 async function renderLogin(message) {
-  if (!message && !(await hasLocalAccount()) && !(await savedServers()).length && !S.fromWelcome) return ((S.fromWelcome = true), renderWelcome());
+  // The connect screen already asked server-or-phone. A brand-new phone that got here has chosen "this phone": go straight to creating the account.
+  if (!message && !(await hasLocalAccount()) && !(await savedServers()).length && !S.fromWelcome) return ((S.fromWelcome = true), renderSetup());
   S.fromWelcome = true;
   const servers = await savedServers();
   const last = (await kv.get('serverBase')) || servers[0] || '';
