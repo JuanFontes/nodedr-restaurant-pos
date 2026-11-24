@@ -129,13 +129,16 @@ export class StockJournalService {
             ...(avg ? { costPerUnit: avg } : {}),
           },
         });
-        await this.audit.record({
-          userId,
-          action: 'stock.receive',
-          entity: 'Ingredient',
-          entityId: ing.id,
-          metadata: { qty: qty.toString(), reference: dto.reference },
-        });
+        await this.audit.record(
+          {
+            userId,
+            action: 'stock.receive',
+            entity: 'Ingredient',
+            entityId: ing.id,
+            metadata: { qty: qty.toString(), reference: dto.reference },
+          },
+          tx,
+        );
         return tx.stockBatch.findUniqueOrThrow({
           where: { id: batch.id },
           include: { stockMovements: true },
@@ -182,7 +185,7 @@ export class StockJournalService {
       if (dup) return dup;
     }
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const { saved, out } = await this.prisma.$transaction(async (tx) => {
         const ids = [...new Set(dto.lines.map((l) => l.ingredientId))].sort();
         if (ids.length !== dto.lines.length)
           throw new BadRequestException('An item is on the sheet twice');
@@ -311,21 +314,25 @@ export class StockJournalService {
             });
           }
         }
-        await this.audit.record({
-          userId,
-          action: 'stock.take',
-          entity: 'StockTake',
-          entityId: take.id,
-          metadata: {
-            items: out.length,
-            changed: out.filter((o) => o.difference !== '0').length,
-          },
-        });
-        return tx.stockTake.update({
+        const saved = await tx.stockTake.update({
           where: { id: take.id },
           data: { lines: out },
         });
+        return { saved, out };
       });
+      // Audit AFTER the commit, through the normal client: recording it inside the transaction needs a second
+      // pool connection while the transaction holds one, which deadlocks once concurrent requests fill the pool.
+      await this.audit.record({
+        userId,
+        action: 'stock.take',
+        entity: 'StockTake',
+        entityId: saved.id,
+        metadata: {
+          items: out.length,
+          changed: out.filter((o) => o.difference !== '0').length,
+        },
+      });
+      return saved;
     } catch (e) {
       if (
         dto.idempotencyKey &&
@@ -502,17 +509,20 @@ export class StockJournalService {
           data: { currentStock: Dec(ing.currentStock).plus(qty) },
         });
       }
-      await this.audit.record({
-        userId,
-        action: 'stock.adjust',
-        entity: 'Ingredient',
-        entityId: ing.id,
-        metadata: {
-          direction: dto.direction,
-          qty: qty.toString(),
-          reason: dto.reason,
+      await this.audit.record(
+        {
+          userId,
+          action: 'stock.adjust',
+          entity: 'Ingredient',
+          entityId: ing.id,
+          metadata: {
+            direction: dto.direction,
+            qty: qty.toString(),
+            reason: dto.reason,
+          },
         },
-      });
+        tx,
+      );
       return tx.ingredient.findUniqueOrThrow({
         where: { id: ing.id },
         select: { id: true, name: true, unit: true, currentStock: true },

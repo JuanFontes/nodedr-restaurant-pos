@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access -- hand-built Prisma/jest mocks */
+/* eslint-disable @typescript-eslint/require-await -- hand-built Prisma/jest mocks */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- hand-built transaction fakes */
 import { Prisma } from '@prisma/client';
 import { GoodsReceiptsService } from './goods-receipts.service';

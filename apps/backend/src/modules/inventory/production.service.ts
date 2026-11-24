@@ -908,25 +908,28 @@ export class ProductionService {
           qualityAt: new Date(),
         },
       });
-      await this.audit.record({
-        userId,
-        action: 'production.quality',
-        entity: 'ProductionEntry',
-        entityId: id,
-        metadata: {
-          entryNo: e.entryNo,
-          before: e.qualityResult
-            ? {
-                result: e.qualityResult,
-                grade: e.qualityGrade,
-                notes: e.qualityNotes,
-                by: e.qualityById,
-                at: e.qualityAt,
-              }
-            : null,
-          after: { result: dto.result, grade, notes },
+      await this.audit.record(
+        {
+          userId,
+          action: 'production.quality',
+          entity: 'ProductionEntry',
+          entityId: id,
+          metadata: {
+            entryNo: e.entryNo,
+            before: e.qualityResult
+              ? {
+                  result: e.qualityResult,
+                  grade: e.qualityGrade,
+                  notes: e.qualityNotes,
+                  by: e.qualityById,
+                  at: e.qualityAt,
+                }
+              : null,
+            after: { result: dto.result, grade, notes },
+          },
         },
-      });
+        tx,
+      );
     });
     return this.get(branchId, id);
   }
