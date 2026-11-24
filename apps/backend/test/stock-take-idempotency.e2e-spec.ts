@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument -- supertest bodies are untyped by design */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- supertest bodies are untyped by design */
 // A stock take sent twice (phone retry, double tap, two devices) must apply once
 // and never surface as a 500, against a REAL Postgres. Opt-in:
 //   INVENTORY_E2E=1 DATABASE_URL=... JWT_SECRET=x npx jest --config ./test/jest-e2e.json --runInBand stock-take-idempotency
@@ -29,8 +29,11 @@ run('Stock take idempotency (e2e)', () => {
     });
   const stock = async () =>
     Number(
-      (await prisma.ingredient.findUniqueOrThrow({ where: { id: ingredientId } }))
-        .currentStock,
+      (
+        await prisma.ingredient.findUniqueOrThrow({
+          where: { id: ingredientId },
+        })
+      ).currentStock,
     );
 
   beforeAll(async () => {
