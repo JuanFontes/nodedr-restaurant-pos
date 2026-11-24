@@ -61,6 +61,10 @@ describe('LedgerService bank matching', () => {
         findFirst: jest.fn().mockResolvedValue({ id: 'e1', branchId: 'b1' }),
       },
     };
+    prisma.$executeRaw = jest.fn().mockResolvedValue(1);
+    prisma.$transaction = jest.fn(async (fn: (t: unknown) => unknown) =>
+      fn(prisma),
+    );
     return { svc: new LedgerService(prisma as never), prisma };
   }
 

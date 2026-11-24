@@ -215,20 +215,22 @@ export class LedgerService {
    * within 5 days of the bank posting date. One expense matches one line.
    */
   async autoMatch(branchId: string): Promise<number> {
-    const txs = await this.prisma.bankTransaction.findMany({
+    return this.prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank-match:${branchId}`}))`;
+    const txs = await tx.bankTransaction.findMany({
       where: { branchId, status: 'UNMATCHED', amount: { lt: 0 } },
       orderBy: { postedOn: 'asc' },
     });
     if (!txs.length) return 0;
     const taken = new Set(
       (
-        await this.prisma.bankTransaction.findMany({
+        await tx.bankTransaction.findMany({
           where: { branchId, expenseId: { not: null } },
           select: { expenseId: true },
         })
       ).map((t) => t.expenseId as string),
     );
-    const expenses = await this.prisma.expense.findMany({
+    const expenses = await tx.expense.findMany({
       where: { branchId, paidFromCash: false },
     });
     let count = 0;
@@ -249,13 +251,14 @@ export class LedgerService {
         )[0];
       if (!best) continue;
       taken.add(best.id);
-      await this.prisma.bankTransaction.update({
+      await tx.bankTransaction.update({
         where: { id: t.id },
         data: { status: 'MATCHED', expenseId: best.id },
       });
       count++;
     }
     return count;
+  });
   }
 
   async reconciliation(branchId: string, from?: string, to?: string) {
@@ -359,24 +362,31 @@ export class LedgerService {
   }
 
   async matchManually(branchId: string, id: string, expenseId: string) {
-    const [t, e] = await Promise.all([
-      this.prisma.bankTransaction.findFirst({ where: { id, branchId } }),
-      this.prisma.expense.findFirst({ where: { id: expenseId, branchId } }),
-    ]);
-    if (!t || !e)
-      throw new NotFoundException('Transaction or expense not found');
-    if (Number(t.amount) >= 0) {
-      throw new BadRequestException(
-        'Only money-out bank lines can be matched to an expense',
-      );
-    }
-    const used = await this.prisma.bankTransaction.findFirst({
-      where: { branchId, expenseId, NOT: { id } },
-    });
-    if (used) throw new BadRequestException('That expense is already matched');
-    return this.prisma.bankTransaction.update({
-      where: { id },
-      data: { status: 'MATCHED', expenseId },
+    // One expense may back only one bank line. The read-then-write below is
+    // serialised per branch, so two requests (or a manual match racing the
+    // auto-matcher) cannot both claim the same expense.
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank-match:${branchId}`}))`;
+      const [t, e] = await Promise.all([
+        tx.bankTransaction.findFirst({ where: { id, branchId } }),
+        tx.expense.findFirst({ where: { id: expenseId, branchId } }),
+      ]);
+      if (!t || !e)
+        throw new NotFoundException('Transaction or expense not found');
+      if (Number(t.amount) >= 0) {
+        throw new BadRequestException(
+          'Only money-out bank lines can be matched to an expense',
+        );
+      }
+      const used = await tx.bankTransaction.findFirst({
+        where: { branchId, expenseId, NOT: { id } },
+      });
+      if (used)
+        throw new BadRequestException('That expense is already matched');
+      return tx.bankTransaction.update({
+        where: { id },
+        data: { status: 'MATCHED', expenseId },
+      });
     });
   }
 
