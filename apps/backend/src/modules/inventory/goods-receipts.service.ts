@@ -259,7 +259,11 @@ export class GoodsReceiptsService {
     // pick the same number and one insert failed with P2002. Lock per branch,
     // then use the highest existing number (not the row count) so deletions
     // cannot cause a collision either.
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`grn:${branchId}`}))`;
+    // pg_advisory_xact_lock() returns `void`, which $queryRaw cannot
+    // deserialize (P2010). Every other advisory lock in the app uses
+    // $executeRaw for exactly this reason — a $queryRaw here made *every*
+    // goods receipt fail with a 500.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`grn:${branchId}`}))`;
     const last = await tx.goodsReceipt.findFirst({
       where: { branchId },
       orderBy: { grnNumber: 'desc' },

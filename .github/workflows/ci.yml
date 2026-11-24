@@ -56,7 +56,7 @@ jobs:
       - name: Backend e2e tests (every opt-in flag on)
         working-directory: apps/backend
         run: |
-          for f in $(grep -rhoE 'process\.env\.[A-Z_]+_E2E' test src | sed 's/process.env.//' | sort -u); do export "$f=1"; done
+          for f in $(grep -rhoE 'process\.env\.[A-Z0-9_]+_E2E' test src | sed 's/process.env.//' | sort -u); do export "$f=1"; done
           export JWT_SECRET="$(openssl rand -hex 32)"
           pnpm exec jest --config ./test/jest-e2e.json --runInBand --forceExit --testTimeout=60000
       - name: Backend build + runtime dependency check

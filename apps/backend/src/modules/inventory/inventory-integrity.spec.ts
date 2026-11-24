@@ -8,13 +8,13 @@ describe('inventory integrity', () => {
   it('allocates the next GRN inside a branch lock from the highest number', async () => {
     const svc = new GoodsReceiptsService({} as never);
     const tx: any = {
-      $queryRaw: jest.fn(async () => []),
+      $executeRaw: jest.fn(async () => 1),
       goodsReceipt: {
         findFirst: jest.fn(async () => ({ grnNumber: 'GRN-0009' })),
       },
     };
     expect(await (svc as any).nextGrnNumber(tx, 'b1')).toBe('GRN-0010');
-    expect(tx.$queryRaw).toHaveBeenCalled();
+    expect(tx.$executeRaw).toHaveBeenCalled();
   });
 
   it('rebuilds weighted-average cost from surviving batches on void', async () => {
