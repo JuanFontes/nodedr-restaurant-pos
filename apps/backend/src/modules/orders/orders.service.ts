@@ -1631,13 +1631,14 @@ export class OrdersService {
       effectiveCustomerId = customer.id;
     }
 
-    const { bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
+    let { bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
       branchId,
       order,
       dto,
       effectiveCustomerId,
     );
-    const balance = round2(bill.totalDue - paid);
+    let balance = round2(bill.totalDue - paid);
+    let paidAlready = paid;
     const entry = manualDiscountEntry(
       dto.discountPercent ?? 0,
       dto.discountFlat ?? 0,
@@ -1658,8 +1659,55 @@ export class OrdersService {
     let stockSkipped: { menuItemId: string; name: string; reason: string }[] =
       [];
     let settlement!: ReturnType<typeof settlePayments>;
+    let replayedInTx = false;
     try {
       await this.prisma.$transaction(async (tx) => {
+        // Serialize checkouts for this bill. A partial payment deliberately
+        // leaves the order OPEN, so `status:'OPEN'` alone is not a concurrency
+        // guard: without the row lock two tills can both validate against the
+        // same stale `paid` amount and overpay the bill.
+        await tx.order.update({
+          where: { id: orderId },
+          data: { updatedAt: new Date() },
+        });
+        // Re-read the whole bill after the lock: the earlier read can observe a
+        // different committed state than the payments (READ COMMITTED), and a
+        // concurrent discount change must not leave a stale total in `bill`.
+        const freshOrder = await tx.order.findFirst({
+          where: { id: orderId, branchId },
+          include: { items: true, payments: true, customer: true },
+        });
+        if (!freshOrder) throw new NotFoundException('Order not found');
+        ({ bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
+          branchId,
+          freshOrder,
+          dto,
+          effectiveCustomerId,
+        ));
+        balance = round2(bill.totalDue - paid);
+        const freshPayments = freshOrder.payments as Array<{
+          amount: Prisma.Decimal;
+          clientRequestId: string | null;
+        }>;
+        // The first read happened before the row lock. A concurrent copy of
+        // the SAME request may have committed in between; that is a replay,
+        // not a conflict, and must return its normal replay result.
+        if (
+          dto.requestId &&
+          freshPayments.some((p) => p.clientRequestId === dto.requestId)
+        ) {
+          replayedInTx = true;
+          return;
+        }
+        if (!locked && freshPayments.length > 0) {
+          throw new ConflictException(
+            'The bill was paid by another request while you were checking out. Refresh and retry.',
+          );
+        }
+        paidAlready = round2(
+          freshPayments.reduce((sum, p) => sum + Number(p.amount), 0),
+        );
+        balance = round2(bill.totalDue - paidAlready);
         let actualPointsRedeemed = order.loyaltyPointsRedeemed;
         let loyaltyDiscountAmount = Number(order.loyaltyDiscountAmount);
 
@@ -1877,6 +1925,7 @@ export class OrdersService {
       }
       throw err;
     }
+    if (replayedInTx) return this.checkoutResult(branchId, orderId);
 
     const updated = await this.prisma.order.findUniqueOrThrow({
       where: { id: orderId },
@@ -1945,7 +1994,7 @@ export class OrdersService {
       ...updated,
       settlement: {
         amountDue: bill.totalDue,
-        amountPaid: round2(paid + settlement.paidNow),
+        amountPaid: round2(paidAlready + settlement.paidNow),
         balanceDue: settlement.balanceAfter,
         changeDue: settlement.changeDue,
         fullyPaid: settlement.fullyPaid,
