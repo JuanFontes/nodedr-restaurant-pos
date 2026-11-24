@@ -210,9 +210,9 @@ roles) under **Settings** in the sidebar, photo upload on menu items, and
 an English/Spanish/French language switcher on the guest-facing QR
 ordering page and staff sidebar.
 
-### Next release (on `master`, not yet tagged)
+### What's new (1.42.1 and 1.42.2)
 
-Integrity and safety fixes from the November 2026 pull-request review:
+Integrity and safety fixes from the November 2026 pull-request review (1.42.2 also fixes a rare checkout stall that 1.42.1 could show when several payments for one bill arrived at the same moment; update straight to 1.42.2):
 
 - **Two tills can no longer overpay one bill.** Partial and final payments on the same open bill are serialised; a retried request is a replay, never a second charge.
 - **Gift-card refunds credit exactly what the refund says.** A refund to a gift card is capped at what was paid by card (a ₹100 bill paid ₹60 card + ₹40 cash can send at most ₹60 back to the card) and is refused on bills paid without one.
