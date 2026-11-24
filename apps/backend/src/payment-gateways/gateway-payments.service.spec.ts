@@ -387,4 +387,34 @@ describe('stale pending refunds', () => {
       }),
     );
   });
+
+  it('keeps a linked provider failure in the review list with its reversal note', async () => {
+    const { svc, prisma } = setup();
+    const row = {
+      id: 'grLinked',
+      restaurantId: 'r1',
+      gatewayPaymentId: 'gp1',
+      provider: 'fake',
+      providerRefundId: 're_linked',
+      refundId: 'ref_local',
+      status: 'PENDING',
+      amountMinor: 500,
+      currency: 'INR',
+      note: null,
+      createdAt: new Date(Date.now() - 20 * 60_000),
+    };
+    prisma.gatewayRefund.findMany.mockResolvedValue([row]);
+    prisma.gatewayRefund.update.mockImplementation(async ({ data }: Row) =>
+      Object.assign(row, data),
+    );
+    fake.fetchRefundStatus.mockResolvedValue({
+      providerRefundId: 're_linked',
+      state: 'FAILED',
+    });
+    const rows = await svc.refundsNeedingReview('r1');
+    expect(row.status).toBe('NEEDS_REVIEW');
+    expect(row.note).toMatch(/settled outside the gateway/);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].note).toMatch(/settled outside the gateway/);
+  });
 });
