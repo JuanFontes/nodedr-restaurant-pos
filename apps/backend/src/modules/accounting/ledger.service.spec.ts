@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access -- hand-built Prisma/jest mocks */
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- hand-built Prisma/jest mocks */
 import { LedgerService, parseStatement } from './ledger.service';
 
 describe('LedgerService balance sheet', () => {
@@ -40,6 +40,52 @@ describe('LedgerService balance sheet', () => {
       in: ['FINALIZED', 'PAID'],
     });
     expect(r.assets[0].amount).toBe(910);
+  });
+});
+
+describe('LedgerService bank matching', () => {
+  function setup(amount: number) {
+    const prisma: any = {
+      bankTransaction: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 't1',
+          branchId: 'b1',
+          amount,
+          postedOn: new Date('2026-10-05T00:00:00Z'),
+        }),
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      expense: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue({ id: 'e1', branchId: 'b1' }),
+      },
+    };
+    prisma.$executeRaw = jest.fn().mockResolvedValue(1);
+    prisma.$transaction = jest.fn(async (fn: (t: unknown) => unknown) =>
+      fn(prisma),
+    );
+    return { svc: new LedgerService(prisma as never), prisma };
+  }
+
+  it('offers no expense candidates for a money-in line', async () => {
+    const { svc, prisma } = setup(5000);
+    await expect(svc.matchCandidates('b1', 't1')).resolves.toEqual([]);
+    expect(prisma.expense.findMany).not.toHaveBeenCalled();
+  });
+
+  it('refuses to match a money-in line to an expense', async () => {
+    const { svc, prisma } = setup(5000);
+    await expect(svc.matchManually('b1', 't1', 'e1')).rejects.toThrow(
+      /money-out/,
+    );
+    expect(prisma.bankTransaction.update).not.toHaveBeenCalled();
+  });
+
+  it('still offers candidates for a money-out line', async () => {
+    const { svc, prisma } = setup(-120);
+    await svc.matchCandidates('b1', 't1');
+    expect(prisma.expense.findMany).toHaveBeenCalled();
   });
 });
 
