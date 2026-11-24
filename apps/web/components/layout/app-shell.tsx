@@ -73,16 +73,15 @@ export function AppShell({
   // still tabbing through the links (and unmount the focused link with it).
   const [hoverPeek, setHoverPeek] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
-  const focusWithinRef = useRef(false);
   // Hover opens the sidebar only when the mouse rests on it (a short delay), and closes it a moment after leaving,
   // so sweeping across it to reach the page does not make it flicker open and shut.
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleHover = (on: boolean) => {
     if (peekTimer.current) clearTimeout(peekTimer.current);
-    peekTimer.current = setTimeout(() => {
-      if (on) setHoverPeek(true);
-      else if (!focusWithinRef.current) setHoverPeek(false);
-    }, on ? 150 : 250);
+    // Hover and focus are independent reasons to stay open (`expanded` is their union), so leaving with the
+    // pointer always clears hover - even while focus is inside. Skipping it when focus was inside left hover
+    // stuck on after focus later moved away, and the sidebar stayed open with nobody on it.
+    peekTimer.current = setTimeout(() => setHoverPeek(on), on ? 150 : 250);
   };
   useEffect(() => () => { if (peekTimer.current) clearTimeout(peekTimer.current); }, []);
   useEffect(() => {
@@ -116,7 +115,6 @@ export function AppShell({
         onPointerEnter={(e) => { if (e.pointerType === "mouse") scheduleHover(true); }}
         onPointerLeave={(e) => { if (e.pointerType === "mouse") scheduleHover(false); }}
         onFocus={() => {
-          focusWithinRef.current = true;
           setFocusWithin(true);
           // A pending hover timer must not close the sidebar under the keyboard.
           if (peekTimer.current) {
@@ -126,7 +124,6 @@ export function AppShell({
         }}
         onBlur={(e) => {
           if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-          focusWithinRef.current = false;
           setFocusWithin(false);
         }}
       >
