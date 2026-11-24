@@ -33,6 +33,27 @@ describe('timezone day boundaries', () => {
     expect(addDaysToDate('2026-02-28', 1)).toBe('2026-03-01');
   });
 
+  it('rejects missing and malformed dates with a 400 instead of a RangeError', () => {
+    // Raw query params reach these helpers unvalidated on several report
+    // routes; an omitted value used to become NaN and throw "Invalid time
+    // value" from Intl, which surfaced as HTTP 500.
+    expect(() => zonedDayStart(undefined as never, 'UTC')).toThrow(
+      /YYYY-MM-DD/,
+    );
+    expect(() => zonedRange(undefined as never, '2026-10-04', 'UTC')).toThrow(
+      /YYYY-MM-DD/,
+    );
+    expect(() => zonedRange('not-a-date', '2026-10-04', 'UTC')).toThrow(
+      /YYYY-MM-DD/,
+    );
+    expect(() => zonedRange('2026-02-30', '2026-03-01', 'UTC')).toThrow(
+      /real calendar date/,
+    );
+    expect(() => zonedRange('2026-10-05', '2026-10-04', 'UTC')).toThrow(
+      /cannot be before/,
+    );
+  });
+
   it('reports the local date and minute-of-day', () => {
     const t = new Date('2026-10-04T17:00:00Z'); // Sunday 22:30 IST
     expect(localDate(t, 'Asia/Kolkata')).toBe('2026-10-04');
