@@ -71,7 +71,9 @@ run('Stock take idempotency (e2e)', () => {
     const rs = await Promise.all(Array.from({ length: 5 }, () => take(key, 7)));
     for (const r of rs)
       if (r.status !== 201)
-        throw new Error(`stock take answered ${r.status}: ${JSON.stringify(r.body)}`);
+        throw new Error(
+          `stock take answered ${r.status}: ${JSON.stringify(r.body)}`,
+        );
     expect(await stock()).toBe(7);
     expect(
       await prisma.stockTake.count({
