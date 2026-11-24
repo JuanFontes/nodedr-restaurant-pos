@@ -33,8 +33,10 @@ const MIN_REFRESH_GAP_MS = 2_000;
 const RECOVERY_ABANDONED_MS = 2 * 60_000;
 // Refusals that prove the provider did not create the refund. 429 and 5xx are
 // deliberately absent: the request may have succeeded before the response was
-// lost, so those outcomes must never release the hold on the reservation.
-const DEFINITE_REFUND_REJECTIONS = new Set([400, 401, 403, 404, 409, 422]);
+// lost. 409 is absent too: providers use it for "a request with this
+// idempotency key is still in flight" (Stripe), which says the first attempt
+// may yet succeed. All of those keep the hold and go to review.
+const DEFINITE_REFUND_REJECTIONS = new Set([400, 401, 403, 404, 422]);
 
 export class WebhookRejected extends Error {}
 
@@ -787,7 +789,7 @@ export class GatewayPaymentsService {
             // can see that manual intervention is needed.
             status: r.refundId ? 'NEEDS_REVIEW' : 'FAILED',
             note: r.refundId
-              ? 'The provider confirms this refund failed, but a local Refund was already recorded and still counts against the order. There is no self-service reversal — an owner must correct this record before refunding again.'
+              ? 'The provider confirms this refund failed, but a local Refund was already recorded and still counts against the order. The customer has not been paid back through the gateway: pay them another way, then use "Mark as settled outside the gateway" in Settings > Payments to close this entry.'
               : 'The provider confirms this refund failed.',
           },
         });
@@ -796,6 +798,59 @@ export class GatewayPaymentsService {
     } catch {
       // Provider unreachable or unknown refund: leave the row untouched.
     }
+  }
+
+  /**
+   * Closes a refund the operator has checked by hand. Never talks to the
+   * provider and never moves money.
+   *  - NOT_REFUNDED_AT_PROVIDER: only for an entry with no local Refund. The
+   *    owner checked the provider dashboard and no refund exists, so the hold
+   *    is released and the order can be refunded again.
+   *  - SETTLED_OUTSIDE_GATEWAY: only for an entry whose local Refund exists
+   *    (the provider failed it). The local Refund stays as the record that the
+   *    customer was owed the money; the owner has paid them another way.
+   * The conditional update makes a double click or two owners racing a no-op.
+   */
+  async resolveRefundReview(
+    restaurantId: string,
+    id: string,
+    userId: string,
+    outcome: 'NOT_REFUNDED_AT_PROVIDER' | 'SETTLED_OUTSIDE_GATEWAY',
+    note: string,
+  ) {
+    const row = await this.prisma.gatewayRefund.findFirst({
+      where: { id, restaurantId },
+    });
+    if (!row) throw new NotFoundException('Refund not found');
+    if (row.status !== 'NEEDS_REVIEW') {
+      throw new BadRequestException('This refund is not waiting for review');
+    }
+    const linked = !!row.refundId;
+    if (outcome === 'NOT_REFUNDED_AT_PROVIDER' && linked) {
+      throw new BadRequestException(
+        'A local Refund is already recorded for this entry, so the hold cannot be released. If the customer has been paid another way, mark it as settled outside the gateway.',
+      );
+    }
+    if (outcome === 'SETTLED_OUTSIDE_GATEWAY' && !linked) {
+      throw new BadRequestException(
+        'No local Refund was recorded for this entry. If you checked the provider dashboard and no refund exists, choose "not refunded at provider" to release the hold.',
+      );
+    }
+    const result = await this.prisma.gatewayRefund.updateMany({
+      where: { id, restaurantId, status: 'NEEDS_REVIEW' },
+      data: {
+        status: 'FAILED',
+        note:
+          outcome === 'SETTLED_OUTSIDE_GATEWAY'
+            ? `Closed by an owner: the customer was paid back outside the gateway. ${note}`
+            : `Closed by an owner after checking the provider: no refund exists there. ${note}`,
+      },
+    });
+    if (result.count === 0) {
+      throw new BadRequestException('This refund is not waiting for review');
+    }
+    this.logger.log(`gateway refund ${id} closed by ${userId}: ${outcome}`);
+    return { id, status: 'FAILED' as const };
   }
 
   /** Refunds that need a person, newest first (shown on Settings > Payments). */
@@ -833,6 +888,8 @@ export class GatewayPaymentsService {
       id: r.id,
       orderId: r.orderId,
       provider: r.provider,
+      hasLocalRefund: !!r.refundId,
+      status: r.status,
       amountMinor: r.amountMinor,
       currency: r.currency,
       note:

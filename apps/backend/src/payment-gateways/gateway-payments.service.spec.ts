@@ -413,8 +413,8 @@ describe('stale pending refunds', () => {
     });
     const rows = await svc.refundsNeedingReview('r1');
     expect(row.status).toBe('NEEDS_REVIEW');
-    expect(row.note).toMatch(/owner must correct/);
+    expect(row.note).toMatch(/settled outside the gateway/);
     expect(rows).toHaveLength(1);
-    expect(rows[0].note).toMatch(/owner must correct/);
+    expect(rows[0].note).toMatch(/settled outside the gateway/);
   });
 });

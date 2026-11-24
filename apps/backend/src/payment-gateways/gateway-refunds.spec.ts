@@ -145,7 +145,7 @@ describe('refunding through the gateway', () => {
     );
   });
 
-  it.each([429, 500, 502, 503])(
+  it.each([409, 429, 500, 502, 503])(
     'HTTP %s from the provider is ambiguous, so the hold is kept for review',
     async (status) => {
       const s = setup();
@@ -238,5 +238,68 @@ describe('refunding through the gateway', () => {
     const s = setup({}, 0, 60, 123.45, 5000);
     await expect(go(s, 20)).rejects.toThrow(/remains refundable/);
     expect(fake.refund).not.toHaveBeenCalled();
+  });
+});
+
+describe('closing a refund that needs review', () => {
+  const svcWith = (row: Row | null) => {
+    const prisma: any = {
+      gatewayRefund: {
+        findFirst: jest.fn(async () => row),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
+    };
+    const svc = new GatewayPaymentsService(prisma, {} as never, {} as never);
+    return { svc, prisma };
+  };
+  const review = (over: Row = {}) => ({
+    id: 'gr1',
+    restaurantId: 'r1',
+    status: 'NEEDS_REVIEW',
+    refundId: null,
+    ...over,
+  });
+
+  it('releases the hold when an owner confirms no refund exists at the provider', async () => {
+    const { svc, prisma } = svcWith(review());
+    await svc.resolveRefundReview('r1', 'gr1', 'u1', 'NOT_REFUNDED_AT_PROVIDER', 'checked dashboard');
+    const call = prisma.gatewayRefund.updateMany.mock.calls[0][0];
+    expect(call.where).toMatchObject({ id: 'gr1', status: 'NEEDS_REVIEW' });
+    expect(call.data.status).toBe('FAILED');
+  });
+
+  it('never releases a hold that backs a recorded local Refund', async () => {
+    const { svc, prisma } = svcWith(review({ refundId: 'ref1' }));
+    await expect(
+      svc.resolveRefundReview('r1', 'gr1', 'u1', 'NOT_REFUNDED_AT_PROVIDER', 'x y z'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.gatewayRefund.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('closes a provider-failed linked refund once the customer was paid another way', async () => {
+    const { svc, prisma } = svcWith(review({ refundId: 'ref1' }));
+    await svc.resolveRefundReview('r1', 'gr1', 'u1', 'SETTLED_OUTSIDE_GATEWAY', 'paid cash');
+    expect(prisma.gatewayRefund.updateMany.mock.calls[0][0].data.note).toMatch(/outside the gateway/);
+  });
+
+  it('refuses settled-outside for an entry with no local Refund', async () => {
+    const { svc } = svcWith(review());
+    await expect(
+      svc.resolveRefundReview('r1', 'gr1', 'u1', 'SETTLED_OUTSIDE_GATEWAY', 'paid cash'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('is a no-op for a row that is not waiting, another restaurant, or a lost race', async () => {
+    await expect(
+      svcWith(review({ status: 'SUCCEEDED' })).svc.resolveRefundReview('r1', 'gr1', 'u1', 'NOT_REFUNDED_AT_PROVIDER', 'abc'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      svcWith(null).svc.resolveRefundReview('r2', 'gr1', 'u1', 'NOT_REFUNDED_AT_PROVIDER', 'abc'),
+    ).rejects.toThrow(/not found/i);
+    const raced = svcWith(review());
+    raced.prisma.gatewayRefund.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      raced.svc.resolveRefundReview('r1', 'gr1', 'u1', 'NOT_REFUNDED_AT_PROVIDER', 'abc'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
