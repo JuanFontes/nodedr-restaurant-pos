@@ -150,7 +150,9 @@ run('Concurrent checkout (e2e, real Postgres)', () => {
     const rs = await Promise.all(
       Array.from({ length: 5 }, () => pay(id, 30, { requestId })),
     );
-    expect(rs.every((r) => r.status === 201)).toBe(true);
+    expect(
+      rs.map((r) => `${r.status} ${JSON.stringify(r.body).slice(0, 140)}`),
+    ).toEqual(Array(5).fill(expect.stringMatching(/^201 /)));
     const s = await state(id);
     expect(s.payments).toBe(1);
     expect(s.paid).toBe(30);

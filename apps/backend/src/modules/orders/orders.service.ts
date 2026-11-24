@@ -1378,6 +1378,15 @@ export class OrdersService {
     }>,
     adj: BillPreviewDto,
     customerId: string | null,
+    /**
+     * Inside a checkout transaction the branch and coupon lookups must NOT open a second pool connection (the
+     * transaction already holds one; concurrent checkouts then deadlock on a full pool). The caller passes what it
+     * resolved before the transaction began.
+     */
+    preResolved?: {
+      branch: Prisma.BranchGetPayload<{ include: { restaurant: true } }>;
+      auto: Awaited<ReturnType<MarketingService['resolveCheckoutDiscount']>>;
+    },
   ) {
     const paid = round2(
       order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
@@ -1423,10 +1432,12 @@ export class OrdersService {
       };
     }
 
-    const branch = await this.prisma.branch.findUniqueOrThrow({
-      where: { id: branchId },
-      include: { restaurant: true },
-    });
+    const branch =
+      preResolved?.branch ??
+      (await this.prisma.branch.findUniqueOrThrow({
+        where: { id: branchId },
+        include: { restaurant: true },
+      }));
     const lines = order.items.map((item) =>
       priceLine({
         quantity: item.quantity,
@@ -1437,11 +1448,13 @@ export class OrdersService {
     // Coupon / happy-hour discount, worked out on the bill's own subtotal and
     // added to any manual discount. A bad coupon code throws here, before
     // anything is charged.
-    const auto = await this.marketing.resolveCheckoutDiscount(
-      branchId,
-      round2(lines.reduce((sum, l) => sum + l.lineTotal, 0)),
-      adj.couponCode,
-    );
+    const auto =
+      preResolved?.auto ??
+      (await this.marketing.resolveCheckoutDiscount(
+        branchId,
+        round2(lines.reduce((sum, l) => sum + l.lineTotal, 0)),
+        adj.couponCode,
+      ));
     // Points a guest asked to use when ordering online apply here unless staff
     // choose otherwise; they are capped at the balance so an out-of-date
     // request can never block taking payment.
@@ -1463,7 +1476,7 @@ export class OrdersService {
       tip: adj.tipAmount,
       deliveryFee: Number(order.deliveryFee),
     });
-    return { bill, locked, paid, auto, pointsToRedeem };
+    return { bill, locked, paid, auto, pointsToRedeem, branch };
   }
 
   // The figures a bill would settle at right now - what the Print Bill button
@@ -1631,11 +1644,15 @@ export class OrdersService {
       effectiveCustomerId = customer.id;
     }
 
-    let { bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
+    const firstBill = await this.resolveBill(
       branchId,
       order,
       dto,
       effectiveCustomerId,
+    );
+    let { bill, locked, paid, auto, pointsToRedeem } = firstBill;
+    const preSubtotal = round2(
+      order.items.reduce((sum, i) => sum + Number(i.lineTotal), 0),
     );
     let balance = round2(bill.totalDue - paid);
     let paidAlready = paid;
@@ -1678,11 +1695,28 @@ export class OrdersService {
           include: { items: true, payments: true, customer: true },
         });
         if (!freshOrder) throw new NotFoundException('Order not found');
+        // The coupon and branch lookups were done before the transaction (see resolveBill). They depend on the
+        // bill's subtotal, so if items were added or removed in between, ask the cashier to retry.
+        if (
+          round2(
+            freshOrder.items.reduce((sum, i) => sum + Number(i.lineTotal), 0),
+          ) !== preSubtotal
+        ) {
+          throw new ConflictException(
+            'The bill changed while you were checking out. Refresh and retry.',
+          );
+        }
         ({ bill, locked, paid, auto, pointsToRedeem } = await this.resolveBill(
           branchId,
           freshOrder,
           dto,
           effectiveCustomerId,
+          firstBill.branch
+            ? {
+                branch: firstBill.branch,
+                auto: firstBill.auto,
+              }
+            : undefined,
         ));
         balance = round2(bill.totalDue - paid);
         const freshPayments = freshOrder.payments as Array<{
