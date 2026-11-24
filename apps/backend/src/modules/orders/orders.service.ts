@@ -2188,6 +2188,80 @@ export class OrdersService {
     }
   }
 
+  /**
+   * A refund issued back to a gift card must credit EXACTLY the amount the
+   * refund record says, so the books and the card balance never disagree.
+   *
+   * Policy:
+   *  - Only value the customer actually paid with a gift card can go back to a
+   *    gift card. The ceiling is (total redeemed on the order) minus (earlier
+   *    GIFT_CARD refunds on the order). A bigger request is refused with a
+   *    message telling the cashier to refund the rest by cash or store credit.
+   *  - An order with no gift-card payment cannot be refunded to a gift card.
+   *  - With several redemptions (several cards, or several visits), value is
+   *    returned in redemption order: cumulative refunds fill the first
+   *    redemption, then the next. The credit for this refund is the difference
+   *    between the cumulative allocation after and before it, in whole cents,
+   *    so the credits always sum to the refund and repeated partial refunds
+   *    can never drift by a rounding cent.
+   *  - Mixed tender is handled by the same ceiling: a Rs100 bill paid Rs60 by
+   *    card and Rs40 cash can send at most Rs60 back to the card. The rest goes
+   *    back through the cash channel.
+   */
+  private async creditGiftCardsForRefund(
+    tx: Prisma.TransactionClient,
+    args: {
+      branchId: string;
+      orderId: string;
+      refundAmount: number;
+      priorGiftCardRefunded: number;
+    },
+  ): Promise<void> {
+    const redemptions = await tx.giftCardRedemption.findMany({
+      where: { orderId: args.orderId },
+      select: { giftCardId: true, amount: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const cents = (n: number) => Math.round(n * 100);
+    const redeemed = redemptions.map((r) => cents(Number(r.amount)));
+    const totalRedeemed = redeemed.reduce((a, b) => a + b, 0);
+    if (totalRedeemed === 0) {
+      throw new BadRequestException(
+        'This order was not paid with a gift card, so it cannot be refunded to one. Refund it by cash or store credit instead.',
+      );
+    }
+    const prior = cents(args.priorGiftCardRefunded);
+    const now = cents(args.refundAmount);
+    if (prior + now > totalRedeemed) {
+      const room = Math.max(0, totalRedeemed - prior) / 100;
+      throw new BadRequestException(
+        `Only ${room.toFixed(2)} can still go back to a gift card on this order (that is what was paid with one). Refund the rest by cash or store credit.`,
+      );
+    }
+    // Cumulative fill: how much of redemption i is covered once `upTo` cents
+    // have been refunded to cards.
+    const fill = (upTo: number) => {
+      let left = upTo;
+      return redeemed.map((r) => {
+        const used = Math.min(r, left);
+        left -= used;
+        return used;
+      });
+    };
+    const before = fill(prior);
+    const after = fill(prior + now);
+    // One card may hold several redemptions: merge before crediting.
+    const perCard = new Map<string, number>();
+    redemptions.forEach((r, i) => {
+      const delta = after[i] - before[i];
+      if (delta > 0)
+        perCard.set(r.giftCardId, (perCard.get(r.giftCardId) ?? 0) + delta);
+    });
+    for (const [giftCardId, c] of perCard) {
+      await this.giftCards.credit(tx, args.branchId, giftCardId, c / 100);
+    }
+  }
+
   async refund(
     branchId: string,
     orderId: string,
@@ -2276,6 +2350,22 @@ export class OrdersService {
         await tx.gatewayRefund.update({
           where: { id: excludeReservationId },
           data: { refundId: created.id },
+        });
+      }
+      // Only a refund *back to the card* restores its balance. A cash or
+      // store-credit refund pays the customer through that other channel;
+      // crediting the card as well would pay them twice.
+      if (dto.method === 'GIFT_CARD') {
+        const priorGiftCardRefunded = round2(
+          refunds
+            .filter((r) => r.method === 'GIFT_CARD')
+            .reduce((sum, r) => sum + Number(r.amount), 0),
+        );
+        await this.creditGiftCardsForRefund(tx, {
+          branchId,
+          orderId,
+          refundAmount: dto.amount,
+          priorGiftCardRefunded,
         });
       }
       await this.verifactu.recordRefund(tx, orderId, created.id, dto.amount);
