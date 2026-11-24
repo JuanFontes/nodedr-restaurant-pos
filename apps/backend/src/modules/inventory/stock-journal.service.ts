@@ -142,18 +142,26 @@ export class StockJournalService {
         });
       });
     } catch (e) {
+      // Concurrent copies of one request race on the unique key (P2002), or give up waiting for the row locks the
+      // first copy holds (P2028 start timeout, P2034 conflict). In all three the first copy is the one that counts:
+      // wait briefly for it to commit and return its result instead of surfacing a 500 for a duplicate.
       if (
         dto.idempotencyKey &&
         e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === 'P2002'
+        ['P2002', 'P2028', 'P2034'].includes(e.code)
       ) {
-        // A concurrent retry won the unique key: return its batch instead of
-        // reporting a 500. The losing transaction rolled back completely.
-        const winner = await this.prisma.stockBatch.findFirst({
-          where: { branchId, idempotencyKey: dto.idempotencyKey },
-          include: { stockMovements: true },
-        });
-        if (winner) return winner;
+        for (let attempt = 0; attempt < 15; attempt++) {
+          const winner = await this.prisma.stockTake.findUnique({
+            where: {
+              branchId_idempotencyKey: {
+                branchId,
+                idempotencyKey: dto.idempotencyKey,
+              },
+            },
+          });
+          if (winner) return winner;
+          await new Promise((r) => setTimeout(r, 300));
+        }
       }
       throw e;
     }
