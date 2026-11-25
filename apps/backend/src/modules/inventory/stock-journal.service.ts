@@ -15,6 +15,9 @@ import { toCsv } from '../reports/csv';
 import { StockService } from './stock.service';
 import { toBaseQuantity } from './units';
 
+/** Days of recent usage the reorder list looks at, and how few days of cover count as "running out". */
+const REORDER_USAGE_DAYS = 30;
+const REORDER_LEAD_DAYS = 3;
 const Dec = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 
 export interface JournalFilters {
@@ -395,30 +398,103 @@ export class StockJournalService {
   }
 
   /** Items at or under their minimum, with how much to buy to get back to the par level. */
+  /**
+   * What to buy. An item is listed when it is at or below its minimum, or when recent usage says it runs out within
+   * REORDER_LEAD_DAYS. Stock already on order (sent or part-received purchase orders) is counted, so the list does
+   * not tell you to buy what is on its way. Usage is the net of the last 30 days of use, production use and waste,
+   * less sales returned to stock. The supplier and price shown are from the most recent receipt of the item.
+   */
   async reorderList(branchId: string) {
-    const items = await this.prisma.ingredient.findMany({
-      where: { branchId, isActive: true, kind: 'PURCHASED' },
-      select: {
-        id: true,
-        name: true,
-        unit: true,
-        category: true,
-        currentStock: true,
-        reorderLevel: true,
-        parLevel: true,
-        storageLocation: true,
-      },
-      orderBy: [{ category: 'asc' }, { name: 'asc' }],
-    });
-    return items
-      .filter(
-        (i) =>
-          Dec(i.reorderLevel).gt(0) && Dec(i.currentStock).lte(i.reorderLevel),
-      )
-      .map((i) => {
-        const par = i.parLevel ? Dec(i.parLevel) : Dec(i.reorderLevel).mul(2);
-        const need = par.minus(i.currentStock);
-        return {
+    const since = new Date(Date.now() - REORDER_USAGE_DAYS * 86_400_000);
+    const [items, usage, onOrderRows, lastReceipts] = await Promise.all([
+      this.prisma.ingredient.findMany({
+        where: { branchId, isActive: true, kind: 'PURCHASED' },
+        select: {
+          id: true,
+          name: true,
+          unit: true,
+          category: true,
+          currentStock: true,
+          reorderLevel: true,
+          parLevel: true,
+          storageLocation: true,
+        },
+        orderBy: [{ category: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.stockMovement.groupBy({
+        by: ['ingredientId'],
+        where: {
+          branchId,
+          createdAt: { gte: since },
+          type: { in: ['CONSUMPTION', 'REVERSAL', 'PRODUCTION_USE', 'WASTE'] },
+        },
+        _sum: { quantity: true },
+      }),
+      this.prisma.purchaseOrderItem.findMany({
+        where: {
+          purchaseOrder: {
+            branchId,
+            status: { in: ['SENT', 'PARTIALLY_RECEIVED'] },
+          },
+        },
+        select: {
+          ingredientId: true,
+          quantityOrdered: true,
+          quantityReceived: true,
+        },
+      }),
+      this.prisma.goodsReceiptItem.findMany({
+        where: { goodsReceipt: { branchId } },
+        orderBy: { goodsReceipt: { receivedAt: 'desc' } },
+        distinct: ['ingredientId'],
+        select: {
+          ingredientId: true,
+          unitCost: true,
+          goodsReceipt: {
+            select: { supplier: { select: { id: true, name: true } } },
+          },
+        },
+      }),
+    ]);
+    const used = new Map(
+      usage.map((u) => [
+        u.ingredientId,
+        // movements are signed (use is negative), so net use is the negated sum
+        Dec(u._sum.quantity ?? 0).negated(),
+      ]),
+    );
+    const onOrder = new Map<string, Prisma.Decimal>();
+    for (const r of onOrderRows) {
+      const open = Dec(r.quantityOrdered).minus(r.quantityReceived);
+      if (open.gt(0))
+        onOrder.set(
+          r.ingredientId,
+          (onOrder.get(r.ingredientId) ?? Dec(0)).plus(open),
+        );
+    }
+    const last = new Map(lastReceipts.map((r) => [r.ingredientId, r]));
+
+    return items.flatMap((i) => {
+      const stock = Dec(i.currentStock);
+      const daily = (used.get(i.id) ?? Dec(0)).div(REORDER_USAGE_DAYS);
+      const perDay = daily.gt(0) ? daily : Dec(0);
+      const daysLeft = perDay.gt(0) ? stock.div(perDay) : null;
+      const belowMinimum =
+        Dec(i.reorderLevel).gt(0) && stock.lte(i.reorderLevel);
+      const runningOut = daysLeft !== null && daysLeft.lte(REORDER_LEAD_DAYS);
+      if (!belowMinimum && !runningOut) return [];
+      // Bring-up-to level: the set par, else twice the minimum, else a week of usage.
+      const par = i.parLevel
+        ? Dec(i.parLevel)
+        : Dec(i.reorderLevel).gt(0)
+          ? Dec(i.reorderLevel).mul(2)
+          : perDay.mul(7);
+      const incoming = onOrder.get(i.id) ?? Dec(0);
+      const gross = par.minus(stock);
+      const toBuy = Prisma.Decimal.max(gross.minus(incoming), Dec(0));
+      const lr = last.get(i.id);
+      return [
+        {
           id: i.id,
           name: i.name,
           unit: i.unit,
@@ -426,10 +502,17 @@ export class StockJournalService {
           storageLocation: i.storageLocation,
           inStock: i.currentStock.toString(),
           minimum: i.reorderLevel.toString(),
-          par: par.toString(),
-          toBuy: (need.isNegative() ? Dec(0) : need).toString(),
-        };
-      });
+          par: par.toDecimalPlaces(3).toString(),
+          onOrder: incoming.toString(),
+          avgDailyUse: perDay.toDecimalPlaces(3).toString(),
+          daysLeft: daysLeft ? daysLeft.toDecimalPlaces(1).toNumber() : null,
+          toBuy: toBuy.toDecimalPlaces(3).toString(),
+          supplier: lr?.goodsReceipt.supplier ?? null,
+          lastUnitCost: lr ? lr.unitCost.toString() : null,
+          estCost: lr ? toBuy.mul(lr.unitCost).toFixed(2) : null,
+        },
+      ];
+    });
   }
 
   async reorderCsv(branchId: string) {
@@ -442,8 +525,13 @@ export class StockJournalService {
         'In stock',
         'Minimum',
         'Bring up to',
+        'On order',
+        'Days left',
         'To buy',
         'Unit',
+        'Supplier',
+        'Last price',
+        'Est. cost',
       ],
       rows.map((r) => [
         r.name,
@@ -452,8 +540,13 @@ export class StockJournalService {
         r.inStock,
         r.minimum,
         r.par,
+        r.onOrder,
+        r.daysLeft,
         r.toBuy,
         r.unit,
+        r.supplier?.name,
+        r.lastUnitCost,
+        r.estCost,
       ]),
     );
   }
