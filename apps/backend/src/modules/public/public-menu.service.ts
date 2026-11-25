@@ -51,6 +51,7 @@ export class PublicMenuService {
     const online = !!(await this.gateways.active(branch.restaurantId));
     return {
       branchName: branch.name,
+      currency: branch.restaurant.currency,
       tableName: table.name ?? `Table ${table.number}`,
       categories,
       payments: { cash: true, online },
