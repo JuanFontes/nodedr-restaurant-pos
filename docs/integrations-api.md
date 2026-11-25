@@ -151,10 +151,17 @@ on under "Show on website", with each item's modifier groups (the
 `modifierIds` you may send when ordering) and its optional ordering window
 (`availableFrom` / `availableTo`, `"HH:mm"`). Contains no customer data.
 
+Items can also have a temporary sales pause. If `pausedUntil` is in the future,
+disable ordering for that item and display the return time using the response's
+`timezone`. A null or elapsed deadline means the temporary pause is over.
+If a pause starts after the menu loads, submitting the item returns HTTP 409
+with code `ITEM_UNAVAILABLE`. Refresh the menu before retrying.
+
 ```json
 {
   "locationId": "...",
   "locationName": "Main Branch",
+  "timezone": "Asia/Kolkata",
   "categories": [
     {
       "id": "...", "name": "Starters",
@@ -162,7 +169,7 @@ on under "Show on website", with each item's modifier groups (the
         {
           "id": "...", "name": "Spring Rolls", "price": "199", "taxRatePercent": "5",
           "isVeg": true, "spiceLevel": "NONE", "allergens": [],
-          "availableFrom": null, "availableTo": null,
+          "availableFrom": null, "availableTo": null, "pausedUntil": null,
           "modifierGroups": [
             { "id": "...", "name": "Dip", "minSelect": 0, "maxSelect": 1, "isRequired": false,
               "modifiers": [{ "id": "...", "name": "Sweet chilli", "priceAdjustment": "20", "isDefault": false }] }
