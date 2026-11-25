@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SchedulesPanel } from "@/components/reports/schedules-panel";
 import { openEntity } from "@/lib/entity-events";
+import { BillViewDialog } from "@/components/reports/bill-view-dialog";
 
 interface CatalogEntry {
   key: string;
@@ -45,6 +46,13 @@ const PRESETS: { label: string; get: () => { from: string; to: string } }[] = [
     },
   },
   { label: "Last 30 days", get: () => ({ from: daysAgo(29), to: daysAgo(0) }) },
+  { label: "Last 90 days", get: () => ({ from: daysAgo(89), to: daysAgo(0) }) },
+  {
+    label: "This year",
+    get: () => ({ from: `${new Date().getFullYear()}-01-01`, to: daysAgo(0) }),
+  },
+  // The server accepts up to five years in one report, so every old invoice is reachable.
+  { label: "All time", get: () => ({ from: daysAgo(1829), to: daysAgo(0) }) },
 ];
 const MONEY_COLS = /sales|tax|discount|tips|total|amount|refund|revenue|cost|margin|value|price/i;
 const money = (v: string | number | null, col: string) =>
@@ -57,6 +65,9 @@ export default function ReportsPage() {
   const { data: me } = useCurrentUser();
   const canExport = hasPermission(me?.user, "data.export");
   const [key, setKey] = useState("sales-daily");
+  const [find, setFind] = useState("");
+  const [viewBill, setViewBill] = useState<string | null>(null);
+  const canTakeOrders = hasPermission(me?.user, "orders.create");
   const [range, setRange] = useState(() => ({
     from: daysAgo(6),
     to: daysAgo(0),
@@ -131,6 +142,9 @@ export default function ReportsPage() {
           <div className="flex flex-wrap items-center gap-2 print:hidden">
             <Input aria-label="Report from date" type="date" className="w-40" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
             <Input aria-label="Report to date" type="date" className="w-40" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+            {data?.rowOrderIds && (
+              <Input aria-label="Find a bill" placeholder="Find bill, customer, payment…" className="w-56" value={find} onChange={(e) => setFind(e.target.value)} />
+            )}
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
@@ -167,9 +181,13 @@ export default function ReportsPage() {
                 <tbody>
                   {data.rows.map((r, i) => {
                     const orderId = data.rowOrderIds?.[i];
+                    if (find.trim() && orderId && !r.some((c) => String(c ?? "").toLowerCase().includes(find.trim().toLowerCase()))) return null;
                     const dayDrill = key === "sales-daily" && typeof r[0] === "string";
                     const go = () => {
-                      if (orderId) openEntity("Order", orderId);
+                      if (orderId) {
+                        if (canTakeOrders) openEntity("Order", orderId);
+                        else setViewBill(orderId);
+                      }
                       else if (dayDrill) {
                         setKey("invoices");
                         setRange({ from: String(r[0]), to: String(r[0]) });
@@ -216,6 +234,8 @@ export default function ReportsPage() {
               <p className="py-8 text-center text-sm text-muted-foreground">No data for this period.</p>
             )}
           </Card>
+
+          <BillViewDialog branchId={branchId} orderId={viewBill} onClose={() => setViewBill(null)} />
 
           {canExport && (
             <SchedulesPanel

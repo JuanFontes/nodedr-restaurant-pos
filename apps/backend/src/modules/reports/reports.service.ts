@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { permissionSatisfied } from '@nodedr-restaurant/types';
 import { BranchTimeService } from '../../common/services/branch-time.service';
@@ -87,6 +88,9 @@ export function assertCanViewReport(
   }
 }
 
+/** The day book lists at most this many bills at once; narrow the dates to see more. */
+export const INVOICE_ROW_CAP = 5000;
+
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 @Injectable()
@@ -96,6 +100,26 @@ export class ReportsService {
     private readonly time: BranchTimeService,
     private readonly accounting: AccountingService,
   ) {}
+
+  /**
+   * One bill, read-only, for people who may view sales reports but cannot take orders (an accountant opening a
+   * line of the day book). Branch-scoped: a bill of another branch is "not found".
+   */
+  async bill(branchId: string, orderId: string) {
+    const o = await this.prisma.order.findFirst({
+      where: { id: orderId, branchId },
+      include: {
+        items: true,
+        payments: { orderBy: { createdAt: 'asc' } },
+        refunds: { orderBy: { createdAt: 'asc' } },
+        customer: { select: { name: true, phone: true } },
+        table: { select: { number: true, name: true } },
+        createdBy: { select: { name: true } },
+      },
+    });
+    if (!o) throw new NotFoundException('Bill not found');
+    return o;
+  }
 
   catalog(permissions: readonly string[]) {
     return REPORT_CATALOG.filter((r) => canViewReport(permissions, r.key));
@@ -115,8 +139,9 @@ export class ReportsService {
     }
     if (to < from)
       throw new BadRequestException('"to" cannot be before "from"');
-    if (Date.parse(to) - Date.parse(from) > 366 * 86_400_000)
-      throw new BadRequestException('Choose a range of at most one year');
+    // Five years back covers every old invoice; the heavy per-bill report below is capped by rows instead.
+    if (Date.parse(to) - Date.parse(from) > 1830 * 86_400_000)
+      throw new BadRequestException('Choose a range of at most five years');
 
     const tz = await this.time.tzForBranch(branchId);
     const range = zonedRange(from, to, tz);
@@ -219,8 +244,10 @@ export class ReportsService {
             refunds: { select: { amount: true } },
           },
           orderBy: { billedAt: 'asc' },
-          take: 5000,
+          take: INVOICE_ROW_CAP + 1,
         });
+        const truncated = orders.length > INVOICE_ROW_CAP;
+        if (truncated) orders.pop();
         const rows: CsvValue[][] = orders.map((o) => {
           const { minute } = localMinuteAndDay(o.billedAt!, tz);
           const refunded = o.refunds.reduce((a, r) => a + Number(r.amount), 0);
@@ -261,7 +288,7 @@ export class ReportsService {
             [
               'Total',
               '',
-              `${rows.length} bills`,
+              `${rows.length} bills${truncated ? ` (first ${INVOICE_ROW_CAP} only - narrow the dates)` : ''}`,
               '',
               '',
               '',
