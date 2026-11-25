@@ -12,6 +12,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { CancelOrderDialog, useCanCancelOrders } from "@/components/orders/cancel-order-dialog";
 import { DeliveryWhere } from "@/components/orders/delivery-where";
 import { EditBillDialog } from "@/components/orders/edit-bill-dialog";
+import { DeleteOrdersDialog } from "@/components/orders/delete-orders-dialog";
 import { ReasonDialog } from "@/components/orders/reason-dialog";
 import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
 import { useAcceptOrder, useOrder, useRejectOrder } from "@/hooks/use-orders";
@@ -47,6 +48,10 @@ export function OrderDetailDialog({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  // Same rule as the Orders page: permission AND an admin role; the server re-checks the password.
+  const canDeleteFinished =
+    hasPermission(me?.user, "orders.delete") && ["OWNER", "ADMINISTRATOR"].includes(me?.user.roleName ?? "");
   const customerName = order?.guestName ?? order?.customer?.name ?? "Walk-in guest";
   const pending = order?.status === "OPEN" && order?.acceptance === "PENDING";
   const canCancel = order?.status === "OPEN" && !pending;
@@ -201,7 +206,13 @@ export function OrderDetailDialog({
             {order.status === "PAID" && (
               <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                 This bill is paid. To correct it, issue a refund from the Dashboard — paid bills are never edited in place.
+                {canDeleteFinished ? " An admin can also delete it; a record stays in the Audit Log." : ""}
               </p>
+            )}
+            {canDeleteFinished && (order.status === "PAID" || order.status === "CANCELLED") && (
+              <Button variant="outline" className="border-destructive/40 text-destructive" onClick={() => setDeleteOpen(true)}>
+                Delete this bill (admin)
+              </Button>
             )}
             {canCancel && (
               <div className="flex gap-2">
@@ -231,6 +242,13 @@ export function OrderDetailDialog({
                   onOpenChange={setCancelOpen}
                   />
                 <EditBillDialog branchId={branchId} orderId={order.id} open={editOpen} onOpenChange={setEditOpen} />
+                <DeleteOrdersDialog
+                  branchId={branchId}
+                  orderIds={[order.id]}
+                  open={deleteOpen}
+                  onOpenChange={setDeleteOpen}
+                  onDeleted={() => onOpenChange(false)}
+                />
                 <ReasonDialog
                   open={declineOpen}
                   onOpenChange={setDeclineOpen}

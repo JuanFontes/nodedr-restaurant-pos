@@ -210,6 +210,10 @@ roles) under **Settings** in the sidebar, photo upload on menu items, and
 an English/Spanish/French language switcher on the guest-facing QR
 ordering page and staff sidebar.
 
+### What's new in 1.44.0
+
+Reports rebuilt: a day book listing every bill with totals, drill-down from each day to its bills, quick date ranges and totals in every export. Order history searches any date range, admins can delete a finished bill from its detail window, and the Audit Log can be exported and can no longer be edited or deleted by anyone. See [CHANGELOG-1.44.0](docs/CHANGELOG-1.44.0.md).
+
 ### What's new (1.42.1 and 1.42.2)
 
 Integrity and safety fixes from the November 2026 pull-request review (1.42.2 also fixes a rare checkout stall that 1.42.1 could show when several payments for one bill arrived at the same moment; update straight to 1.42.2):

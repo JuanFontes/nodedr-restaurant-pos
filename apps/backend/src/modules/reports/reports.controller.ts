@@ -59,7 +59,7 @@ export class ReportsController {
     assertCanViewReport(u.permissions, key);
     await this.branchAccess.assertAccess(u.restaurantId, branchId);
     const r = await this.reports.run(key, branchId, from, to);
-    return toCsv(r.columns, r.rows);
+    return toCsv(r.columns, r.totals ? [...r.rows, r.totals] : r.rows);
   }
 
   // Excel / PDF / CSV through one endpoint. Same permissions as the CSV one.

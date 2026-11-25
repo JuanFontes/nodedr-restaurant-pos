@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
 import { useBranch } from "@/hooks/use-branch";
@@ -71,7 +72,9 @@ function OrdersView() {
     return FILTERS.some((x) => x.key === f) ? (f as string) : "all";
   });
   const filter = FILTERS.find((f) => f.key === filterKey) ?? FILTERS[0];
-  const { data: orders, isLoading } = useManagedOrders(branchId, tab, filter.channel, filter.type);
+  // History: any day or range (not just the last week) plus bill / guest search.
+  const [hist, setHist] = useState({ from: "", to: "", q: "" });
+  const { data: orders, isLoading } = useManagedOrders(branchId, tab, filter.channel, filter.type, hist);
   const { data: pendingOrders } = useManagedOrders(branchId, "pending");
   const pendingCount = pendingOrders?.length ?? 0;
 
@@ -135,6 +138,23 @@ function OrdersView() {
           </button>
         ))}
       </div>
+
+      {tab === "history" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Input aria-label="History from date" type="date" className="w-40" value={hist.from} onChange={(e) => setHist({ ...hist, from: e.target.value, to: hist.to || e.target.value })} />
+          <Input aria-label="History to date" type="date" className="w-40" value={hist.to} onChange={(e) => setHist({ ...hist, to: e.target.value, from: hist.from || e.target.value })} />
+          <Input aria-label="Search bills" placeholder="Bill number or guest" className="w-56" value={hist.q} onChange={(e) => setHist({ ...hist, q: e.target.value })} />
+          {(hist.from || hist.q) && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setHist({ from: "", to: "", q: "" })}>
+              Last 7 days
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {hist.from ? `${orders?.length ?? 0} bills` : "Showing the last 7 days"}
+            {orders && orders.length >= 500 ? " (first 500 — narrow the dates)" : ""}
+          </span>
+        </div>
+      )}
 
       {selectable && finished.length > 0 && (
         <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-muted-foreground">

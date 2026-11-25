@@ -70,7 +70,15 @@ export class AuditService {
         ? {
             createdAt: {
               ...(from ? { gte: from } : {}),
-              ...(to ? { lte: to } : {}),
+              // A date-only "to" parses as that day's midnight; the whole day must count.
+              ...(to
+                ? {
+                    lt: new Date(
+                      to.getTime() +
+                        (to.getTime() % 86_400_000 === 0 ? 86_400_000 : 1),
+                    ),
+                  }
+                : {}),
             },
           }
         : {}),
@@ -94,6 +102,27 @@ export class AuditService {
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
+  }
+
+  /** Every entry matching the filters (newest first), capped, for export. Read-only like everything else here. */
+  async listForExport(restaurantId: string, query: AuditLogListQueryDto) {
+    const first = await this.list(restaurantId, {
+      ...query,
+      page: 1,
+      pageSize: 100,
+    });
+    const rows = [...first.data];
+    for (
+      let page = 2;
+      page <= first.totalPages && rows.length < 20_000;
+      page++
+    ) {
+      rows.push(
+        ...(await this.list(restaurantId, { ...query, page, pageSize: 100 }))
+          .data,
+      );
+    }
+    return rows;
   }
 
   // Distinct entity types actually present for this restaurant — the

@@ -239,13 +239,21 @@ export function useManagedOrders(
   tab: OrderTab,
   channel?: OrderChannel,
   type?: string,
+  history?: { from: string; to: string; q: string },
 ) {
   return useQuery({
-    queryKey: ["orders", "manage", branchId, tab, channel ?? "", type ?? ""],
+    queryKey: ["orders", "manage", branchId, tab, channel ?? "", type ?? "", history?.from ?? "", history?.to ?? "", history?.q ?? ""],
     queryFn: () => {
       const q = new URLSearchParams({ branchId: branchId ?? "", tab });
       if (channel) q.set("channel", channel);
       if (type) q.set("type", type);
+      if (tab === "history" && history) {
+        if (history.from && history.to) {
+          q.set("from", history.from);
+          q.set("to", history.to);
+        }
+        if (history.q.trim()) q.set("q", history.q.trim());
+      }
       return api.get<ManagedOrder[]>(`/orders/manage?${q.toString()}`);
     },
     enabled: !!branchId,

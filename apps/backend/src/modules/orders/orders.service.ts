@@ -28,6 +28,7 @@ import { MarketingService } from '../marketing/marketing.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
 import { resolveProfile } from './escpos/encoder';
 import { PrismaService } from '../../prisma/prisma.service';
+import { zonedRange } from '../../common/time';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
 import {
   computeOrderTotals,
@@ -641,9 +642,28 @@ export class OrdersService {
       tab?: 'pending' | 'active' | 'history';
       channel?: 'STAFF' | 'ONLINE';
       type?: string;
+      /** History tab: a custom date window (YYYY-MM-DD, inclusive) instead of the last 7 days. */
+      from?: string;
+      to?: string;
+      /** History tab: bill number or guest name contains this text. */
+      q?: string;
     },
   ) {
     const tab = filters.tab ?? 'active';
+    const branchRow = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { restaurant: { select: { timezone: true } } },
+    });
+    const tz = branchRow?.restaurant.timezone ?? 'Asia/Kolkata';
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    const window =
+      filters.from &&
+      filters.to &&
+      day.test(filters.from) &&
+      day.test(filters.to)
+        ? zonedRange(filters.from, filters.to, tz)
+        : { gte: new Date(Date.now() - 7 * 86_400_000) };
+    const q = filters.q?.trim();
     const statusWhere: Prisma.OrderWhereInput =
       tab === 'pending'
         ? { status: 'OPEN', acceptance: 'PENDING' }
@@ -657,7 +677,7 @@ export class OrdersService {
                 { status: { in: ['PAID', 'CANCELLED'] } },
                 { acceptance: 'REJECTED' },
               ],
-              createdAt: { gte: new Date(Date.now() - 7 * 86_400_000) },
+              createdAt: window,
             };
     return this.prisma.order.findMany({
       where: {
@@ -665,10 +685,23 @@ export class OrdersService {
         ...statusWhere,
         ...(filters.channel ? { channel: filters.channel } : {}),
         ...(filters.type ? { type: filters.type as never } : {}),
+        ...(tab === 'history' && q
+          ? {
+              OR: [
+                { orderNumber: { contains: q, mode: 'insensitive' as const } },
+                { guestName: { contains: q, mode: 'insensitive' as const } },
+                {
+                  customer: {
+                    name: { contains: q, mode: 'insensitive' as const },
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       include: { table: true, customer: true, items: true },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: tab === 'history' ? 500 : 200,
     });
   }
 

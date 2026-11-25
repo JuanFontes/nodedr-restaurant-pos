@@ -229,12 +229,18 @@ export class OrdersController {
     @Query('tab') tab?: 'pending' | 'active' | 'history',
     @Query('channel') channel?: 'STAFF' | 'ONLINE',
     @Query('type') type?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('q') q?: string,
   ) {
     await this.branchAccess.assertAccess(user.restaurantId, branchId);
     return this.ordersService.listForManagement(branchId, {
       tab,
       channel,
       type,
+      from,
+      to,
+      q,
     });
   }
 

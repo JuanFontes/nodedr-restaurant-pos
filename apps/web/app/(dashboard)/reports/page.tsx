@@ -12,6 +12,7 @@ import { useBranch } from "@/hooks/use-branch";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SchedulesPanel } from "@/components/reports/schedules-panel";
+import { openEntity } from "@/lib/entity-events";
 
 interface CatalogEntry {
   key: string;
@@ -23,9 +24,33 @@ interface ReportResult {
   title: string;
   columns: string[];
   rows: (string | number | null)[][];
+  totals?: (string | number | null)[];
+  rowOrderIds?: string[];
 }
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+// Local calendar date, not UTC: after midnight in India the UTC date is still
+// yesterday, which made "today" show the wrong day.
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const daysAgo = (n: number) => iso(new Date(Date.now() - n * 86_400_000));
+const PRESETS: { label: string; get: () => { from: string; to: string } }[] = [
+  { label: "Today", get: () => ({ from: daysAgo(0), to: daysAgo(0) }) },
+  { label: "Yesterday", get: () => ({ from: daysAgo(1), to: daysAgo(1) }) },
+  { label: "Last 7 days", get: () => ({ from: daysAgo(6), to: daysAgo(0) }) },
+  {
+    label: "This month",
+    get: () => {
+      const n = new Date();
+      return { from: iso(new Date(n.getFullYear(), n.getMonth(), 1)), to: daysAgo(0) };
+    },
+  },
+  { label: "Last 30 days", get: () => ({ from: daysAgo(29), to: daysAgo(0) }) },
+];
+const MONEY_COLS = /sales|tax|discount|tips|total|amount|refund|revenue|cost|margin|value|price/i;
+const money = (v: string | number | null, col: string) =>
+  typeof v === "number" && MONEY_COLS.test(col)
+    ? v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : (v ?? "—");
 
 export default function ReportsPage() {
   const { branchId } = useBranch();
@@ -33,8 +58,8 @@ export default function ReportsPage() {
   const canExport = hasPermission(me?.user, "data.export");
   const [key, setKey] = useState("sales-daily");
   const [range, setRange] = useState(() => ({
-    from: iso(new Date(Date.now() - 29 * 86_400_000)),
-    to: iso(new Date()),
+    from: daysAgo(6),
+    to: daysAgo(0),
   }));
 
   const { data: catalog } = useQuery({
@@ -55,7 +80,7 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6">
       <div className="print:hidden">
         <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Reports</h1>
-        <p className="text-sm text-muted-foreground">Filter by date, print, export to Excel, PDF or CSV, or email on a schedule</p>
+        <p className="text-sm text-muted-foreground">Pick a day or range, open any bill, then print or export to Excel, PDF or CSV</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
@@ -83,6 +108,26 @@ export default function ReportsPage() {
         </nav>
 
         <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-wrap gap-2 print:hidden">
+            {PRESETS.map((p) => {
+              const r = p.get();
+              const on = r.from === range.from && r.to === range.to;
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  aria-pressed={on}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs transition-colors",
+                    on ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-secondary",
+                  )}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex flex-wrap items-center gap-2 print:hidden">
             <Input aria-label="Report from date" type="date" className="w-40" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
             <Input aria-label="Report to date" type="date" className="w-40" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
@@ -120,14 +165,52 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((r, i) => (
-                    <tr key={i} className="border-t border-border">
-                      {r.map((cell, j) => (
-                        <td key={j} className="py-1.5 pr-4 tabular-nums">{cell ?? "—"}</td>
+                  {data.rows.map((r, i) => {
+                    const orderId = data.rowOrderIds?.[i];
+                    const dayDrill = key === "sales-daily" && typeof r[0] === "string";
+                    const go = () => {
+                      if (orderId) openEntity("Order", orderId);
+                      else if (dayDrill) {
+                        setKey("invoices");
+                        setRange({ from: String(r[0]), to: String(r[0]) });
+                      }
+                    };
+                    const clickable = !!orderId || dayDrill;
+                    return (
+                      <tr
+                        key={i}
+                        className={cn("border-t border-border", clickable && "cursor-pointer hover:bg-secondary/50")}
+                        {...(clickable
+                          ? {
+                              onClick: go,
+                              tabIndex: 0,
+                              role: "button",
+                              "aria-label": orderId ? `Open bill ${r[2]}` : `Show every bill on ${r[0]}`,
+                              onKeyDown: (e: React.KeyboardEvent) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  go();
+                                }
+                              },
+                            }
+                          : {})}
+                      >
+                        {r.map((cell, j) => (
+                          <td key={j} className="py-1.5 pr-4 tabular-nums">{money(cell, data.columns[j])}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {data.totals && (
+                  <tfoot>
+                    <tr className="border-t-2 border-border font-semibold">
+                      {data.totals.map((cell, j) => (
+                        <td key={j} className="py-2 pr-4 tabular-nums">{money(cell, data.columns[j])}</td>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
+                  </tfoot>
+                )}
               </table>
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">No data for this period.</p>

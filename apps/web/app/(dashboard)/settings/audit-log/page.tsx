@@ -1,6 +1,8 @@
 "use client";
 
+import { Download, Lock } from "lucide-react";
 import { useState } from "react";
+import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,12 @@ export default function AuditLogPage() {
     pageSize: PAGE_SIZE,
   });
   const { data: entities } = useAuditLogEntities();
+  const { data: me } = useCurrentUser();
+  const canExport = hasPermission(me?.user, "data.export");
+  const exportQs = new URLSearchParams();
+  if (filters.entity) exportQs.set("entity", filters.entity);
+  if (filters.from) exportQs.set("from", filters.from);
+  if (filters.to) exportQs.set("to", filters.to);
 
   const setEntityFilter = (entity: string | undefined) =>
     setFilters((prev) => ({ ...prev, entity, page: 1 }));
@@ -68,6 +76,22 @@ export default function AuditLogPage() {
               <p className="text-sm text-muted-foreground">{data.total} entries</p>
             ) : null}
           </div>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Lock className="h-3.5 w-3.5" aria-hidden /> Entries are permanent: nobody, including admins, can edit or delete them.
+          </p>
+          {canExport && (
+            <div className="flex flex-wrap gap-2">
+              {(["xlsx", "pdf", "csv"] as const).map((f) => (
+                <a
+                  key={f}
+                  href={`/api/v1/audit-logs/export?${exportQs.toString()}${exportQs.size ? "&" : ""}format=${f}`}
+                  className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-secondary"
+                >
+                  <Download className="mr-2 h-4 w-4" /> {f === "xlsx" ? "Excel" : f.toUpperCase()}
+                </a>
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <EntityChip
