@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { isDeepStrictEqual, promisify } from 'node:util';
 import * as fs from 'node:fs/promises';
 import * as fsSync from 'node:fs';
 import { createReadStream } from 'node:fs';
@@ -20,11 +20,19 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import type {
-  RestoreBackupDto,
-  SessionUser,
-  SetBackupConfigDto,
+import {
+  backupScheduleSchema,
+  type BackupSchedule,
+  type RestoreBackupDto,
+  type SessionUser,
+  type SetBackupConfigDto,
+  type SetBackupScheduleDto,
 } from '@nodedr-restaurant/types';
+import { Prisma, type Backup, type BackupScheduleState } from '@prisma/client';
+import {
+  nextCalendarOccurrence,
+  nextIntervalOccurrence,
+} from './backup-schedule';
 import { assertSafeUploadsArchive, SAFE_EXTRACT_FLAGS } from './safe-tar';
 import { AuditService } from '../audit/audit.service';
 import type { NotifyPayload } from '../notifications/notifications.service';
@@ -36,14 +44,17 @@ import { uploadsDir } from '../common/upload/image-upload.config';
 const execFileAsync = promisify(execFile);
 const CONFIG_ID = 'singleton';
 const BACKUP_CTX = 'backup-config:s3';
+const RENEW_EVERY_MS = 60_000;
+const LEASE_MS = 5 * RENEW_EVERY_MS;
 
 async function sha256File(file: string): Promise<string> {
   const hash = createHash('sha256');
-  for await (const chunk of createReadStream(file)) hash.update(chunk);
+  for await (const chunk of createReadStream(file) as AsyncIterable<Buffer>)
+    hash.update(chunk);
   return hash.digest('hex');
 }
 
-interface EffectiveConfig {
+interface StorageConfig {
   endpoint: string;
   bucket: string;
   accessKeyId: string;
@@ -52,6 +63,17 @@ interface EffectiveConfig {
   intervalDays: number;
   retainCount: number;
   source: 'database' | 'environment';
+}
+
+interface EffectiveConfig extends StorageConfig {
+  schedule: BackupSchedule;
+  nextScheduledAt: Date | null;
+  lastAttemptId: string | null;
+}
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : fallback;
 }
 
 function mask(value: string): string {
@@ -90,8 +112,20 @@ export class BackupService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  private async getConfig(): Promise<EffectiveConfig | null> {
-    const row = await this.prisma.backupConfig.findUnique({
+  private async withScheduleLock<T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize edits and claims across API replicas. Dump and S3 I/O run after commit.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('instance-backup-schedule'))`;
+      return operation(tx);
+    });
+  }
+
+  private async getStorageConfig(
+    client: Prisma.TransactionClient,
+  ): Promise<StorageConfig | null> {
+    const row = await client.backupConfig.findUnique({
       where: { id: CONFIG_ID },
     });
     if (row) {
@@ -125,8 +159,8 @@ export class BackupService {
         accessKeyId: S3_BACKUP_ACCESS_KEY_ID,
         secretAccessKey: S3_BACKUP_SECRET_ACCESS_KEY,
         region: process.env.S3_BACKUP_REGION ?? 'auto',
-        intervalDays: Number(process.env.S3_BACKUP_INTERVAL_DAYS ?? 3),
-        retainCount: Number(process.env.S3_BACKUP_RETAIN_COUNT ?? 2),
+        intervalDays: positiveInteger(process.env.S3_BACKUP_INTERVAL_DAYS, 3),
+        retainCount: positiveInteger(process.env.S3_BACKUP_RETAIN_COUNT, 2),
         source: 'environment',
       };
     }
@@ -134,8 +168,38 @@ export class BackupService {
     return null;
   }
 
-  private async requireConfig(): Promise<EffectiveConfig> {
-    const config = await this.getConfig();
+  private async getConfig(
+    client: Prisma.TransactionClient = this.prisma,
+    knownState?: BackupScheduleState | null,
+  ): Promise<EffectiveConfig | null> {
+    const storage = await this.getStorageConfig(client);
+    if (!storage) return null;
+    const state =
+      knownState === undefined
+        ? await client.backupScheduleState.findUnique({
+            where: { id: CONFIG_ID },
+          })
+        : knownState;
+    const schedule: BackupSchedule = state?.schedule
+      ? backupScheduleSchema.parse(state.schedule)
+      : { mode: 'interval', intervalDays: storage.intervalDays };
+    return {
+      ...storage,
+      schedule,
+      intervalDays:
+        schedule.mode === 'interval'
+          ? schedule.intervalDays
+          : storage.intervalDays,
+      retainCount: state?.retainCount ?? storage.retainCount,
+      nextScheduledAt: state?.nextScheduledAt ?? null,
+      lastAttemptId: state?.lastAttemptId ?? null,
+    };
+  }
+
+  private async requireConfig(
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<EffectiveConfig> {
+    const config = await this.getConfig(client);
     if (!config) {
       throw new BadRequestException(
         'S3 backup is not configured. Add your S3 endpoint, bucket, and access key in Settings > Backup.',
@@ -144,7 +208,7 @@ export class BackupService {
     return config;
   }
 
-  private s3Client(config: EffectiveConfig): S3Client {
+  private s3Client(config: StorageConfig): S3Client {
     return new S3Client({
       endpoint: config.endpoint,
       region: config.region,
@@ -182,22 +246,13 @@ export class BackupService {
   }
 
   async status() {
-    const [config, lastVerified, lastAny] = await Promise.all([
+    const [config, lastAny] = await Promise.all([
       this.getConfig(),
-      this.prisma.backup.findFirst({
-        where: { status: 'VERIFIED' },
-        orderBy: { verifiedAt: 'desc' },
-      }),
       this.prisma.backup.findFirst({ orderBy: { createdAt: 'desc' } }),
     ]);
-
-    const nextScheduledAt =
-      config && lastVerified?.verifiedAt
-        ? new Date(
-            lastVerified.verifiedAt.getTime() +
-              config.intervalDays * 24 * 60 * 60 * 1000,
-          )
-        : null;
+    const nextScheduledAt = config
+      ? await this.nextScheduledAt(config, this.prisma)
+      : null;
 
     return {
       configured: config !== null,
@@ -206,6 +261,10 @@ export class BackupService {
       bucket: config?.bucket ?? null,
       region: config?.region ?? null,
       accessKeyIdMasked: config ? mask(config.accessKeyId) : null,
+      schedule: config?.schedule ?? {
+        mode: 'interval' as const,
+        intervalDays: 3,
+      },
       intervalDays: config?.intervalDays ?? 3,
       retainCount: config?.retainCount ?? 2,
       lastBackup: lastAny,
@@ -227,7 +286,7 @@ export class BackupService {
    * days later when the scheduled backup silently fails.
    */
   async setConfig(user: SessionUser, dto: SetBackupConfigDto) {
-    const candidate: EffectiveConfig = {
+    const candidate: StorageConfig = {
       endpoint: dto.endpoint,
       bucket: dto.bucket,
       accessKeyId: dto.accessKeyId,
@@ -258,119 +317,271 @@ export class BackupService {
       );
     }
 
-    await this.prisma.backupConfig.upsert({
-      where: { id: CONFIG_ID },
-      create: {
-        id: CONFIG_ID,
-        endpoint: candidate.endpoint,
-        bucket: candidate.bucket,
-        accessKeyId: candidate.accessKeyId,
-        secretAccessKey: sealStored(candidate.secretAccessKey, BACKUP_CTX),
-        region: candidate.region,
-        intervalDays: candidate.intervalDays,
-        retainCount: candidate.retainCount,
-        updatedById: user.id,
-      },
-      update: {
-        endpoint: candidate.endpoint,
-        bucket: candidate.bucket,
-        accessKeyId: candidate.accessKeyId,
-        secretAccessKey: sealStored(candidate.secretAccessKey, BACKUP_CTX),
-        region: candidate.region,
-        intervalDays: candidate.intervalDays,
-        retainCount: candidate.retainCount,
-        updatedById: user.id,
-      },
-    });
-
-    await this.audit.record({
-      userId: user.id,
-      action: 'backup.config_updated',
-      entity: 'BackupConfig',
-      metadata: {
-        endpoint: candidate.endpoint,
-        bucket: candidate.bucket,
-        region: candidate.region,
-        intervalDays: candidate.intervalDays,
-        retainCount: candidate.retainCount,
-      },
+    const storage = {
+      endpoint: candidate.endpoint,
+      bucket: candidate.bucket,
+      accessKeyId: candidate.accessKeyId,
+      secretAccessKey: sealStored(candidate.secretAccessKey, BACKUP_CTX),
+      region: candidate.region,
+      intervalDays: dto.intervalDays,
+      retainCount: dto.retainCount,
+      updatedById: user.id,
+    };
+    await this.withScheduleLock(async (tx) => {
+      const previous = await this.getStorageConfig(tx);
+      if (!previous) await this.clearSchedule(tx);
+      await tx.backupConfig.upsert({
+        where: { id: CONFIG_ID },
+        create: {
+          id: CONFIG_ID,
+          ...storage,
+          intervalDays: dto.intervalDays ?? previous?.intervalDays ?? 3,
+          retainCount: dto.retainCount ?? previous?.retainCount ?? 2,
+        },
+        update: storage,
+      });
+      // Legacy clients can still set an interval or retention with credentials.
+      // A credentials-only rotation preserves the independently managed schedule.
+      if (dto.intervalDays !== undefined || dto.retainCount !== undefined) {
+        await tx.backupScheduleState.updateMany({
+          where: { id: CONFIG_ID },
+          data: {
+            ...(dto.intervalDays !== undefined && {
+              schedule: Prisma.DbNull,
+              nextScheduledAt: null,
+            }),
+            ...(dto.retainCount !== undefined && { retainCount: null }),
+          },
+        });
+      }
+      await this.audit.record(
+        {
+          userId: user.id,
+          action: 'backup.config_updated',
+          entity: 'BackupConfig',
+          metadata: {
+            endpoint: candidate.endpoint,
+            bucket: candidate.bucket,
+            region: candidate.region,
+            ...(dto.intervalDays !== undefined && {
+              intervalDays: dto.intervalDays,
+            }),
+            ...(dto.retainCount !== undefined && {
+              retainCount: dto.retainCount,
+            }),
+          },
+        },
+        tx,
+      );
     });
 
     return this.status();
   }
 
+  async setSchedule(user: SessionUser, dto: SetBackupScheduleDto) {
+    await this.withScheduleLock(async (tx) => {
+      const config = await this.requireConfig(tx);
+      const { schedule, retainCount } = dto;
+      // Retention-only edits must preserve any overdue, unclaimed occurrence.
+      const timing = isDeepStrictEqual(config.schedule, schedule)
+        ? {}
+        : {
+            nextScheduledAt:
+              schedule.mode === 'interval'
+                ? null
+                : nextCalendarOccurrence(schedule, new Date()),
+          };
+      const data = { schedule, retainCount, ...timing };
+      await tx.backupScheduleState.upsert({
+        where: { id: CONFIG_ID },
+        create: { id: CONFIG_ID, ...data },
+        update: data,
+      });
+      await this.audit.record(
+        {
+          userId: user.id,
+          action: 'backup.schedule_updated',
+          entity: 'BackupScheduleState',
+          metadata: { schedule, retainCount },
+        },
+        tx,
+      );
+    });
+    return this.status();
+  }
+
+  private async clearSchedule(tx: Prisma.TransactionClient) {
+    // An in-flight worker keeps its lease when credentials or preferences are cleared.
+    await tx.backupScheduleState.deleteMany({
+      where: { id: CONFIG_ID, leaseUntil: null },
+    });
+    await tx.backupScheduleState.updateMany({
+      where: { id: CONFIG_ID },
+      data: {
+        schedule: Prisma.DbNull,
+        retainCount: null,
+        nextScheduledAt: null,
+      },
+    });
+  }
+
   async clearConfig(user: SessionUser) {
-    await this.prisma.backupConfig.deleteMany({ where: { id: CONFIG_ID } });
-    await this.audit.record({
-      userId: user.id,
-      action: 'backup.config_cleared',
-      entity: 'BackupConfig',
+    await this.withScheduleLock(async (tx) => {
+      await this.clearSchedule(tx);
+      await tx.backupConfig.deleteMany({ where: { id: CONFIG_ID } });
+      await this.audit.record(
+        {
+          userId: user.id,
+          action: 'backup.config_cleared',
+          entity: 'BackupConfig',
+        },
+        tx,
+      );
     });
     return this.status();
   }
 
   async triggerManual(user: SessionUser) {
     const config = await this.requireConfig();
-    return this.runBackup(config, user.id);
+    const record = await this.prisma.backup.create({
+      data: { triggeredById: user.id, status: 'PENDING' },
+    });
+    return this.runBackup(config, record);
   }
 
-  /**
-   * Checked hourly rather than scheduled directly on a multi-day cron, so
-   * the interval survives container restarts (a plain N-day timer would
-   * reset on every restart). Actual cadence is driven by comparing "now"
-   * against the last VERIFIED backup's verifiedAt, not by this check's own
-   * frequency — same design as zulivio's `checkSchedule()`.
-   */
-  @Cron(CronExpression.EVERY_HOUR)
-  async checkSchedule() {
-    const config = await this.getConfig();
-    if (!config) return;
+  private async nextScheduledAt(
+    config: EffectiveConfig,
+    client: Prisma.TransactionClient,
+  ) {
+    if (config.schedule.mode !== 'interval') return config.nextScheduledAt;
+    const [verified, attempt] = await Promise.all([
+      client.backup.findFirst({
+        where: { status: 'VERIFIED' },
+        orderBy: { verifiedAt: 'desc' },
+        select: { verifiedAt: true },
+      }),
+      config.lastAttemptId
+        ? client.backup.findUnique({
+            where: { id: config.lastAttemptId },
+            select: { status: true, createdAt: true },
+          })
+        : null,
+    ]);
+    return nextIntervalOccurrence(
+      config.schedule.intervalDays,
+      verified?.verifiedAt ?? null,
+      attempt,
+    );
+  }
 
-    const last = await this.prisma.backup.findFirst({
-      where: { status: 'VERIFIED' },
-      orderBy: { verifiedAt: 'desc' },
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkSchedule() {
+    const claim = await this.withScheduleLock(async (tx) => {
+      const now = new Date();
+      const state = await tx.backupScheduleState.findUnique({
+        where: { id: CONFIG_ID },
+      });
+      if (state?.leaseUntil && state.lastAttemptId) {
+        if (state.leaseUntil > now) return null;
+        // A heartbeat racing this check can renew the lease before the UPDATE.
+        const expired = await tx.backupScheduleState.updateMany({
+          where: {
+            id: CONFIG_ID,
+            lastAttemptId: state.lastAttemptId,
+            leaseUntil: { lte: now },
+          },
+          data: { leaseUntil: null },
+        });
+        if (!expired.count) return null;
+        await tx.backup.updateMany({
+          where: { id: state.lastAttemptId, status: 'PENDING' },
+          data: {
+            status: 'FAILED',
+            failureReason:
+              'The scheduled backup worker stopped renewing its lease.',
+          },
+        });
+      }
+      const config = await this.getConfig(tx, state);
+      if (!config) return null;
+      const due = await this.nextScheduledAt(config, tx);
+      if (due && due > now) return null;
+
+      // Coalesce downtime into one run. Persist both the attempt and the next
+      // calendar occurrence before starting I/O so a restart cannot replay it.
+      const record = await tx.backup.create({ data: { status: 'PENDING' } });
+      const data = {
+        lastAttemptId: record.id,
+        leaseUntil: new Date(now.getTime() + LEASE_MS),
+        nextScheduledAt:
+          config.schedule.mode === 'interval'
+            ? null
+            : nextCalendarOccurrence(config.schedule, now),
+      };
+      await tx.backupScheduleState.upsert({
+        where: { id: CONFIG_ID },
+        create: { id: CONFIG_ID, ...data },
+        update: data,
+      });
+      return { config, record };
     });
-    const due =
-      !last?.verifiedAt ||
-      Date.now() - last.verifiedAt.getTime() >=
-        config.intervalDays * 24 * 60 * 60 * 1000;
-    if (!due) return;
+    if (!claim) return;
 
     this.logger.log(
-      `Backup interval elapsed (${config.intervalDays}d) — starting scheduled backup`,
+      `Starting scheduled backup (${claim.config.schedule.mode})`,
     );
+    const lease = { id: CONFIG_ID, lastAttemptId: claim.record.id };
+    const heartbeat = setInterval(() => {
+      const now = new Date();
+      void this.prisma.backupScheduleState
+        .updateMany({
+          where: { ...lease, leaseUntil: { gt: now } },
+          data: { leaseUntil: new Date(now.getTime() + LEASE_MS) },
+        })
+        .catch((err: Error) =>
+          this.logger.warn(`Backup lease renewal failed: ${err.message}`),
+        );
+    }, RENEW_EVERY_MS);
+    heartbeat.unref();
     try {
-      await this.runBackup(config, null);
+      await this.runBackup(claim.config, claim.record);
     } catch (err) {
       this.logger.error(`Scheduled backup failed: ${(err as Error).message}`);
+    } finally {
+      clearInterval(heartbeat);
+      // A database outage can prevent recording FAILED. Leave that lease to
+      // expire so another worker can reconcile the pending attempt.
+      const attempt = await this.prisma.backup.findUnique({
+        where: { id: claim.record.id },
+        select: { status: true },
+      });
+      if (attempt?.status !== 'PENDING') {
+        await this.prisma.backupScheduleState.updateMany({
+          where: lease,
+          data: { leaseUntil: null },
+        });
+      }
     }
   }
 
-  private async runBackup(
-    config: EffectiveConfig,
-    triggeredById: string | null,
-  ) {
-    const record = await this.prisma.backup.create({
-      data: { triggeredById, status: 'PENDING' },
-    });
-    const workDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), 'orderrestro-backup-'),
-    );
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const dbDumpPath = path.join(workDir, 'db.dump');
-    const uploadsArchivePath = path.join(workDir, 'uploads.tar.gz');
-    const uploadRoot = uploadsDir();
-
-    if (triggeredById) {
-      await this.audit.record({
-        userId: triggeredById,
-        action: 'backup.triggered',
-        entity: 'Backup',
-        entityId: record.id,
-      });
-    }
-
+  private async runBackup(config: EffectiveConfig, record: Backup) {
+    let workDir: string | undefined;
     try {
+      workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'orderrestro-backup-'));
+      const timestamp =
+        record.createdAt.toISOString().replace(/[:.]/g, '-') + '-' + record.id;
+      const dbDumpPath = path.join(workDir, 'db.dump');
+      const uploadsArchivePath = path.join(workDir, 'uploads.tar.gz');
+      const uploadRoot = uploadsDir();
+      if (record.triggeredById) {
+        await this.audit.record({
+          userId: record.triggeredById,
+          action: 'backup.triggered',
+          entity: 'Backup',
+          entityId: record.id,
+        });
+      }
+
       // Custom format: compressed single file, restorable with
       // `pg_restore --clean --if-exists` for a clean overwrite on restore.
       await execFileAsync('pg_dump', [
@@ -446,8 +657,9 @@ export class BackupService {
         }
       }
 
+      // A worker whose lease was reclaimed cannot verify the abandoned attempt.
       const completed = await this.prisma.backup.update({
-        where: { id: record.id },
+        where: { id: record.id, status: 'PENDING' },
         data: {
           status: 'VERIFIED',
           s3KeyDb: dbKey,
@@ -469,20 +681,21 @@ export class BackupService {
       return completed;
     } catch (err) {
       const failureReason = (err as Error).message;
-      await this.prisma.backup.update({
-        where: { id: record.id },
+      const failed = await this.prisma.backup.updateMany({
+        where: { id: record.id, status: 'PENDING' },
         data: { status: 'FAILED', failureReason },
       });
-      await this.notifyOwners({
-        type: 'backup.failed',
-        title: 'Backup failed',
-        body: failureReason,
-        entity: 'Backup',
-        entityId: record.id,
-      });
+      if (failed.count)
+        await this.notifyOwners({
+          type: 'backup.failed',
+          title: 'Backup failed',
+          body: failureReason,
+          entity: 'Backup',
+          entityId: record.id,
+        });
       throw err;
     } finally {
-      await fs.rm(workDir, { recursive: true, force: true });
+      if (workDir) await fs.rm(workDir, { recursive: true, force: true });
     }
   }
 
@@ -491,7 +704,19 @@ export class BackupService {
    * ones, always oldest-first, so a verified backup exists in S3 at every
    * point in time — never a window with zero backups.
    */
-  private async enforceRetention(config: EffectiveConfig) {
+  private async enforceRetention(started: EffectiveConfig) {
+    const config = await this.getConfig();
+    // Credentials and the number of copies can change while pg_dump or S3 run.
+    // Historical rows have no bucket identity; skip pruning across a switch.
+    if (
+      !config ||
+      config.endpoint !== started.endpoint ||
+      config.bucket !== started.bucket ||
+      config.region !== started.region ||
+      config.accessKeyId !== started.accessKeyId ||
+      config.secretAccessKey !== started.secretAccessKey
+    )
+      return;
     const verified = await this.prisma.backup.findMany({
       where: { status: 'VERIFIED' },
       orderBy: { verifiedAt: 'desc' },
@@ -692,6 +917,15 @@ export class BackupService {
           path.basename(uploadRoot),
         );
       }
+      // pg_restore --clean only drops objects listed in the archive. An older
+      // archive leaves the current schedule table untouched.
+      const { stdout: scheduleContents } = await execFileAsync('pg_restore', [
+        '--list',
+        '--table=backup_schedule_state',
+        dbDumpPath,
+      ]);
+      const restoresSchedule =
+        /^\d+;.* TABLE DATA .* backup_schedule_state /m.test(scheduleContents);
       await execFileAsync('pg_restore', [
         '--clean',
         '--if-exists',
@@ -704,6 +938,11 @@ export class BackupService {
         process.env.DATABASE_URL!,
         dbDumpPath,
       ]);
+      if (!restoresSchedule) {
+        await this.prisma.backupScheduleState.deleteMany({
+          where: { id: CONFIG_ID },
+        });
+      }
 
       if (record.s3KeyUploads) {
         // Empty uploadRoot's contents rather than removing the directory

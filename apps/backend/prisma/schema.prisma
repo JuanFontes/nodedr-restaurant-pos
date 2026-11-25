@@ -567,6 +567,19 @@ model BackupConfig {
   @@map("backup_config")
 }
 
+// One instance-wide schedule for either database or environment S3 credentials.
+// Null overrides inherit the existing interval and retention configuration.
+model BackupScheduleState {
+  id              String    @id @default("singleton")
+  schedule        Json?
+  retainCount     Int?
+  nextScheduledAt DateTime?
+  lastAttemptId   String?
+  leaseUntil      DateTime?
+
+  @@map("backup_schedule_state")
+}
+
 // ---------------------------------------------------------------------------
 // Floor & Table management
 // ---------------------------------------------------------------------------

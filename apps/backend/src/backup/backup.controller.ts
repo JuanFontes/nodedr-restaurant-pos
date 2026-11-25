@@ -15,6 +15,8 @@ import type { Response } from 'express';
 import {
   restoreBackupSchema,
   setBackupConfigSchema,
+  setBackupScheduleSchema,
+  type SetBackupScheduleDto,
   type SessionUser,
 } from '@nodedr-restaurant/types';
 import { InstanceAuth } from '../common/decorators/instance-auth.decorator';
@@ -52,6 +54,16 @@ export class BackupController {
   @UsePipes(new ZodValidationPipe(setBackupConfigSchema))
   setConfig(@CurrentUser() user: SessionUser, @Body() body: unknown) {
     return this.backupService.setConfig(user, body as never);
+  }
+
+  @InstanceAuth('backup.manage')
+  @Post('schedule')
+  @UsePipes(new ZodValidationPipe(setBackupScheduleSchema))
+  setSchedule(
+    @CurrentUser() user: SessionUser,
+    @Body() body: SetBackupScheduleDto,
+  ) {
+    return this.backupService.setSchedule(user, body);
   }
 
   @InstanceAuth('backup.manage')
