@@ -51,12 +51,12 @@ function defaultSelection(item: PickerItem): Record<string, Set<string>> {
 // lint rules flag as an avoidable derived-state effect.
 function ModifierPickerBody({
   item,
-  currency,
+  formatPrice,
   allowCustom,
   onConfirm,
 }: {
   item: PickerItem;
-  currency?: string;
+  formatPrice: (amount: number | string) => string;
   allowCustom: boolean;
   onConfirm: (modifierIds: string[], modifierLabel: string, portion?: Portion) => void;
 }) {
@@ -150,7 +150,7 @@ function ModifierPickerBody({
                   <span>{opt.label}</span>
                   {opt.kind !== "CUSTOM" && prices[opt.kind] !== "" && (
                     <span className="text-xs font-normal tabular-nums text-muted-foreground">
-                      {formatCurrency(prices[opt.kind], currency)}
+                      {formatPrice(prices[opt.kind])}
                     </span>
                   )}
                 </button>
@@ -205,7 +205,7 @@ function ModifierPickerBody({
                     <span>{mod.name}</span>
                     {Number(mod.priceAdjustment) > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        +{formatCurrency(mod.priceAdjustment, currency)}
+                        +{formatPrice(mod.priceAdjustment)}
                       </span>
                     )}
                   </button>
@@ -225,14 +225,14 @@ function ModifierPickerBody({
 
 export function ModifierPickerDialog({
   item,
-  currency,
+  formatPrice = formatCurrency,
   open,
   onOpenChange,
   onConfirm,
   allowCustom = false,
 }: {
   item: PickerItem | null;
-  currency?: string;
+  formatPrice?: (amount: number | string) => string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (modifierIds: string[], modifierLabel: string, portion?: Portion) => void;
@@ -245,7 +245,7 @@ export function ModifierPickerDialog({
           <ModifierPickerBody
             key={item.id}
             item={item}
-            currency={currency}
+            formatPrice={formatPrice}
             allowCustom={allowCustom}
             onConfirm={(modifierIds, label, portion) => {
               onConfirm(modifierIds, label, portion);
