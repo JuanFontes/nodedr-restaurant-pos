@@ -19,7 +19,7 @@ import { useBranch } from "@/hooks/use-branch";
 import { useDisplaySettings } from "@/hooks/use-settings";
 import { useMenuItems, type MenuItem } from "@/hooks/use-menu";
 import { toInclusivePrice } from "@/lib/pricing-preview";
-import { findItemByCode, pushKey, type ScanBuffer } from "@/lib/pos-scan";
+import { findItemByCode, pushKey, SCAN_MAX_GAP_MS, type ScanBuffer } from "@/lib/pos-scan";
 import {
   useAddOrderItems,
   useCreateOrder,
@@ -165,8 +165,16 @@ function PosPageInner() {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
       const r = scanRef.current;
+      // While a scanner burst is in progress, swallow printable keys (including
+      // space). Otherwise each space in a code like "COLA 500" activates the
+      // focused menu tile before the scanned item is added.
+      const inBurst =
+        r.buf.last !== 0 &&
+        e.timeStamp - r.buf.last <= SCAN_MAX_GAP_MS &&
+        e.key.length === 1;
       const { buf, code } = pushKey(r.buf, e.key, e.timeStamp);
       r.buf = buf;
+      if (inBurst) e.preventDefault();
       if (!code) return;
       e.preventDefault();
       const item = findItemByCode(r.items, code);
