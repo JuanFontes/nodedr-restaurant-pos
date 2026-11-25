@@ -29,7 +29,7 @@ function initials(name?: string) {
 }
 
 export function UserMenu({ user }: { user?: SessionUser }) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const logout = useLogout();
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -38,7 +38,7 @@ export function UserMenu({ user }: { user?: SessionUser }) {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
         className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"
         aria-label="Toggle theme"
       >
