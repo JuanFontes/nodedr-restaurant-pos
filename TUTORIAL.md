@@ -287,7 +287,13 @@ OrderRestro has a REST API (`/api/v1`, docs at `/api/docs`), API keys, webhooks 
 
 ## Backups
 
-Everything lives in your Postgres volume. Use **Settings → Backup** for scheduled backups, and test a restore before you need one.
+Open **Settings → Backup** to download a copy of the database and uploads, or connect an S3-compatible bucket for automatic backups. On a shared server, one schedule covers all restaurants.
+
+Once the bucket is connected, choose **Edit schedule**. For example, select **Weekly**, **Sunday**, **03:00**, **America/Sao_Paulo**, and **4 copies**. Choose **Save schedule** to see the next run in that time zone.
+
+See the [schedule editor](docs/screenshots/backup-schedule-en.png) and the [saved weekly schedule](docs/screenshots/backup-schedule-saved-en.png).
+
+You can also run backups daily, monthly, or every few days. If you choose the 31st, shorter months use their last day. Existing interval schedules keep working. Test a restore on a separate installation before you need one.
 
 Questions or bugs: [open an issue](https://github.com/Raktim94/nodedr-restaurant-pos/issues).
 
