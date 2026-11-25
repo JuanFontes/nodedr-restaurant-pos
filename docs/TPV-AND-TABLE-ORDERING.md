@@ -43,7 +43,7 @@ hardware arrives.
 ## The table journey and its states
 
 1. Each table has a QR code and an NFC card with the same link (Tables > Table cards; the page explains how to write the NFC card).
-2. The guest opens the web menu, enters a name, chooses items.
+2. The guest opens the web menu, enters a name, and chooses items. Prices, add-ons, and the cart total use the restaurant's configured currency. [Example order in Brazilian reais](./assets/qr-menu-brl.png).
 3. **Payment choice** (only if a gateway such as Stripe is switched on in Settings > Payments; otherwise cash only):
    * **Pay at the register**: the order goes to the kitchen **immediately** and stays **unpaid** ("Cash due at register" badge in Orders)
      until staff record the cash at the till.

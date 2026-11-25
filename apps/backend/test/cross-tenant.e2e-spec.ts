@@ -23,6 +23,7 @@ run('Cross-tenant isolation (e2e)', () => {
   const A = 'demo-branch';
   let restaurantBId: string;
   let tableB: string;
+  const tableBQr = randomUUID();
   let customerB: string;
   let itemB: string;
   let itemA: string;
@@ -54,7 +55,9 @@ run('Cross-tenant isolation (e2e)', () => {
       .expect(201);
 
     // Tenant B: a completely separate restaurant with its own records.
-    const r = await prisma.restaurant.create({ data: { name: `B ${tag}` } });
+    const r = await prisma.restaurant.create({
+      data: { name: `B ${tag}`, currency: 'BRL' },
+    });
     restaurantBId = r.id;
     const b = await prisma.branch.create({
       data: { restaurantId: r.id, name: `B branch ${tag}`, address: 'x' },
@@ -63,7 +66,7 @@ run('Cross-tenant isolation (e2e)', () => {
       data: { branchId: b.id, name: 'Floor B' },
     });
     const t = await prisma.table.create({
-      data: { floorId: f.id, number: `B${tag}` },
+      data: { floorId: f.id, number: `B${tag}`, qrToken: tableBQr },
     });
     tableB = t.id;
     const c = await prisma.customer.create({
@@ -95,6 +98,13 @@ run('Cross-tenant isolation (e2e)', () => {
   });
 
   const bad = (status: number) => status >= 400 && status < 500;
+
+  it("shows the table's restaurant currency on the public QR menu", async () => {
+    const menu = await request(app.getHttpServer())
+      .get(`/api/v1/public/menu/${tableBQr}`)
+      .expect(200);
+    expect(menu.body.currency).toBe('BRL');
+  });
 
   it("rejects an order on another restaurant's table and leaves it untouched", async () => {
     const res = await ownerA.post(`/api/v1/orders?branchId=${A}`).send({

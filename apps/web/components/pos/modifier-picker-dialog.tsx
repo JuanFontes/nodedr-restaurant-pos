@@ -51,10 +51,12 @@ function defaultSelection(item: PickerItem): Record<string, Set<string>> {
 // lint rules flag as an avoidable derived-state effect.
 function ModifierPickerBody({
   item,
+  currency,
   allowCustom,
   onConfirm,
 }: {
   item: PickerItem;
+  currency?: string;
   allowCustom: boolean;
   onConfirm: (modifierIds: string[], modifierLabel: string, portion?: Portion) => void;
 }) {
@@ -148,7 +150,7 @@ function ModifierPickerBody({
                   <span>{opt.label}</span>
                   {opt.kind !== "CUSTOM" && prices[opt.kind] !== "" && (
                     <span className="text-xs font-normal tabular-nums text-muted-foreground">
-                      {formatCurrency(prices[opt.kind])}
+                      {formatCurrency(prices[opt.kind], currency)}
                     </span>
                   )}
                 </button>
@@ -203,7 +205,7 @@ function ModifierPickerBody({
                     <span>{mod.name}</span>
                     {Number(mod.priceAdjustment) > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        +{formatCurrency(mod.priceAdjustment)}
+                        +{formatCurrency(mod.priceAdjustment, currency)}
                       </span>
                     )}
                   </button>
@@ -223,12 +225,14 @@ function ModifierPickerBody({
 
 export function ModifierPickerDialog({
   item,
+  currency,
   open,
   onOpenChange,
   onConfirm,
   allowCustom = false,
 }: {
   item: PickerItem | null;
+  currency?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (modifierIds: string[], modifierLabel: string, portion?: Portion) => void;
@@ -241,6 +245,7 @@ export function ModifierPickerDialog({
           <ModifierPickerBody
             key={item.id}
             item={item}
+            currency={currency}
             allowCustom={allowCustom}
             onConfirm={(modifierIds, label, portion) => {
               onConfirm(modifierIds, label, portion);

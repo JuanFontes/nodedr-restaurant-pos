@@ -79,6 +79,7 @@ interface PublicMenuCategory {
 
 interface PublicMenuResponse {
   branchName: string;
+  currency: string;
   tableName: string;
   categories: PublicMenuCategory[];
   payments?: { cash: boolean; online: boolean };
@@ -433,7 +434,7 @@ export default function PublicMenuPage({
                               </p>
                             )}
                             <span className="mt-1 block text-sm font-medium tabular-nums text-foreground">
-                              {formatCurrency(item.price)}
+                              {formatCurrency(item.price, data.currency)}
                             </span>
                           </div>
                         </div>
@@ -574,6 +575,7 @@ export default function PublicMenuPage({
 
       <ModifierPickerDialog
         item={pickerItem}
+        currency={data?.currency}
         open={!!pickerItem}
         onOpenChange={(open) => !open && setPickerItem(null)}
         onConfirm={(ids, label) => {
@@ -611,7 +613,7 @@ export default function PublicMenuPage({
             >
               {placeOrder.isPending
                 ? t("order.placingOrder")
-                : `${t("order.placeOrder")} — ${cartCount} ${cartCount > 1 ? t("order.items") : t("order.item")} · ${formatCurrency(cartTotal)}`}
+                : `${t("order.placeOrder")} — ${cartCount} ${cartCount > 1 ? t("order.items") : t("order.item")} · ${formatCurrency(cartTotal, data?.currency)}`}
             </Button>
           </div>
           {placeOrder.isError && (
