@@ -15,14 +15,31 @@
 # own restaurant at /signup — no demo data is created.
 
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")"
 
+usage() {
+  printf '%s\n' 'Usage: ./install.sh [--demo] [-h|--help]' \
+    '  --demo      Load the sample restaurant after the app is ready.' \
+    '  -h, --help  Show this help and exit.'
+}
+
+show_help=false
 load_demo=false
 for arg in "$@"; do
   case "$arg" in
     --demo) load_demo=true ;;
+    -h|--help) show_help=true ;;
+    *)
+      printf 'Unknown argument: %s\n' "$arg" >&2
+      usage >&2
+      exit 2
+      ;;
   esac
 done
+if [ "$show_help" = true ]; then
+  usage
+  exit 0
+fi
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # --- 1. Check prerequisites -------------------------------------------------
 # Docker Engine must be installed and the `docker compose` plugin available
@@ -90,20 +107,28 @@ docker compose up -d --build
 web_binding="$(docker compose port web 3000 2>/dev/null || true)"
 web_port="${web_binding##*:}"
 if [ -z "$web_port" ]; then
-  # Compose did not report a binding: fall back to the configured port.
-  web_port="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2-)"
+  # Let Compose resolve shell overrides, .env quoting and interpolation.
+  if ! web_port="$(docker compose config --environment 2>/dev/null | sed -n 's/^HOST_PORT=//p')"; then
+    # Older Compose versions lack --environment. Support the installer's plain KEY=value file.
+    web_port="${HOST_PORT-$(sed -n 's/^HOST_PORT=//p' .env | tail -n 1)}"
+  fi
   web_port="${web_port:-1995}"
 fi
 web_url="http://localhost:${web_port}"
 
 echo "Waiting for the app to come online..."
 ready=false
-for _ in $(seq 1 90); do
-  if curl -sf "$web_url/api/health" >/dev/null 2>&1; then
+deadline=$((SECONDS + 90))
+while :; do
+  remaining=$((deadline - SECONDS))
+  if (( remaining <= 0 )); then break; fi
+  # A stalled request gets at most five seconds, including the time spent connecting.
+  probe_timeout=$((remaining < 5 ? remaining : 5))
+  if curl -sf --max-time "$probe_timeout" "$web_url/api/health" >/dev/null 2>&1; then
     ready=true
     break
   fi
-  sleep 1
+  if (( SECONDS < deadline )); then sleep 1; fi
 done
 
 if [ "$ready" != "true" ]; then
