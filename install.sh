@@ -87,8 +87,14 @@ docker compose up -d --build
 # The backend container's own start command runs `prisma migrate deploy`
 # before it starts listening, so a 200 here means migrations already applied.
 # Ask Compose for the actual host binding, which can differ from HOST_PORT in .env.
-web_binding="$(docker compose port web 3000)"
-web_url="http://localhost:${web_binding##*:}"
+web_binding="$(docker compose port web 3000 2>/dev/null || true)"
+web_port="${web_binding##*:}"
+if [ -z "$web_port" ]; then
+  # Compose did not report a binding: fall back to the configured port.
+  web_port="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2-)"
+  web_port="${web_port:-1995}"
+fi
+web_url="http://localhost:${web_port}"
 
 echo "Waiting for the app to come online..."
 ready=false
