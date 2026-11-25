@@ -21,7 +21,8 @@ class InstallerTest(unittest.TestCase):
         self.stub("docker", """
 echo "$*" >> docker.calls
 case "$*" in
-  "compose port web 3000") echo "127.0.0.1:2995" ;;
+  "compose port web 3000") echo "${TEST_BINDING-127.0.0.1:2995}"; exit "${PORT_STATUS:-0}" ;;
+  "compose config --environment") exec "$REAL_DOCKER" "$@" ;;
 esac
 """)
         self.stub("curl", "exit 0")
@@ -59,6 +60,44 @@ esac
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("compose up -d --build", calls.read_text())
                 self.assertEqual("prisma/seed.ts" in calls.read_text(), bool(args))
+
+    def test_port_used_for_probe_and_signup_url(self):
+        # Only config reads the real Compose file. Build/start and the HTTP probe are recorded locally.
+        self.env["REAL_DOCKER"] = shutil.which("docker") or self.fail("Docker Compose is required")
+        (self.root / "compose.yaml").write_text(
+            'services:\n  web:\n    image: busybox\n    ports: ["${HOST_PORT:-1995}:3000"]\n')
+        self.stub("curl", 'for arg do url=$arg; done; echo "$url" > probe.url')
+        for name, binding, file_value, shell_value, expected in [
+            ("published binding wins", "[::]:4180", "HOST_PORT=2880", "2995", 4180),
+            ("shell overrides file", "", "HOST_PORT=1995", "2995", 2995),
+            ("quoted file value", "", 'HOST_PORT="2880" # web', None, 2880),
+            ("missing key", "", "# no port configured", None, 1995),
+            ("empty override", "", "HOST_PORT=2880", "", 1995),
+        ]:
+            with self.subTest(name=name):
+                self.env.update(TEST_BINDING=binding, PORT_STATUS="1" if name == "shell overrides file" else "0")
+                if shell_value is None:
+                    self.env.pop("HOST_PORT", None)
+                else:
+                    self.env["HOST_PORT"] = shell_value
+                (self.root / ".env").write_text(file_value + "\n")
+                result = self.install()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                url = f"http://localhost:{expected}"
+                self.assertIn(f"Open {url}\n", result.stdout)
+                self.assertIn(f"{url}/signup", result.stdout)
+                self.assertEqual((self.root / "probe.url").read_text().strip(), f"{url}/api/health")
+
+    def test_plain_env_file_with_older_compose(self):
+        self.env.update(TEST_BINDING="", REAL_DOCKER="false")
+        (self.root / ".env").write_text("HOST_PORT=2880\n")
+        for override, port in [(None, 2880), ("2995", 2995), ("", 1995)]:
+            with self.subTest(override=override):
+                if override is not None:
+                    self.env["HOST_PORT"] = override
+                result = self.install()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(f"Open http://localhost:{port}\n", result.stdout)
 
 
 if __name__ == "__main__":

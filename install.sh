@@ -107,8 +107,11 @@ docker compose up -d --build
 web_binding="$(docker compose port web 3000 2>/dev/null || true)"
 web_port="${web_binding##*:}"
 if [ -z "$web_port" ]; then
-  # Compose did not report a binding: fall back to the configured port.
-  web_port="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2-)"
+  # Let Compose resolve shell overrides, .env quoting and interpolation.
+  if ! web_port="$(docker compose config --environment 2>/dev/null | sed -n 's/^HOST_PORT=//p')"; then
+    # Older Compose versions lack --environment. Support the installer's plain KEY=value file.
+    web_port="${HOST_PORT-$(sed -n 's/^HOST_PORT=//p' .env | tail -n 1)}"
+  fi
   web_port="${web_port:-1995}"
 fi
 web_url="http://localhost:${web_port}"
