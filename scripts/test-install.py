@@ -1,9 +1,13 @@
 """Regression tests for install.sh. Run with python3 scripts/test-install.py."""
 import os
+from contextlib import contextmanager
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 
 
@@ -98,6 +102,55 @@ esac
                 result = self.install()
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn(f"Open http://localhost:{port}\n", result.stdout)
+
+    @contextmanager
+    def health_server(self, respond_on=None):
+        release = threading.Event()
+        requests = []
+
+        class Health(BaseHTTPRequestHandler):
+            def do_GET(self):
+                requests.append(self.path)
+                if len(requests) == respond_on:
+                    self.send_response(200)
+                    self.end_headers()
+                else:
+                    release.wait()
+
+            def log_message(self, *args):
+                pass
+
+        with ThreadingHTTPServer(("127.0.0.1", 0), Health) as server:
+            (self.bin / "curl").unlink()  # Exercise real HTTP timeouts.
+            (self.root / ".env").touch()
+            self.env.update(TEST_BINDING=f"127.0.0.1:{server.server_port}", no_proxy="localhost")
+            thread = threading.Thread(target=server.serve_forever)
+            thread.start()
+            try:
+                yield requests
+            finally:
+                release.set()
+                server.shutdown()
+                thread.join()
+
+    def test_recovers_after_a_stalled_probe(self):
+        with self.health_server(respond_on=2) as requests:
+            result = self.install(timeout=14)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(requests, ["/api/health", "/api/health"])
+            self.assertIn("is up and running", result.stdout)
+
+    def test_stalled_probes_share_the_90_second_deadline(self):
+        with self.health_server() as requests:
+            start = time.monotonic()
+            result = self.install("--demo", timeout=100)
+            elapsed = time.monotonic() - start
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn("within 90s", result.stderr)
+            self.assertIn("docker compose logs", result.stderr)
+            self.assertNotIn("prisma/seed.ts", (self.root / "docker.calls").read_text())
+            self.assertGreater(len(requests), 1)
+            self.assertAlmostEqual(elapsed, 90, delta=5)
 
 
 if __name__ == "__main__":

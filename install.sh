@@ -118,12 +118,17 @@ web_url="http://localhost:${web_port}"
 
 echo "Waiting for the app to come online..."
 ready=false
-for _ in $(seq 1 90); do
-  if curl -sf "$web_url/api/health" >/dev/null 2>&1; then
+deadline=$((SECONDS + 90))
+while :; do
+  remaining=$((deadline - SECONDS))
+  if (( remaining <= 0 )); then break; fi
+  # A stalled request gets at most five seconds, including the time spent connecting.
+  probe_timeout=$((remaining < 5 ? remaining : 5))
+  if curl -sf --max-time "$probe_timeout" "$web_url/api/health" >/dev/null 2>&1; then
     ready=true
     break
   fi
-  sleep 1
+  if (( SECONDS < deadline )); then sleep 1; fi
 done
 
 if [ "$ready" != "true" ]; then

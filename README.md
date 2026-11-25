@@ -420,7 +420,7 @@ git clone https://github.com/Raktim94/nodedr-restaurant-pos.git && cd nodedr-res
 
 [`install.sh`](install.sh) generates a `.env` with random secrets (only if
 one doesn't already exist — safe to re-run), builds the backend + web Docker
-images, starts the stack, and waits for the backend to report healthy. Re-run
+images, starts the stack, and waits up to 90 seconds for the backend to report healthy. Re-run
 it any time after `git pull` to rebuild. Run `./install.sh --help` to see the
 available options before starting an installation.
 
