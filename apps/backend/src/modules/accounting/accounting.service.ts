@@ -6,10 +6,19 @@ import {
 } from '@nestjs/common';
 import type { CashClosingDto, ExpenseDto } from '@nodedr-restaurant/types';
 import { Prisma } from '@prisma/client';
-import { zonedRange } from '../../common/time';
+import { localDate, zonedRange } from '../../common/time';
 import { BranchTimeService } from '../../common/services/branch-time.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { expectedCash, gstSummary, round2 } from './accounting.calc';
+import {
+  imbalances,
+  JOURNAL_COLUMNS,
+  salesVoucher,
+  toRows,
+  twoLine,
+  type DaySales,
+  type JournalLine,
+} from './journal';
 
 const dayStart = (d: string) => new Date(`${d}T00:00:00.000Z`);
 const dayAfter = (d: string) => new Date(dayStart(d).getTime() + 86_400_000);
@@ -189,6 +198,172 @@ export class AccountingService {
       );
     await this.prisma.expense.delete({ where: { id } });
     return { ok: true };
+  }
+
+  // --- Accounting export ---------------------------------------------------
+
+  /**
+   * A balanced double-entry journal for the period, for an accountant or any accounting package's import: daily sales
+   * by payment method, refunds, approved expenses, supplier invoices and payments, and purchase returns. Throws
+   * rather than hand out a file that does not balance.
+   */
+  async journalExport(branchId: string, from: string, to: string) {
+    const tz = await this.time.tzForBranch(branchId);
+    const range = zonedRange(from, to, tz);
+    const day = (d: Date) => localDate(d, tz);
+    const dec = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
+
+    const [orders, refunds, expenses, invoices, payments, returns] =
+      await Promise.all([
+        this.prisma.order.findMany({
+          where: { branchId, status: 'PAID', billedAt: range },
+          select: {
+            billedAt: true,
+            taxAmount: true,
+            tipAmount: true,
+            deliveryFee: true,
+            payments: { select: { method: true, amount: true } },
+          },
+        }),
+        this.prisma.refund.findMany({
+          where: { order: { branchId }, createdAt: range },
+          select: { id: true, createdAt: true, amount: true, method: true },
+        }),
+        this.prisma.expense.findMany({
+          where: {
+            branchId,
+            status: 'APPROVED',
+            spentOn: { gte: dayStart(from), lte: dayStart(to) },
+          },
+          include: { pettyCashEntry: { select: { id: true } } },
+        }),
+        this.prisma.supplierInvoice.findMany({
+          where: {
+            branchId,
+            status: { not: 'CANCELLED' },
+            invoiceDate: range,
+          },
+          include: { supplier: { select: { name: true } } },
+        }),
+        this.prisma.supplierPayment.findMany({
+          where: { branchId, paidAt: range },
+          include: {
+            supplierInvoice: {
+              select: {
+                invoiceNumber: true,
+                supplier: { select: { name: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.purchaseReturn.findMany({
+          where: { branchId, createdAt: range },
+          include: { supplier: { select: { name: true } } },
+        }),
+      ]);
+
+    const lines: JournalLine[] = [];
+    const days = new Map<string, DaySales>();
+    for (const o of orders) {
+      const k = day(o.billedAt!);
+      const d: DaySales = days.get(k) ?? {
+        date: k,
+        byMethod: new Map(),
+        tax: dec(0),
+        tips: dec(0),
+        delivery: dec(0),
+        orders: 0,
+      };
+      d.orders += 1;
+      d.tax = d.tax.plus(o.taxAmount);
+      d.tips = d.tips.plus(o.tipAmount);
+      d.delivery = d.delivery.plus(o.deliveryFee);
+      for (const p of o.payments)
+        d.byMethod.set(
+          p.method,
+          (d.byMethod.get(p.method) ?? dec(0)).plus(p.amount),
+        );
+      days.set(k, d);
+    }
+    for (const d of days.values()) lines.push(...salesVoucher(d));
+    const receipt = (m: string) =>
+      m === 'CASH' ? 'Cash in hand' : `Receipts - ${m}`;
+    for (const r of refunds)
+      lines.push(
+        ...twoLine(
+          day(r.createdAt),
+          'Refund',
+          `REFUND-${r.id.slice(-8)}`,
+          'Sales returns',
+          receipt(r.method),
+          r.amount,
+          'Refund to guest',
+        ),
+      );
+    for (const e of expenses)
+      lines.push(
+        ...twoLine(
+          e.spentOn.toISOString().slice(0, 10),
+          'Expense',
+          `EXP-${e.id.slice(-8)}`,
+          `Expense: ${e.category}`,
+          e.paidFromCash
+            ? 'Cash in hand'
+            : e.pettyCashEntry
+              ? 'Petty cash'
+              : 'Paid from bank or other',
+          e.amount,
+          e.note ?? '',
+        ),
+      );
+    for (const i of invoices)
+      lines.push(
+        ...twoLine(
+          day(i.invoiceDate),
+          'Purchase',
+          i.invoiceNumber,
+          'Purchases',
+          `Supplier: ${i.supplier.name}`,
+          i.totalAmount,
+          'Supplier invoice',
+        ),
+      );
+    for (const p of payments)
+      lines.push(
+        ...twoLine(
+          day(p.paidAt),
+          'Supplier payment',
+          `PAY-${p.id.slice(-8)}`,
+          `Supplier: ${p.supplierInvoice.supplier.name}`,
+          receipt(p.paymentMethod),
+          p.amount,
+          `Invoice ${p.supplierInvoice.invoiceNumber}`,
+        ),
+      );
+    for (const r of returns)
+      lines.push(
+        ...twoLine(
+          day(r.createdAt),
+          'Purchase return',
+          r.returnNumber,
+          `Supplier: ${r.supplier.name}`,
+          'Purchases',
+          r.totalAmount,
+          r.reason,
+        ),
+      );
+
+    const bad = imbalances(lines);
+    if (bad.size > 0)
+      throw new BadRequestException(
+        `The journal does not balance for ${[...bad.keys()].slice(0, 3).join(', ')}; nothing was exported`,
+      );
+    return {
+      key: 'journal',
+      title: 'Accounting journal',
+      columns: JOURNAL_COLUMNS,
+      rows: toRows(lines),
+    };
   }
 
   // --- Daily cash closing --------------------------------------------------
