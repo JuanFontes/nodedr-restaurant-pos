@@ -565,3 +565,83 @@ export function useSupplierPerformance(branchId: string | null, supplierId: stri
     enabled: !!branchId && !!supplierId,
   });
 }
+
+// --- Purchase returns and price check ---------------------------------------------
+
+export interface PurchaseReturnRow {
+  id: string;
+  returnNumber: string;
+  reason: string;
+  notes: string | null;
+  totalAmount: string;
+  creditApplied: string;
+  creditOpen: string;
+  createdAt: string;
+  supplier: { id: string; name: string };
+  goodsReceipt: { id: string; grnNumber: string };
+  createdBy: { id: string; name: string };
+  items: { id: string; quantity: string; unitCost: string; ingredient: { name: string; unit: string } }[];
+}
+
+export function usePurchaseReturns(branchId: string | null) {
+  return useQuery({
+    queryKey: ["inventory", "purchase-returns", branchId],
+    queryFn: () => api.get<PurchaseReturnRow[]>(`/inventory/procurement/returns?branchId=${branchId}`),
+    enabled: !!branchId,
+  });
+}
+
+export function useCreatePurchaseReturn(branchId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: {
+      goodsReceiptId: string;
+      reason: string;
+      notes?: string;
+      items: { goodsReceiptItemId: string; quantity: number }[];
+      clientRequestId: string;
+    }) => api.post<PurchaseReturnRow>(`/inventory/procurement/returns?branchId=${branchId}`, dto),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inventory"] }),
+  });
+}
+
+export interface PriceVariance {
+  thresholdPct: number;
+  truncated: boolean;
+  lines: {
+    grnNumber: string;
+    receivedAt: string;
+    supplier: string;
+    ingredient: string;
+    unit: string;
+    quantity: string;
+    poUnitCost: string | null;
+    receivedUnitCost: string;
+    lastUnitCost: string | null;
+    poVariancePct: number | null;
+    lastVariancePct: number | null;
+    poVarianceAmount: string | null;
+    flagged: boolean;
+  }[];
+  invoiceChecks: {
+    grnNumber: string;
+    invoiceNumber: string;
+    supplier: string;
+    receiptTotal: string;
+    invoiceTotal: string;
+    difference: string;
+    differencePct: number | null;
+    flagged: boolean;
+  }[];
+  summary: { flaggedLines: number; flaggedInvoices: number; paidAboveOrderPrice: string };
+}
+
+export function usePriceVariance(branchId: string | null, from: string, to: string, threshold: number) {
+  return useQuery({
+    queryKey: ["inventory", "price-variance", branchId, from, to, threshold],
+    queryFn: () =>
+      api.get<PriceVariance>(`/inventory/procurement/price-variance?branchId=${branchId}&from=${from}&to=${to}&threshold=${threshold}`),
+    enabled: !!branchId && from <= to,
+    retry: false,
+  });
+}

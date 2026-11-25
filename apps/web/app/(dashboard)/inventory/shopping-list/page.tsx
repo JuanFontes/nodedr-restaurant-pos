@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBranch } from "@/hooks/use-branch";
 import { csvUrl, useExpiring, useReorder } from "@/hooks/use-stock-journal";
+import { formatCurrency } from "@/lib/format";
 
 export default function ShoppingListPage() {
   const { branchId } = useBranch();
@@ -60,8 +61,15 @@ export default function ShoppingListPage() {
               <ul className="divide-y divide-border text-sm">
                 {rows.map((r) => (
                   <li key={r.id} className="grid grid-cols-[1fr_auto] items-center gap-2 px-4 py-2.5">
-                    <span><span className="font-medium">{r.name}</span><span className="block text-xs text-muted-foreground">{r.inStock} {r.unit} left, minimum {r.minimum}, order up to {r.par}{r.storageLocation ? ` · ${r.storageLocation}` : ""}</span></span>
-                    <span className="text-right text-base font-semibold tabular-nums">{r.toBuy} {r.unit}</span>
+                    <span><span className="font-medium">{r.name}</span><span className="block text-xs text-muted-foreground">
+                      {r.inStock} {r.unit} left{r.daysLeft != null ? ` (about ${r.daysLeft} days at the recent pace)` : ""}, minimum {r.minimum}, order up to {r.par}
+                      {Number(r.onOrder) > 0 ? ` · ${r.onOrder} already on order` : ""}
+                      {r.supplier ? ` · ${r.supplier.name}` : ""}{r.storageLocation ? ` · ${r.storageLocation}` : ""}
+                    </span></span>
+                    <span className="text-right">
+                      <span className="block text-base font-semibold tabular-nums">{r.toBuy} {r.unit}</span>
+                      {r.estCost && Number(r.toBuy) > 0 && <span className="block text-xs tabular-nums text-muted-foreground">about {formatCurrency(Number(r.estCost))}</span>}
+                    </span>
                   </li>
                 ))}
               </ul>
