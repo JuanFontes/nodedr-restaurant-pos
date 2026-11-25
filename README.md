@@ -207,7 +207,7 @@ a Settings area (restaurant + branch details, per-branch tax regime — India
 GST/US Sales Tax/EU VAT/Spain IVA, tax-inclusive or -exclusive menu
 pricing) and staff account management (create/deactivate staff, assign
 roles) under **Settings** in the sidebar, photo upload on menu items, and
-an English/Spanish/French language switcher on the guest-facing QR
+a language switcher for English, Spanish, French and Brazilian Portuguese on the guest-facing QR
 ordering page and staff sidebar.
 
 ### What's new (1.42.1 and 1.42.2)
@@ -350,7 +350,7 @@ Postgres over the originally-specced SQLite — is in
 | Tables | TanStack Table |
 | Charts | Recharts |
 | Drag & drop | dnd-kit (floor designer, KDS columns) |
-| i18n | Lightweight client-side context (`apps/web/lib/i18n`) — English/Spanish/French so far, no routing/middleware |
+| i18n | Lightweight client-side context (`apps/web/lib/i18n`) — English, Spanish, French and Brazilian Portuguese, no routing/middleware |
 | Auth | JWT (httpOnly cookie) + PIN quick-switch, optional TOTP 2FA |
 | Containers | Docker + Docker Compose |
 
