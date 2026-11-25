@@ -28,6 +28,7 @@ volume, social engineering, and issues requiring an already-compromised server.
 - The web server adds nosniff, frame, referrer, permissions and HSTS headers.
   A Content-Security-Policy for the web pages is not set yet (needs a nonce
   middleware).
+- Audit log: append-only. There is no edit or delete route, and a database trigger refuses `UPDATE` and `DELETE` on `audit_logs` (the only allowed change is clearing the actor when a staff account is removed). Exporting it needs `audit_log.view` and `data.export`, and each export is itself logged.
 - Dependencies: `pnpm audit --prod` reports no known vulnerabilities and CI fails on a moderate or higher advisory.
 
 ## Operator checklist (things the software cannot decide for you)

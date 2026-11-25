@@ -216,7 +216,9 @@ Open **Accounting**. It has eight tabs.
 
 ## 10. Reports, exports and scheduled emails
 
-**Reports** has 18 reports: daily sales, sales by item, peak hours, food cost and margins, retention, tax, waste and more. Print them, or export as **Excel**, **PDF** or **CSV** (needs the `data.export` permission).
+**Reports** has 19 reports: daily sales, an **All bills (day book)**, sales by item, peak hours, food cost and margins, retention, tax, waste and more. Pick Today, Yesterday, Last 7 days, This month or any dates. Every sales report ends with a totals line. Print them, or export as **Excel**, **PDF** or **CSV** (needs the `data.export` permission).
+
+**See every bill of a day:** open **Daily sales** and click the day, or choose **All bills (day book)**. Click a bill to open it. An admin can delete a finished bill from there (admin password asked); a paid bill that needs correcting is refunded instead, so your books stay right. **Orders → History** also searches any date range by bill number or guest.
 
 ![Reports](docs/screenshots/tutorial/reports.png)
 
@@ -237,7 +239,7 @@ Reports go out at 06:00 branch time: daily covers yesterday, weekly goes on Mond
 | **Marketing** | Coupons, happy-hour pricing and email campaigns. |
 | **Delivery** | Delivery zones and the pickup-to-delivered status of delivery orders. |
 | **Operations** | Documents (SOPs, contracts, recipes) and equipment maintenance. Use **Attach file** to add PDFs, images, text, Word or Excel files (5 MB each, up to 10 per document). |
-| **Settings → Audit log** | Who did what, and when. |
+| **Settings → Audit log** | Who did what, and when. Export it to Excel, PDF or CSV. Entries are permanent: nobody, admins included, can edit or delete them. |
 | **Settings → Backup** | Schedule and restore backups. Test a restore before you need one. |
 | **Settings → Security** | Two-factor sign-in and recovery codes. |
 | **Settings → API keys, Webhooks** | Let other systems talk to OrderRestro. |
