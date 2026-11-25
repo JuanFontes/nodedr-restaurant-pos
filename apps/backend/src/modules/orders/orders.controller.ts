@@ -22,6 +22,8 @@ import {
   cancelOrderSchema,
   deleteOrdersSchema,
   mergeOrdersSchema,
+  splitOrderSchema,
+  type SplitOrderDto,
   refundSchema,
   rejectOrderSchema,
   removeOrderItemSchema,
@@ -34,6 +36,7 @@ import {
   type UpdateOrderItemDto,
   type SessionUser,
 } from '@nodedr-restaurant/types';
+import { AuditAction } from '../../audit/audit-action';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -880,6 +883,20 @@ export class OrdersController {
       orderIds,
       password,
     );
+  }
+
+  @Auth('orders.edit')
+  @AuditAction('order.split', 'Order')
+  @Post(':id/split')
+  @UsePipes(new ZodValidationPipe(splitOrderSchema))
+  async split(
+    @CurrentUser() user: SessionUser,
+    @Query('branchId') branchId: string,
+    @Param('id') id: string,
+    @Body() body: SplitOrderDto,
+  ) {
+    await this.branchAccess.assertAccess(user.restaurantId, branchId);
+    return this.ordersService.splitOrder(branchId, id, user.id, body);
   }
 
   @Auth('orders.edit')
