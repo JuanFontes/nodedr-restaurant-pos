@@ -148,7 +148,7 @@ partially built, the note says what's missing.
 
 | Feature | Status | Note |
 |---|---|---|
-| Customer-facing kiosk route (`/kiosk/<token>`) | Shipped | Public, token-gated, menu + basket only; Spanish-first with English; see [`docs/KIOSK-AND-KDS.md`](./docs/KIOSK-AND-KDS.md) |
+| Customer-facing kiosk route (`/kiosk/<token>`) | Shipped | Public, token-gated, menu + basket only; Spanish by default, with English and Brazilian Portuguese available; see [`docs/KIOSK-AND-KDS.md`](./docs/KIOSK-AND-KDS.md) |
 | Order flow: start → eat here / take away → menu & search → options → basket → review → submit once → order number | Shipped | Server recomputes prices/modifiers/tax; idempotent submit; no personal data collected |
 | Kitchen display per station + kiosk orders in realtime | Shipped | KDS station picker (remembered per device) |
 | Kiosk payment | Planned | Kiosk orders are created unpaid; payment is taken at the counter |

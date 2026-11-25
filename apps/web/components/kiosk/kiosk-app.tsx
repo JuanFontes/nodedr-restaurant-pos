@@ -51,7 +51,7 @@ export function KioskApp({ token }: { token: string }) {
         : { status: "unreachable" }
       : { status: "loading" };
 
-  const localeTag = locale === "es" ? "es-ES" : "en-GB";
+  const localeTag = { es: "es-ES", en: "en-GB", fr: "fr-FR", pt: "pt-BR" }[locale];
   const fmt = useCallback(
     (n: number | string) => formatCurrency(n, menu?.currency ?? "EUR", localeTag),
     [menu?.currency, localeTag],
