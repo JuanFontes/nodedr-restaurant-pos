@@ -291,7 +291,7 @@ Open **Settings → Backup** to download a copy of the database and uploads, or 
 
 Once the bucket is connected, choose **Edit schedule**. For example, select **Weekly**, **Sunday**, **03:00**, **America/Sao_Paulo**, and **4 copies**. Choose **Save schedule** to see the next run in that time zone.
 
-See the [schedule editor](docs/screenshots/backup-schedule-pt-br.png) and the [saved weekly schedule](docs/screenshots/backup-schedule-saved-pt-br.png) in the Portuguese dashboard.
+See the [schedule editor](docs/screenshots/backup-schedule-en.png) and the [saved weekly schedule](docs/screenshots/backup-schedule-saved-en.png).
 
 You can also run backups daily, monthly, or every few days. If you choose the 31st, shorter months use their last day. Existing interval schedules keep working. Test a restore on a separate installation before you need one.
 
