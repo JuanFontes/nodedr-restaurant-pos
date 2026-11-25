@@ -118,7 +118,7 @@ function OrdersView() {
             }} className={chip(tab === t.key)}>
             {t.label}
             {t.key === "pending" && pendingCount > 0 && (
-              <span className="ml-2 rounded-full bg-destructive px-1.5 text-xs text-white">
+              <span className="ml-2 rounded-full bg-destructive px-1.5 text-xs text-destructive-foreground">
                 {pendingCount}
               </span>
             )}
