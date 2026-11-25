@@ -126,8 +126,9 @@ session immediately.
 * **POS card**: always shown to anyone with `production.record`, whether or not costing is switched on.
 * **Stock report** (`Inventory > Stock report`, `GET journal/summary`, `journal/summary.csv`): per item and storage
   location, opening, purchases/receipts, manufacturing used, manufacturing produced, sales, waste, adjustments,
-  closing for a date range. Every figure is summed from the stock ledger; the e2e test checks
-  opening + movements = closing = live stock.
+  closing for a date range. The default range runs from the first of the month through today in the browser's
+  local time zone. Every figure is summed from the stock ledger; the e2e test checks
+  opening + movements = closing = live stock. [Example stock report for November 25](./assets/stock-report-dates.png).
 
 ### Where the Manufacturing voucher opens from (added after 1.33.0)
 

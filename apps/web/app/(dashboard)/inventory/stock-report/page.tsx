@@ -10,9 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBranch } from "@/hooks/use-branch";
 import { csvUrl, useStockItems, useStockSummary } from "@/hooks/use-stock-journal";
+import { monthToDate } from "@/lib/report-dates";
 
-const first = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); };
-const today = () => new Date().toISOString().slice(0, 10);
 const n = (v: string) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 3 });
 const signed = (v: string) => (Number(v) > 0 ? "+" : "") + n(v);
 
@@ -20,8 +19,7 @@ const signed = (v: string) => (Number(v) > 0 ? "+" : "") + n(v);
 // the stock ledger, so every closing figure equals opening plus the movements beside it.
 export default function StockReportPage() {
   const { branchId } = useBranch();
-  const [from, setFrom] = useState(first());
-  const [to, setTo] = useState(today());
+  const [{ from, to }, setRange] = useState(monthToDate);
   const [ingredientId, setIngredientId] = useState("");
   const [kind, setKind] = useState("");
   const [location, setLocation] = useState("");
@@ -43,8 +41,8 @@ export default function StockReportPage() {
       </div>
       <InventoryTabs />
       <Card className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-6">
-        <div className="flex flex-col gap-1.5"><Label htmlFor="s-from">From</Label><Input id="s-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-        <div className="flex flex-col gap-1.5"><Label htmlFor="s-to">To</Label><Input id="s-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        <div className="flex flex-col gap-1.5"><Label htmlFor="s-from">From</Label><Input id="s-from" type="date" value={from} onChange={(e) => setRange({ from: e.target.value, to })} /></div>
+        <div className="flex flex-col gap-1.5"><Label htmlFor="s-to">To</Label><Input id="s-to" type="date" value={to} onChange={(e) => setRange({ from, to: e.target.value })} /></div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="s-item">Item</Label>
           <select id="s-item" className={selectClass} value={ingredientId} onChange={(e) => setIngredientId(e.target.value)}>
