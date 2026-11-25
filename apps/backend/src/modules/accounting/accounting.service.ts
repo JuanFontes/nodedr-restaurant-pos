@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import type { CashClosingDto, ExpenseDto } from '@nodedr-restaurant/types';
+import { Prisma } from '@prisma/client';
 import { zonedRange } from '../../common/time';
 import { BranchTimeService } from '../../common/services/branch-time.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -29,31 +31,145 @@ export class AccountingService {
     });
   }
 
-  async createExpense(branchId: string, userId: string, dto: ExpenseDto) {
-    if (dto.paidFromCash) {
-      const closed = await this.prisma.cashClosing.findUnique({
-        where: {
-          branchId_businessDate: {
-            branchId,
-            businessDate: dayStart(dto.spentOn),
-          },
+  /**
+   * Someone who may approve expenses records them as approved at once (as before this existed). Everyone else
+   * submits a PENDING expense that counts nowhere until an approver decides. A repeat of the same
+   * clientRequestId returns the first expense, so a retry or double tap never adds a second.
+   */
+  async createExpense(
+    branchId: string,
+    userId: string,
+    dto: ExpenseDto,
+    canApprove = true,
+  ) {
+    if (dto.clientRequestId) {
+      const prior = await this.prisma.expense.findUnique({
+        where: { clientRequestId: dto.clientRequestId },
+      });
+      if (prior) return prior.branchId === branchId ? prior : this.clash();
+    }
+    if (dto.paidFromCash) await this.assertDayOpen(branchId, dto.spentOn);
+    try {
+      return await this.prisma.expense.create({
+        data: {
+          branchId,
+          createdById: userId,
+          spentOn: dayStart(dto.spentOn),
+          category: dto.category,
+          amount: dto.amount,
+          note: dto.note,
+          paidFromCash: dto.paidFromCash,
+          clientRequestId: dto.clientRequestId,
+          ...(canApprove
+            ? {
+                status: 'APPROVED' as const,
+                decidedById: userId,
+                decidedAt: new Date(),
+              }
+            : { status: 'PENDING' as const }),
         },
       });
-      if (closed)
-        throw new BadRequestException(
-          'That day is already closed - the cash count includes its expenses',
-        );
+    } catch (e) {
+      if (
+        dto.clientRequestId &&
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        const prior = await this.prisma.expense.findUnique({
+          where: { clientRequestId: dto.clientRequestId },
+        });
+        if (prior?.branchId === branchId) return prior;
+      }
+      throw e;
     }
-    return this.prisma.expense.create({
-      data: {
-        branchId,
-        createdById: userId,
-        spentOn: dayStart(dto.spentOn),
-        category: dto.category,
-        amount: dto.amount,
-        note: dto.note,
-        paidFromCash: dto.paidFromCash,
+  }
+
+  private clash(): never {
+    throw new ConflictException('That request id was already used');
+  }
+
+  private async assertDayOpen(branchId: string, date: string) {
+    const closed = await this.prisma.cashClosing.findUnique({
+      where: {
+        branchId_businessDate: { branchId, businessDate: dayStart(date) },
       },
+    });
+    if (closed)
+      throw new BadRequestException(
+        'That day is already closed - the cash count includes its expenses',
+      );
+  }
+
+  /** Expenses waiting for a decision, oldest first, with who submitted them. */
+  pendingExpenses(branchId: string) {
+    return this.prisma.expense.findMany({
+      where: { branchId, status: 'PENDING' },
+      include: { createdBy: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    });
+  }
+
+  /** What one person submitted, with the decision, so they can see what happened to it. */
+  myExpenses(branchId: string, userId: string) {
+    return this.prisma.expense.findMany({
+      where: { branchId, createdById: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+  }
+
+  /**
+   * Approve or reject a PENDING expense, once. The conditional update means two approvers (or a double click)
+   * cannot both decide it. Rejecting a petty cash voucher's expense puts its money back into the box.
+   */
+  async decideExpense(
+    branchId: string,
+    id: string,
+    deciderId: string,
+    approve: boolean,
+    note?: string,
+  ) {
+    if (!approve && !note?.trim())
+      throw new BadRequestException('Say why the expense is rejected');
+    const expense = await this.prisma.expense.findFirst({
+      where: { id, branchId },
+    });
+    if (!expense) throw new NotFoundException('Expense not found');
+    if (approve && expense.paidFromCash)
+      await this.assertDayOpen(
+        branchId,
+        expense.spentOn.toISOString().slice(0, 10),
+      );
+    return this.prisma.$transaction(async (tx) => {
+      const done = await tx.expense.updateMany({
+        where: { id, branchId, status: 'PENDING' },
+        data: {
+          status: approve ? 'APPROVED' : 'REJECTED',
+          decidedById: deciderId,
+          decidedAt: new Date(),
+          decisionNote: note?.trim() || null,
+        },
+      });
+      if (done.count === 0)
+        throw new ConflictException('That expense was already decided');
+      if (!approve) {
+        const voucher = await tx.pettyCashEntry.findUnique({
+          where: { expenseId: id },
+        });
+        if (voucher) {
+          await tx.pettyCashEntry.create({
+            data: {
+              branchId,
+              kind: 'ADJUSTMENT',
+              delta: voucher.delta.negated(),
+              note: `Voucher rejected: ${note?.trim()}`,
+              createdById: deciderId,
+            },
+          });
+        }
+      }
+      return tx.expense.findUniqueOrThrow({ where: { id } });
     });
   }
 
@@ -99,7 +215,12 @@ export class AccountingService {
         _sum: { amount: true },
       }),
       this.prisma.expense.aggregate({
-        where: { branchId, spentOn: from, paidFromCash: true },
+        where: {
+          branchId,
+          spentOn: from,
+          paidFromCash: true,
+          status: 'APPROVED',
+        },
         _sum: { amount: true },
       }),
     ]);
@@ -178,7 +299,11 @@ export class AccountingService {
       }),
       this.prisma.expense.groupBy({
         by: ['category'],
-        where: { branchId, spentOn: { gte: f, lt: t } },
+        where: {
+          branchId,
+          status: 'APPROVED',
+          spentOn: { gte: f, lt: t },
+        },
         _sum: { amount: true },
         orderBy: { category: 'asc' },
       }),

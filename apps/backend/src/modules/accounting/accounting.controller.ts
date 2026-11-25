@@ -11,6 +11,8 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import {
   cashClosingSchema,
+  permissionSatisfied,
+  expenseDecisionSchema,
   expenseSchema,
   type CashClosingDto,
   type ExpenseDto,
@@ -47,7 +49,8 @@ export class AccountingController {
     return this.accounting.listExpenses(branchId, from, to);
   }
 
-  @Auth('accounting.manage')
+  // Anyone who may submit an expense. Approvers' expenses are recorded as approved, everyone else's wait.
+  @Auth('expenses.submit')
   @AuditAction('expense.created', 'Expense')
   @Post('expenses')
   @UsePipes(new ZodValidationPipe(expenseSchema))
@@ -57,7 +60,60 @@ export class AccountingController {
     @Body() body: ExpenseDto,
   ) {
     await this.access(u, branchId);
-    return this.accounting.createExpense(branchId, u.id, body);
+    return this.accounting.createExpense(
+      branchId,
+      u.id,
+      body,
+      permissionSatisfied(u.permissions, 'expenses.approve'),
+    );
+  }
+
+  @Auth('expenses.submit')
+  @Get('expenses/mine')
+  async myExpenses(
+    @CurrentUser() u: SessionUser,
+    @Query('branchId') branchId: string,
+  ) {
+    await this.access(u, branchId);
+    return this.accounting.myExpenses(branchId, u.id);
+  }
+
+  @Auth('expenses.approve')
+  @Get('expenses/pending')
+  async pendingExpenses(
+    @CurrentUser() u: SessionUser,
+    @Query('branchId') branchId: string,
+  ) {
+    await this.access(u, branchId);
+    return this.accounting.pendingExpenses(branchId);
+  }
+
+  @Auth('expenses.approve')
+  @AuditAction('expense.approved', 'Expense')
+  @Post('expenses/:id/approve')
+  async approveExpense(
+    @CurrentUser() u: SessionUser,
+    @Query('branchId') branchId: string,
+    @Param('id') id: string,
+    @Body() body?: unknown,
+  ) {
+    await this.access(u, branchId);
+    const { note } = expenseDecisionSchema.parse(body ?? {});
+    return this.accounting.decideExpense(branchId, id, u.id, true, note);
+  }
+
+  @Auth('expenses.approve')
+  @AuditAction('expense.rejected', 'Expense')
+  @Post('expenses/:id/reject')
+  async rejectExpense(
+    @CurrentUser() u: SessionUser,
+    @Query('branchId') branchId: string,
+    @Param('id') id: string,
+    @Body() body?: unknown,
+  ) {
+    await this.access(u, branchId);
+    const { note } = expenseDecisionSchema.parse(body ?? {});
+    return this.accounting.decideExpense(branchId, id, u.id, false, note);
   }
 
   @Auth('accounting.manage')

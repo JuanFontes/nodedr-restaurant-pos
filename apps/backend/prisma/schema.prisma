@@ -120,6 +120,7 @@ model Branch {
   leaveRequests     LeaveRequest[]
   payrollRuns       PayrollRun[]
   expenses          Expense[]
+  pettyCashEntries  PettyCashEntry[]
   budgets           Budget[]
   bankTransactions  BankTransaction[]
   reportSchedules   ReportSchedule[]
@@ -371,6 +372,7 @@ model User {
   payProfile              StaffPay?
   payrollLines            PayrollLine[]
   expensesCreated         Expense[]
+  pettyCashEntries        PettyCashEntry[]     @relation("PettyCashEntryBy")
 
   purchaseRequestsRequested PurchaseRequest[]   @relation("PurchaseRequestRequestedBy")
   purchaseRequestsApproved  PurchaseRequest[]   @relation("PurchaseRequestApprovedBy")
@@ -1226,8 +1228,8 @@ model StockBatch {
   stockMovements StockMovement[]
   wasteLogs      WasteLog[]
 
-  @@index([branchId, ingredientId, receivedAt])
   @@unique([branchId, idempotencyKey])
+  @@index([branchId, ingredientId, receivedAt])
   @@map("stock_batches")
 }
 
@@ -2263,14 +2265,66 @@ model Expense {
   // Paid out of the till: counted against expected cash at day close.
   paidFromCash Boolean  @default(false)
 
+  // Staff without expenses.approve submit PENDING expenses; only APPROVED ones count in cash closing, budgets,
+  // the ledger and bank matching. Existing rows are APPROVED, so nothing already recorded changes.
+  status       ExpenseStatus @default(APPROVED)
+  decidedById  String?
+  decidedAt    DateTime?
+  decisionNote String?
+
   createdById     String
   createdBy       User     @relation(fields: [createdById], references: [id])
   createdAt       DateTime @default(now())
   // Set when the expense was entered on a phone offline: its event id, so a re-send never adds it twice.
   clientRequestId String?  @unique
 
+  pettyCashEntry PettyCashEntry?
+
   @@index([branchId, spentOn])
+  @@index([branchId, status])
   @@map("expenses")
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PettyCashKind {
+  TOPUP
+  VOUCHER
+  ADJUSTMENT
+}
+
+// The petty cash box of a branch is a running ledger: the balance is the sum of `delta`. A top-up adds, a voucher
+// (money paid out against a receipt) subtracts and creates its Expense, and a count that disagrees with the book
+// posts an ADJUSTMENT for the difference so the book matches the box again. Rows are never edited or deleted.
+model PettyCashEntry {
+  id          String        @id @default(cuid())
+  branchId    String
+  branch      Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  kind        PettyCashKind
+  // Signed amount: positive puts cash in the box, negative takes it out.
+  delta       Decimal       @db.Decimal(12, 2)
+  // ADJUSTMENT only: what was counted and what the book said at that moment.
+  countedCash Decimal?      @db.Decimal(12, 2)
+  bookBalance Decimal?      @db.Decimal(12, 2)
+  category    String?
+  payee       String?
+  receiptRef  String?
+  note        String?
+
+  expenseId String?  @unique
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  createdById     String
+  createdBy       User     @relation("PettyCashEntryBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  clientRequestId String?  @unique
+
+  @@index([branchId, createdAt])
+  @@map("petty_cash_entries")
 }
 
 // End-of-day cash count. expectedCash = opening float + cash payments taken

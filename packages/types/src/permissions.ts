@@ -37,6 +37,9 @@ export const PERMISSIONS = [
   { key: "delivery.rider", label: "Use the Rider App (own deliveries)", category: "Delivery" },
   { key: "staff.manage", label: "Manage Staff Schedules, Leave & Payroll", category: "Staff" },
   { key: "accounting.manage", label: "Manage Accounting", category: "Accounting" },
+  { key: "expenses.submit", label: "Submit Expenses for Approval", category: "Accounting" },
+  { key: "expenses.approve", label: "Approve or Reject Expenses", category: "Accounting" },
+  { key: "pettycash.manage", label: "Keep the Petty Cash Box", category: "Accounting" },
   { key: "marketing.manage", label: "Manage Coupons, Promotions & Campaigns", category: "Marketing" },
   { key: "operations.manage", label: "Manage Equipment & Documents", category: "Operations" },
   { key: "system.update", label: "Manage App Updates", category: "Admin" },
@@ -58,6 +61,8 @@ export type PermissionKey = (typeof PERMISSIONS)[number]["key"];
 // that predate the *.view keys (and custom roles) keep working unchanged.
 export const PERMISSION_IMPLIES: Partial<Record<PermissionKey, PermissionKey[]>> = {
   "menu.manage": ["menu.view"],
+  // Accounting managers keep recording expenses directly, as before, and also run the petty cash box.
+  "accounting.manage": ["expenses.submit", "expenses.approve", "pettycash.manage"],
   "tables.manage": ["tables.view"],
   // Whoever manages inventory may also record and reverse production.
   "inventory.manage": ["production.record", "production.void", "production.post", "production.report", "production.quality", "journal.manage"],
@@ -116,7 +121,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<StaffRole, PermissionKey[]> = {
   CASHIER: [
     "table.session", "orders.create", "orders.edit", "orders.accept", "bills.print", "discounts.apply",
     "sales.view", "customers.manage", "dashboard.sales.view",
-    "menu.view", "tables.view",
+    "menu.view", "tables.view", "expenses.submit",
   ],
   // Waiters read the menu and floor plan and run orders; they cannot edit
   // either, and have no revenue access.

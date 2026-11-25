@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access -- hand-built Prisma/jest mocks */
+/* eslint-disable @typescript-eslint/no-unsafe-return -- hand-built Prisma/jest mocks */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- hand-built Prisma rows */
 import { OrdersService } from './orders.service';
 

@@ -34,6 +34,7 @@ const GRANT_WHEN_CREATED: Record<string, string[]> = {
   'menu.price': ['RESTAURANT_MANAGER'],
   'table.session': ['RESTAURANT_MANAGER', 'CASHIER', 'WAITER'],
   'ratings.view': ['RESTAURANT_MANAGER'],
+  'expenses.submit': ['CASHIER'],
 };
 
 // System roles added after the first release. Restaurants that signed up earlier never got them, so they are
