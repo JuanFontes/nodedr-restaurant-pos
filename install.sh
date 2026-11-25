@@ -86,13 +86,14 @@ docker compose up -d --build
 # --- 4. Wait for the app to report healthy ----------------------------------
 # The backend container's own start command runs `prisma migrate deploy`
 # before it starts listening, so a 200 here means migrations already applied.
-HOST_PORT="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2-)"
-HOST_PORT="${HOST_PORT:-1995}"
+# Ask Compose for the actual host binding, which can differ from HOST_PORT in .env.
+web_binding="$(docker compose port web 3000)"
+web_url="http://localhost:${web_binding##*:}"
 
 echo "Waiting for the app to come online..."
 ready=false
 for _ in $(seq 1 90); do
-  if curl -sf "http://localhost:${HOST_PORT}/api/health" >/dev/null 2>&1; then
+  if curl -sf "$web_url/api/health" >/dev/null 2>&1; then
     ready=true
     break
   fi
@@ -116,10 +117,10 @@ fi
 # --- 6. Done -----------------------------------------------------------------
 echo ""
 echo "Nodedr OrderRestro is up and running."
-echo "Open http://localhost:${HOST_PORT}"
+echo "Open $web_url"
 if [ "$load_demo" = true ]; then
   echo "Sign in with the demo account: owner@demo.local / Password123!"
   echo "(demo account — change the password or remove it before real use)"
 else
-  echo "Create your restaurant account at http://localhost:${HOST_PORT}/signup"
+  echo "Create your restaurant account at $web_url/signup"
 fi

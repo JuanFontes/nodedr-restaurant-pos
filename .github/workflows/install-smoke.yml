@@ -33,6 +33,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request'
+      - name: Installer honors a host port override
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        env:
+          HOST_PORT: "2995"
+        run: |
+          mkdir installer-port-test
+          cd installer-port-test
+          cp "$GITHUB_WORKSPACE/install.sh" .
+          echo 'HOST_PORT=1995' > .env
+          cat > compose.yaml <<'YAML'
+          services:
+            web:
+              image: busybox:1.37
+              ports: ["127.0.0.1:${HOST_PORT}:3000"]
+              command: sh -c 'mkdir -p /www/api && echo ok > /www/api/health && exec httpd -f -p 3000 -h /www'
+          YAML
+          trap 'docker compose down' EXIT
+          ./install.sh | tee install.log
+          grep -Fx "Open http://localhost:$HOST_PORT" install.log
       - name: One-line install (as published)
         if: github.event_name != 'pull_request'
         working-directory: ${{ runner.temp }}

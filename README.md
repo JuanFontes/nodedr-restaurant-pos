@@ -423,8 +423,9 @@ one doesn't already exist — safe to re-run), builds the backend + web Docker
 images, starts the stack, and waits for the backend to report healthy. Re-run
 it any time after `git pull` to rebuild.
 
-Open **http://localhost:1995** and create your restaurant at `/signup` — no
-demo data is loaded by default. To try the app with sample data instead, run
+Open the URL printed by the installer (**http://localhost:1995** by default)
+and create your restaurant at `/signup` — no demo data is loaded by default.
+To try the app with sample data instead, run
 `./install.sh --demo` and sign in with `owner@demo.local` / `Password123!`.
 
 The backend API and Swagger docs are reachable only through the web app's
