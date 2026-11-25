@@ -45,7 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { labelKey: "nav.myDeliveries", href: "/my-deliveries", icon: Bike, permission: "delivery.rider" },
   { labelKey: "nav.delivery", href: "/delivery", icon: Truck, permission: "delivery.manage" },
   { labelKey: "nav.team", href: "/team", icon: Users, permission: "staff.manage" },
-  { labelKey: "nav.accounting", href: "/accounting", icon: Landmark, permission: "accounting.manage" },
+  { labelKey: "nav.accounting", href: "/accounting", icon: Landmark, permission: "expenses.submit" },
   { labelKey: "nav.reports", href: "/reports", icon: BarChart3, permission: "reports.access" },
   { labelKey: "nav.marketing", href: "/marketing", icon: Megaphone, permission: "marketing.manage" },
   { labelKey: "nav.operations", href: "/operations", icon: Wrench, permission: "operations.manage" },

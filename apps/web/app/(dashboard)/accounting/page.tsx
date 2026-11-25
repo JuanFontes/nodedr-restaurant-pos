@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "@/lib/toast";
+import { Badge } from "@/components/ui/badge";
+import { ReasonDialog } from "@/components/orders/reason-dialog";
+import { PettyCashTab } from "@/components/accounting/petty-cash-tab";
+import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +18,8 @@ import {
   useClosings,
   usePhoneTills,
   useExpenses,
+  useMyExpenses,
+  usePendingExpenses,
   useGst,
   useProfitLoss,
 } from "@/hooks/use-accounting";
@@ -25,7 +31,7 @@ import { BalanceSheetTab, BankTab, BudgetsTab } from "@/components/accounting/fi
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
-const TABS = ["expenses", "cash close", "profit & loss", "balance sheet", "budgets", "bank", "gst", "branches"] as const;
+const TABS = ["expenses", "petty cash", "cash close", "profit & loss", "balance sheet", "budgets", "bank", "gst", "branches"] as const;
 type Tab = (typeof TABS)[number];
 
 function monthRange() {
@@ -60,12 +66,26 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: "Awaiting approval",
+  REJECTED: "Rejected",
+};
+
 function Expenses({ branchId }: { branchId: string | null }) {
+  const { data: me } = useCurrentUser();
+  const canManage = hasPermission(me?.user, "accounting.manage");
+  const canApprove = hasPermission(me?.user, "expenses.approve");
   const [range, setRange] = useState(monthRange);
-  const { data, isLoading } = useExpenses(branchId, range.from, range.to);
-  const { addExpense, deleteExpense } = useAccountingActions(branchId);
+  const all = useExpenses(branchId, range.from, range.to);
+  const mine = useMyExpenses(branchId);
+  const pending = usePendingExpenses(branchId, canApprove);
+  const { data, isLoading } = canManage ? all : mine;
+  const { addExpense, deleteExpense, decideExpense } = useAccountingActions(branchId);
   const [f, setF] = useState({ spentOn: iso(new Date()), category: "", amount: "", note: "", paidFromCash: false });
-  const total = data?.reduce((s, e) => s + Number(e.amount), 0) ?? 0;
+  // One key per attempt, renewed after success: a double tap or retry never adds a second expense.
+  const [key, setKey] = useState(() => crypto.randomUUID());
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const total = data?.filter((e) => e.status === "APPROVED").reduce((s, e) => s + Number(e.amount), 0) ?? 0;
   const { note: status, show, clear } = useStatusNote();
 
   const submit = (e?: { preventDefault: () => void }) => {
@@ -73,11 +93,13 @@ function Expenses({ branchId }: { branchId: string | null }) {
     const amount = Number(f.amount);
     if (!f.category.trim() || !(amount > 0)) return show("error", "Enter a category and an amount");
     addExpense.mutate(
-      { spentOn: f.spentOn, category: f.category.trim(), amount, note: f.note || undefined, paidFromCash: f.paidFromCash },
+      { spentOn: f.spentOn, category: f.category.trim(), amount, note: f.note || undefined, paidFromCash: f.paidFromCash, clientRequestId: key },
       {
-        onSuccess: () => {
-          show("success", `Expense of ${formatCurrency(amount)} added.`);
+        onSuccess: (r) => {
+          const waiting = (r as { status?: string })?.status === "PENDING";
+          show("success", waiting ? `Expense of ${formatCurrency(amount)} sent for approval.` : `Expense of ${formatCurrency(amount)} added.`);
           setF({ ...f, category: "", amount: "", note: "" });
+          setKey(crypto.randomUUID());
         },
         onError: (e) => show("error", errMsg(e)),
       },
@@ -86,6 +108,42 @@ function Expenses({ branchId }: { branchId: string | null }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {canApprove && pending.data && pending.data.length > 0 && (
+        <Card className="flex flex-col divide-y divide-border p-2">
+          <h3 className="px-4 py-2 text-sm font-medium text-foreground">Waiting for your approval ({pending.data.length})</h3>
+          {pending.data.map((e) => (
+            <div key={e.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              <span className="min-w-0">
+                <span className="font-medium text-foreground">{e.category}</span>
+                <span className="text-muted-foreground">
+                  {" "}· {e.spentOn.slice(0, 10)} · {e.createdBy?.name}
+                  {e.note && ` · ${e.note}`}
+                  {e.paidFromCash && " · till"}
+                </span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="tabular-nums">{formatCurrency(e.amount)}</span>
+                <Button size="sm" disabled={decideExpense.isPending} onClick={() => decideExpense.mutate({ id: e.id, approve: true }, { onError: (err) => show("error", errMsg(err)) })}>
+                  Approve
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setRejecting(e.id)}>Reject</Button>
+              </span>
+            </div>
+          ))}
+        </Card>
+      )}
+      <ReasonDialog
+        open={rejecting !== null}
+        onOpenChange={(o) => !o && setRejecting(null)}
+        title="Reject this expense?"
+        description="The person who submitted it sees your reason. It does not count anywhere."
+        reasons={["No receipt", "Not a business cost", "Amount looks wrong", "Duplicate"]}
+        confirmLabel="Reject expense"
+        keepLabel="Go back"
+        onSubmit={(reason) =>
+          decideExpense.mutateAsync({ id: rejecting as string, approve: false, note: reason }).then(() => setRejecting(null))
+        }
+      />
       <form onSubmit={submit} className="grid gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2 lg:grid-cols-5">
         <Input aria-label="Expense date" type="date" value={f.spentOn} onChange={(e) => setF({ ...f, spentOn: e.target.value })} />
         <Input aria-label="Expense category" placeholder="Category (Rent, Supplies…)" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} />
@@ -96,11 +154,11 @@ function Expenses({ branchId }: { branchId: string | null }) {
           Paid from till
         </label>
         <div className="sm:col-span-2 lg:col-span-5">
-          <Button type="submit" disabled={addExpense.isPending}>Add expense</Button>
+          <Button type="submit" disabled={addExpense.isPending}>{canApprove ? "Add expense" : "Submit for approval"}</Button>
         </div>
         <div className="sm:col-span-2 lg:col-span-5"><StatusNote note={status} onClear={clear} /></div>
       </form>
-      <RangePicker range={range} onChange={setRange} />
+      {canManage && <RangePicker range={range} onChange={setRange} />}
       <Card className="flex flex-col divide-y divide-border p-2">
         {isLoading ? (
           <Skeleton className="m-4 h-12" />
@@ -108,25 +166,32 @@ function Expenses({ branchId }: { branchId: string | null }) {
           <>
             {data.map((e) => (
               <div key={e.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <span>
+                <span className="min-w-0">
                   <span className="font-medium text-foreground">{e.category}</span>
-                  <span className="text-muted-foreground"> · {e.spentOn.slice(0, 10)}{e.note && ` · ${e.note}`}{e.paidFromCash && " · till"}</span>
+                  <span className="text-muted-foreground"> · {e.spentOn.slice(0, 10)}{e.note && ` · ${e.note}`}{e.paidFromCash && " · till"}{e.status === "REJECTED" && e.decisionNote && ` · ${e.decisionNote}`}</span>
                 </span>
-                <span className="flex items-center gap-3">
-                  {formatCurrency(e.amount)}
-                  <Button size="sm" variant="outline" onClick={() => deleteExpense.mutate(e.id, { onError: (err) => toast.error(errMsg(err)) })}>
-                    Delete
-                  </Button>
+                <span className="flex shrink-0 items-center gap-3">
+                  {e.status !== "APPROVED" && (
+                    <Badge variant={e.status === "PENDING" ? "outline" : "secondary"} className={e.status === "PENDING" ? "border-warning font-normal text-warning" : "font-normal"}>
+                      {STATUS_BADGE[e.status]}
+                    </Badge>
+                  )}
+                  <span className="tabular-nums">{formatCurrency(e.amount)}</span>
+                  {canManage && (
+                    <Button size="sm" variant="outline" onClick={() => deleteExpense.mutate(e.id, { onError: (err) => toast.error(errMsg(err)) })}>
+                      Delete
+                    </Button>
+                  )}
                 </span>
               </div>
             ))}
             <div className="flex justify-between px-4 py-2.5 text-sm font-semibold">
-              <span>Total</span>
+              <span>Total (approved)</span>
               <span>{formatCurrency(total)}</span>
             </div>
           </>
         ) : (
-          <p className="p-6 text-center text-sm text-muted-foreground">No expenses in this range.</p>
+          <p className="p-6 text-center text-sm text-muted-foreground">{canManage ? "No expenses in this range." : "You have not submitted any expenses."}</p>
         )}
       </Card>
     </div>
@@ -336,6 +401,11 @@ function BranchesTab() {
 export default function AccountingPage() {
   const { branchId } = useBranch();
   const [tab, setTab] = useState<Tab>("expenses");
+  const { data: me } = useCurrentUser();
+  // Someone who may only submit expenses sees just that tab; the rest of accounting needs accounting.manage.
+  const visible = TABS.filter((t) =>
+    t === "expenses" ? true : t === "petty cash" ? hasPermission(me?.user, "pettycash.manage") : hasPermission(me?.user, "accounting.manage"),
+  );
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -343,7 +413,7 @@ export default function AccountingPage() {
         <p className="text-sm text-muted-foreground">Expenses, cash close, profit &amp; loss, balance sheet, budgets, bank reconciliation, tax and branches</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
+        {visible.map((t) => (
           <button
             key={t}
             type="button"
@@ -358,6 +428,7 @@ export default function AccountingPage() {
         ))}
       </div>
       {tab === "expenses" && <Expenses branchId={branchId} />}
+      {tab === "petty cash" && <PettyCashTab branchId={branchId} />}
       {tab === "cash close" && <CashClose branchId={branchId} />}
       {tab === "profit & loss" && <ProfitLossTab branchId={branchId} />}
       {tab === "balance sheet" && <BalanceSheetTab branchId={branchId} />}
