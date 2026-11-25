@@ -54,7 +54,7 @@ hardware arrives.
 
 | Situation | What happens |
 |---|---|
-| Same basket sent twice (double tap, dropped connection) | one order; the phone's key makes the second request return the first |
+| Same basket sent twice (double tap, dropped connection) | the phone reuses its order key and receives the original order number, including over HTTP on the restaurant Wi-Fi. [See the QR checkout before and after the LAN fix](./assets/qr-lan-checkout.png). |
 | Guest adds a round while the order is waiting for payment | added to the same order; still nothing goes to the kitchen until paid |
 | Online payment fails or expires | order stays held and unpaid; the guest sees "did not go through", with **Try again** or **Pay at the register instead** |
 | Guest switches to the register | order is released to the kitchen, marked cash, unpaid |

@@ -16,6 +16,7 @@ import { LOCALE_TAGS } from "@/lib/i18n/locales";
 import { api, ApiError } from "@/lib/api";
 import { playSuccessChime, vibrateSuccess } from "@/lib/celebrate";
 import { formatCurrency } from "@/lib/format";
+import { uuid } from "@/lib/uuid";
 
 interface PublicMenuItem {
   id: string;
@@ -251,7 +252,7 @@ export default function PublicMenuPage({
     mutationFn: () => {
       const items = cart.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity, modifierIds: l.modifierIds }));
       const sig = JSON.stringify([items, payChoice, guestName]);
-      if (!attempt.current || attempt.current.sig !== sig) attempt.current = { sig, key: crypto.randomUUID() };
+      if (!attempt.current || attempt.current.sig !== sig) attempt.current = { sig, key: uuid() };
       return api.post<{ id: string; orderNumber: string; ratingToken?: string; sessionGrant?: string }>(`/public/menu/${qrToken}/order`, { guestName, items, payment: payChoice, idempotencyKey: attempt.current.key }, hdr());
     },
     onError: (e) => { lostSession(e); },
