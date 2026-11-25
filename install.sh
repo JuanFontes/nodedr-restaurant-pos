@@ -15,14 +15,31 @@
 # own restaurant at /signup — no demo data is created.
 
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")"
 
+usage() {
+  printf '%s\n' 'Usage: ./install.sh [--demo] [-h|--help]' \
+    '  --demo      Load the sample restaurant after the app is ready.' \
+    '  -h, --help  Show this help and exit.'
+}
+
+show_help=false
 load_demo=false
 for arg in "$@"; do
   case "$arg" in
     --demo) load_demo=true ;;
+    -h|--help) show_help=true ;;
+    *)
+      printf 'Unknown argument: %s\n' "$arg" >&2
+      usage >&2
+      exit 2
+      ;;
   esac
 done
+if [ "$show_help" = true ]; then
+  usage
+  exit 0
+fi
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # --- 1. Check prerequisites -------------------------------------------------
 # Docker Engine must be installed and the `docker compose` plugin available
