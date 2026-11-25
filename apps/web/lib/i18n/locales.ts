@@ -2,6 +2,13 @@
 export const LOCALES = ["en", "es", "fr", "pt"] as const;
 export type Locale = (typeof LOCALES)[number];
 
+export const LOCALE_TAGS: Record<Locale, string> = {
+  en: "en-GB",
+  es: "es-ES",
+  fr: "fr-FR",
+  pt: "pt-BR",
+};
+
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
   es: "Español",

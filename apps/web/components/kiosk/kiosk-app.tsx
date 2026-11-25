@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import { LOCALE_TAGS } from "@/lib/i18n/locales";
 import { formatCurrency } from "@/lib/format";
 import { KioskApiError, kioskApi } from "@/lib/kiosk-api";
 import { toOrderItems } from "@/lib/kiosk-basket";
@@ -51,7 +52,7 @@ export function KioskApp({ token }: { token: string }) {
         : { status: "unreachable" }
       : { status: "loading" };
 
-  const localeTag = { es: "es-ES", en: "en-GB", fr: "fr-FR", pt: "pt-BR" }[locale];
+  const localeTag = LOCALE_TAGS[locale];
   const fmt = useCallback(
     (n: number | string) => formatCurrency(n, menu?.currency ?? "EUR", localeTag),
     [menu?.currency, localeTag],

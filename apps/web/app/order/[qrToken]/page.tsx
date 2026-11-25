@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n/context";
+import { LOCALE_TAGS } from "@/lib/i18n/locales";
 import { api, ApiError } from "@/lib/api";
 import { playSuccessChime, vibrateSuccess } from "@/lib/celebrate";
 import { formatCurrency } from "@/lib/format";
@@ -92,7 +93,7 @@ export default function PublicMenuPage({
   params: Promise<{ qrToken: string }>;
 }) {
   const { qrToken } = use(params);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const nameStorageKey = `qr-guest-name:${qrToken}`;
   const [cart, setCart] = useState<CartLine[]>([]);
   const [pickerItem, setPickerItem] = useState<PublicMenuItem | null>(null);
@@ -212,6 +213,7 @@ export default function PublicMenuPage({
     queryFn: () => api.get<PublicMenuResponse>(`/public/menu/${qrToken}`),
     retry: false,
   });
+  const formatPrice = (amount: number | string) => formatCurrency(amount, data?.currency, LOCALE_TAGS[locale]);
 
   // Live status of the table's tab and any pending waiter/bill request.
   const { data: status } = useQuery({
@@ -434,7 +436,7 @@ export default function PublicMenuPage({
                               </p>
                             )}
                             <span className="mt-1 block text-sm font-medium tabular-nums text-foreground">
-                              {formatCurrency(item.price, data.currency)}
+                              {formatPrice(item.price)}
                             </span>
                           </div>
                         </div>
@@ -575,7 +577,7 @@ export default function PublicMenuPage({
 
       <ModifierPickerDialog
         item={pickerItem}
-        currency={data?.currency}
+        formatPrice={formatPrice}
         open={!!pickerItem}
         onOpenChange={(open) => !open && setPickerItem(null)}
         onConfirm={(ids, label) => {
@@ -613,7 +615,7 @@ export default function PublicMenuPage({
             >
               {placeOrder.isPending
                 ? t("order.placingOrder")
-                : `${t("order.placeOrder")} — ${cartCount} ${cartCount > 1 ? t("order.items") : t("order.item")} · ${formatCurrency(cartTotal, data?.currency)}`}
+                : `${t("order.placeOrder")} — ${cartCount} ${cartCount > 1 ? t("order.items") : t("order.item")} · ${formatPrice(cartTotal)}`}
             </Button>
           </div>
           {placeOrder.isError && (
