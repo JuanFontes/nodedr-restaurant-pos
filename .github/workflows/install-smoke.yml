@@ -39,7 +39,15 @@ jobs:
         run: curl -fsSL https://raw.githubusercontent.com/Raktim94/nodedr-restaurant-pos/master/scripts/quickstart.sh | bash
       - name: Install from this checkout (PR)
         if: github.event_name == 'pull_request'
-        run: bash "$GITHUB_WORKSPACE/scripts/quickstart.sh"
+        working-directory: ${{ runner.temp }}
+        env:
+          # Let quickstart clone the checked-out PR revision, including a detached merge commit.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: url.file://${{ github.workspace }}.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/Raktim94/nodedr-restaurant-pos.git
+        run: |
+          bash "$GITHUB_WORKSPACE/scripts/quickstart.sh"
+          test "$(git -C nodedr-restaurant-pos rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: App answers on port 1995
         run: |
