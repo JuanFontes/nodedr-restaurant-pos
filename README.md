@@ -566,6 +566,8 @@ changes without silently re-litigating a decision already recorded in
 
 This project follows the [Contributor Covenant](./CODE_OF_CONDUCT.md).
 
+Thanks to everyone who has contributed: see [CONTRIBUTORS.md](./CONTRIBUTORS.md).
+
 ## License
 
 Copyright © 2026 [Nodedr Infotech Private Limited](https://www.nodedr.com/)

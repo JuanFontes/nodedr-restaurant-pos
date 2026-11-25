@@ -219,6 +219,12 @@ is more important than format. Keep the subject line under ~70 characters.
   that's not personal, it's the same bar every change (including the
   maintainer's own) gets held to.
 
+### How your pull request is handled
+
+- Pull requests are merged as you wrote them, so your commits and your name stay in the history. A maintainer will not copy your change into a new commit under another name.
+- If something needs to change before merging, the maintainer comments on the pull request, or pushes a fix to your branch (maintainer edits are on by default). You can always say no.
+- If a pull request is declined, it is closed with the reason in a comment.
+
 ## Reporting bugs
 
 Open an issue with:
