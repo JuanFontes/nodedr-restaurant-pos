@@ -5,6 +5,8 @@ import { BillShareModule } from '../bill-share/bill-share.module';
 import { OrdersModule } from '../orders/orders.module';
 import { RatingsModule } from '../ratings/ratings.module';
 import { TablesModule } from '../tables/tables.module';
+import { PublicTrackController } from './public-track.controller';
+import { PublicTrackService } from './public-track.service';
 import { PublicBillController } from './public-bill.controller';
 import { PublicBillService } from './public-bill.service';
 import { PublicKioskController } from './public-kiosk.controller';
@@ -25,7 +27,13 @@ import { PublicMenuService } from './public-menu.service';
     PublicMenuController,
     PublicKioskController,
     PublicBillController,
+    PublicTrackController,
   ],
-  providers: [PublicMenuService, PublicKioskService, PublicBillService],
+  providers: [
+    PublicMenuService,
+    PublicKioskService,
+    PublicBillService,
+    PublicTrackService,
+  ],
 })
 export class PublicModule {}
