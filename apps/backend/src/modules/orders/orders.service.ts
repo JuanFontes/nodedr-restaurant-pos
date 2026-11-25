@@ -575,6 +575,7 @@ export class OrdersService {
     );
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      await this.assertOrderEditableInTx(tx, orderId);
       const newItems = await Promise.all(
         lineInputs.map((line) =>
           tx.orderItem.create({
@@ -959,6 +960,27 @@ export class OrdersService {
     );
   }
 
+  /**
+   * Take the same order row lock checkout uses and re-check that no payment
+   * has landed since the validation read. Item edits, cancellation and merge
+   * all mutate a bill that checkout may be settling concurrently; without
+   * this a PAID total can be overwritten by a stale edit.
+   */
+  private async assertOrderEditableInTx(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+  ): Promise<void> {
+    const locked = await tx.order.updateMany({
+      where: { id: orderId, status: 'OPEN', payments: { none: {} } },
+      data: { updatedAt: new Date() },
+    });
+    if (locked.count === 0) {
+      throw new ConflictException(
+        'This bill was paid or changed by another request — refresh and retry',
+      );
+    }
+  }
+
   // Cancels an unpaid order. Rules (unchanged): only OPEN orders, and not
   // once the kitchen has started cooking. An OPEN order has taken no payment
   // and no stock (stock leaves at checkout), so there is nothing to reverse;
@@ -1042,10 +1064,12 @@ export class OrdersService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertOrderEditableInTx(tx, orderId);
       const flipped = await tx.order.updateMany({
         where: {
           id: orderId,
           status: 'OPEN',
+          payments: { none: {} },
           ...(options.declineIncoming ? { acceptance: 'PENDING' } : {}),
         },
         data: {
@@ -1211,6 +1235,7 @@ export class OrdersService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertOrderEditableInTx(tx, orderId);
       await tx.order.update({
         where: { id: orderId },
         data: {
@@ -1295,6 +1320,7 @@ export class OrdersService {
     if (dto.quantity === item.quantity) return this.getOrder(branchId, orderId);
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertOrderEditableInTx(tx, orderId);
       await this.assertLineNotStarted(tx, itemId);
       const unit = Number(item.lineTotal) / item.quantity;
       await tx.orderItem.update({
@@ -1342,6 +1368,7 @@ export class OrdersService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertOrderEditableInTx(tx, orderId);
       await this.assertLineNotStarted(tx, itemId);
       await tx.orderItem.delete({ where: { id: itemId } });
       // A ticket left with nothing on it is cancelled, not left dangling.
@@ -2659,6 +2686,11 @@ export class OrdersService {
     this.assertNoPayments(source);
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Both orders are locked; always acquire in id order so two concurrent
+      // merges in opposite directions cannot deadlock.
+      for (const id of [targetOrderId, sourceOrderId].sort()) {
+        await this.assertOrderEditableInTx(tx, id);
+      }
       await tx.orderItem.updateMany({
         where: { orderId: sourceOrderId },
         data: { orderId: targetOrderId },
@@ -3158,6 +3190,7 @@ export class OrdersService {
     }));
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertOrderEditableInTx(tx, order.id);
       const moved = await tx.kot.updateMany({
         where: { id: kotId, status: kot.status },
         data: {
