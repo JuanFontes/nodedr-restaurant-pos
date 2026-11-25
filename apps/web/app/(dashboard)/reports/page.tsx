@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
 import { useBranch } from "@/hooks/use-branch";
 import { api, ApiError } from "@/lib/api";
+import { localDate, monthToDate } from "@/lib/report-dates";
 import { cn } from "@/lib/utils";
 import { SchedulesPanel } from "@/components/reports/schedules-panel";
 import { openEntity } from "@/lib/entity-events";
@@ -29,22 +30,12 @@ interface ReportResult {
   rowOrderIds?: string[];
 }
 
-// Local calendar date, not UTC: after midnight in India the UTC date is still
-// yesterday, which made "today" show the wrong day.
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const daysAgo = (n: number) => iso(new Date(Date.now() - n * 86_400_000));
+const daysAgo = (n: number) => localDate(new Date(Date.now() - n * 86_400_000));
 const PRESETS: { label: string; get: () => { from: string; to: string } }[] = [
   { label: "Today", get: () => ({ from: daysAgo(0), to: daysAgo(0) }) },
   { label: "Yesterday", get: () => ({ from: daysAgo(1), to: daysAgo(1) }) },
   { label: "Last 7 days", get: () => ({ from: daysAgo(6), to: daysAgo(0) }) },
-  {
-    label: "This month",
-    get: () => {
-      const n = new Date();
-      return { from: iso(new Date(n.getFullYear(), n.getMonth(), 1)), to: daysAgo(0) };
-    },
-  },
+  { label: "This month", get: monthToDate },
   { label: "Last 30 days", get: () => ({ from: daysAgo(29), to: daysAgo(0) }) },
   { label: "Last 90 days", get: () => ({ from: daysAgo(89), to: daysAgo(0) }) },
   {
