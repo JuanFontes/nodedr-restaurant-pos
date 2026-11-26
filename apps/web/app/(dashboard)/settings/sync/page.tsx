@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { SyncConflictsCard, SyncPeersCard } from "@/components/settings/sync-review";
 import {
+  describeSyncState,
   useDisableSync,
   useEnableSync,
   useSyncNow,
@@ -62,7 +64,8 @@ export default function SyncSettingsPage() {
           <h2 className="text-base font-medium">Server sync</h2>
           <p className="text-sm text-muted-foreground">
             Keep this PC and your central server in step, both ways. Work continues offline and
-            catches up when the connection returns. Newest edit wins.
+            catches up when the connection returns. If two devices change the same record while apart, the newest
+            edit is used and the other version is kept for a manager to review.
           </p>
         </div>
 
@@ -77,15 +80,24 @@ export default function SyncSettingsPage() {
           </p>
         ) : data.enabled ? (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Badge variant={data.lastError ? "destructive" : "secondary"}>
-                {data.lastError ? "Not connected" : "Connected"}
-              </Badge>
-              <span className="text-muted-foreground">{data.serverUrl}</span>
-            </div>
+            {(() => {
+              const st = describeSyncState(data.state, data.pendingChanges, data.openConflicts);
+              return (
+                <div className="flex flex-col gap-1 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={st.tone === "bad" ? "destructive" : st.tone === "warn" ? "outline" : "secondary"}>
+                      {st.label}
+                    </Badge>
+                    <span className="text-muted-foreground">{data.serverUrl}</span>
+                  </div>
+                  <p>{st.text}</p>
+                </div>
+              );
+            })()}
             <p className="text-sm text-muted-foreground">
-              Last synced: {data.lastSyncAt ? new Date(data.lastSyncAt).toLocaleString() : "never"}
-              {" · "}waiting to upload: {data.pendingChanges}
+              Last time the server accepted changes from this PC:{" "}
+              {data.lastSyncAt ? new Date(data.lastSyncAt).toLocaleString() : "never"}
+              {" · "}saved here, not yet on the server: {data.pendingChanges}
             </p>
             {data.lastError && <p className="text-sm text-destructive">{data.lastError}</p>}
             {data.conflicts.length > 0 && (
@@ -190,6 +202,9 @@ export default function SyncSettingsPage() {
           </div>
         )}
       </Card>
+
+      <SyncConflictsCard />
+      {data?.role === "server" && <SyncPeersCard />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any -- raw SQL fixtures */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call -- raw SQL fixtures */
 import { execSync } from 'node:child_process';
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
@@ -59,7 +59,7 @@ run('offline sync: server and local install (e2e)', () => {
 
   beforeAll(async () => {
     process.env.JWT_SECRET ||= randomBytes(32).toString('hex');
-    admin = new PrismaService({ datasources: { db: { url: base } } } as never);
+    admin = new PrismaService({ datasources: { db: { url: base } } });
     await admin.$executeRawUnsafe(`CREATE DATABASE "${dbSrv}"`);
     await admin.$executeRawUnsafe(`CREATE DATABASE "${dbCli}"`);
     for (const db of [dbSrv, dbCli])
@@ -73,10 +73,10 @@ run('offline sync: server and local install (e2e)', () => {
     });
     A = new PrismaService({
       datasources: { db: { url: urlFor(base, dbSrv) } },
-    } as never);
+    });
     B = new PrismaService({
       datasources: { db: { url: urlFor(base, dbCli) } },
-    } as never);
+    });
     await A.$connect();
     await B.$connect();
     server = new SyncService(A);
@@ -413,7 +413,7 @@ run('offline sync: server and local install (e2e)', () => {
 
   it('rejects malformed, oversized, unknown-table and injection-shaped payloads without harm', async () => {
     const dev = 'device-bad-00001';
-    await expect(server.push(dev, 'nope' as never)).rejects.toThrow(/list/);
+    await expect(server.push(dev, 'nope')).rejects.toThrow(/list/);
     await expect(server.push(dev, [{ tbl: 1 }] as never)).rejects.toThrow(
       /Malformed/,
     );
