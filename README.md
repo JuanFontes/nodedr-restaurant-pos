@@ -210,6 +210,10 @@ roles) under **Settings** in the sidebar, photo upload on menu items, and
 a language switcher for English, Spanish, French and Brazilian Portuguese on the guest-facing QR
 ordering page and staff sidebar.
 
+### What's new in 1.46.0
+
+Pause a dish until a return time; safer offline sync (a paging bug that could skip rows is fixed, and edits two devices disagree on are kept for review); backup restores verify checksums. See [CHANGELOG-1.46.0](docs/CHANGELOG-1.46.0.md) and [OFFLINE-ARCHITECTURE](docs/OFFLINE-ARCHITECTURE.md).
+
 ### What's new in 1.45.0
 
 Split a bill by guest, purchase returns with supplier credit, a price-variance check, a better shopping list, a customer delivery tracking link, a balanced accounting journal export, expense approvals and a petty cash box, and reports that reach back five years with a read-only bill view. See [CHANGELOG-1.45.0](docs/CHANGELOG-1.45.0.md).
