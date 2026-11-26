@@ -110,7 +110,9 @@ CI is [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs on every
 pull request and on pushes to `master`: dependency audit, shared-types build,
 Prisma migrate + seed, typecheck, lint (never autofixes), backend unit and
 e2e tests, a backend build with a runtime-dependency check, web unit tests and
-build, and the mobile/updater tests. A PR must be green there. Run `lint`,
+build, and the mobile/updater tests. The backend e2e job runs in parallel with
+the backend and web checks. Its suites run sequentially against one seeded
+PostgreSQL instance because they share restaurant data. A PR must be green there. Run `lint`,
 `typecheck` and `build` locally first to save a round trip.
 
 ## Project structure

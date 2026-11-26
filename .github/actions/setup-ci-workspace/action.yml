@@ -1,0 +1,19 @@
+name: Set up the CI workspace
+description: Install locked dependencies, build shared types and generate the backend Prisma client.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with: { node-version: 22, cache: pnpm }
+    - shell: bash
+      run: pnpm install --frozen-lockfile
+      env:
+        PRISMA_SKIP_POSTINSTALL_GENERATE: '1'
+    - name: Build shared types
+      shell: bash
+      run: pnpm --filter ./packages/types build
+    - name: Generate Prisma client
+      working-directory: apps/backend
+      shell: bash
+      run: pnpm exec prisma generate
