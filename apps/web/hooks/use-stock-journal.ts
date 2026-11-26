@@ -285,7 +285,7 @@ export interface ExpiringRow { batchId: string; ingredientId: string; name: stri
 export const useExpiring = (branchId: string | null, days = 7) =>
   useQuery({ queryKey: ["expiring", branchId, days], queryFn: () => api.get<ExpiringRow[]>(`/inventory/journal/expiring?${qs(branchId, { days: String(days) })}`), enabled: !!branchId });
 
-export interface ReorderRow { id: string; name: string; unit: IngredientUnit; category: string | null; storageLocation: string | null; inStock: string; minimum: string; par: string; toBuy: string }
+export interface ReorderRow { id: string; name: string; unit: IngredientUnit; category: string | null; storageLocation: string | null; inStock: string; minimum: string; par: string; toBuy: string; onOrder: string; avgDailyUse: string; daysLeft: number | null; supplier: { id: string; name: string } | null; lastUnitCost: string | null; estCost: string | null }
 export const useReorder = (branchId: string | null) =>
   useQuery({ queryKey: ["reorder", branchId], queryFn: () => api.get<ReorderRow[]>(`/inventory/journal/reorder?${qs(branchId)}`), enabled: !!branchId });
 

@@ -13,6 +13,8 @@ import { CancelOrderDialog, useCanCancelOrders } from "@/components/orders/cance
 import { DeliveryWhere } from "@/components/orders/delivery-where";
 import { EditBillDialog } from "@/components/orders/edit-bill-dialog";
 import { DeleteOrdersDialog } from "@/components/orders/delete-orders-dialog";
+import { SplitBillDialog } from "@/components/orders/split-bill-dialog";
+import { openEntity } from "@/lib/entity-events";
 import { ReasonDialog } from "@/components/orders/reason-dialog";
 import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
 import { useAcceptOrder, useOrder, useRejectOrder } from "@/hooks/use-orders";
@@ -49,6 +51,7 @@ export function OrderDetailDialog({
   const [declineOpen, setDeclineOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
   // Same rule as the Orders page: permission AND an admin role; the server re-checks the password.
   const canDeleteFinished =
     hasPermission(me?.user, "orders.delete") && ["OWNER", "ADMINISTRATOR"].includes(me?.user.roleName ?? "");
@@ -221,6 +224,11 @@ export function OrderDetailDialog({
                     <Pencil className="mr-1.5 h-4 w-4" /> Edit bill
                   </Button>
                 )}
+                {canEditRole && order.type !== "DELIVERY" && order.channel !== "ONLINE" && order.items.length > 0 && (
+                  <Button variant="outline" className="flex-1" onClick={() => setSplitOpen(true)}>
+                    Split bill
+                  </Button>
+                )}
                 {canCancelRole ? (
                   <Button variant="destructive" className="flex-1" onClick={() => setCancelOpen(true)}>
                     <X className="mr-1.5 h-4 w-4" /> Cancel order
@@ -242,6 +250,19 @@ export function OrderDetailDialog({
                   onOpenChange={setCancelOpen}
                   />
                 <EditBillDialog branchId={branchId} orderId={order.id} open={editOpen} onOpenChange={setEditOpen} />
+                <SplitBillDialog
+                  branchId={branchId}
+                  orderId={order.id}
+                  items={order.items}
+                  open={splitOpen}
+                  onOpenChange={setSplitOpen}
+                  onSplit={(newId) => {
+                    setSplitOpen(false);
+                    onOpenChange(false);
+                    // Open the new bill so it can be paid straight away.
+                    openEntity("Order", newId);
+                  }}
+                />
                 <DeleteOrdersDialog
                   branchId={branchId}
                   orderIds={[order.id]}

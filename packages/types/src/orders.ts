@@ -230,6 +230,23 @@ export const mergeOrdersSchema = z.object({
 });
 export type MergeOrdersDto = z.infer<typeof mergeOrdersSchema>;
 
+// Split one open bill into a new bill for some of its lines (one guest's share). A line can be split by
+// quantity: 2 of a 3-quantity line move and 1 stays.
+export const splitOrderSchema = z.object({
+  lines: z
+    .array(
+      z.object({
+        orderItemId: z.string().min(1),
+        quantity: z.coerce.number().int().positive().max(1000),
+      }),
+    )
+    .min(1)
+    .max(100),
+  // One per attempt: a double click or retry returns the bill the first call made instead of splitting again.
+  requestId: z.string().min(8).max(64),
+});
+export type SplitOrderDto = z.infer<typeof splitOrderSchema>;
+
 // Edit an open bill: move it to another table and/or fix header details.
 export const updateOrderSchema = z
   .object({

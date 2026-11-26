@@ -29,6 +29,16 @@ const ORDER_INCLUDE = {
 
 @Injectable()
 export class DeliveryService {
+  /** 404 unless this is a delivery order of this branch (so a link can only be made for one). */
+  async assertDeliveryOrder(branchId: string, orderId: string) {
+    const o = await this.prisma.order.findFirst({
+      where: { id: orderId, branchId, type: 'DELIVERY' },
+      select: { id: true, status: true },
+    });
+    if (!o) throw new NotFoundException('Delivery not found');
+    return o;
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
