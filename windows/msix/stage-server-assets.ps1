@@ -262,7 +262,7 @@ Copy-Item -Path (Join-Path $RepoRoot 'apps\backend\dist') -Destination (Join-Pat
 # README.md, .env.example, eslint config, tsconfig, etc.) — legitimate
 # for a real deploy, but bloat/leak risk for a shipped MSIX and would trip
 # validate-msix.ps1's dev-artifact checks. Keep only what's needed to run.
-$keepTopLevel = @('node_modules', 'dist', 'prisma', 'package.json')
+$keepTopLevel = @('node_modules', 'dist', 'prisma', 'prisma.config.ts', 'package.json')
 Get-ChildItem -Path $backendDeployTemp | Where-Object { $keepTopLevel -notcontains $_.Name } |
     Remove-Item -Recurse -Force
 
