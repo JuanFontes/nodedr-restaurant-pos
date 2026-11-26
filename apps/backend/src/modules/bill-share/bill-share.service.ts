@@ -28,6 +28,10 @@ interface BillShareClaims {
   adj: BillPreviewDto;
 }
 
+/** A delivery tracking link lives for the day: long enough for a late order, short enough to expire on its own. */
+export const TRACK_TTL_SECONDS = 12 * 60 * 60;
+const TRACK_INVALID = 'This tracking link has expired or is no longer valid';
+
 const INVALID = 'This bill link has expired or is no longer valid';
 
 /**
@@ -51,6 +55,26 @@ export class BillShareService {
       adj,
     };
     return this.jwt.sign(claims, { expiresIn: ttlSeconds });
+  }
+
+  /** A link for the customer to watch one delivery. Same derived key, but a different `purpose`, so it is never a bill link. */
+  issueTrackToken(orderId: string, branchId: string): string {
+    return this.jwt.sign(
+      { purpose: 'delivery-track', orderId, branchId },
+      { expiresIn: TRACK_TTL_SECONDS },
+    );
+  }
+
+  verifyTrackToken(token: string): { orderId: string; branchId: string } {
+    let c: { purpose?: string; orderId?: string; branchId?: string };
+    try {
+      c = this.jwt.verify(token);
+    } catch {
+      throw new UnauthorizedException(TRACK_INVALID);
+    }
+    if (c.purpose !== 'delivery-track' || !c.orderId || !c.branchId)
+      throw new UnauthorizedException(TRACK_INVALID);
+    return { orderId: c.orderId, branchId: c.branchId };
   }
 
   verifyToken(token: string): {

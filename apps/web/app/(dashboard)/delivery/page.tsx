@@ -34,7 +34,8 @@ const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : "Something w
 
 function DeliveryCard({ order, branchId }: { order: DeliveryOrder; branchId: string | null }) {
   const { data: drivers } = useDrivers(branchId);
-  const { assign, setStatus } = useDeliveryActions(branchId);
+  const { assign, setStatus, trackLink } = useDeliveryActions(branchId);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
   const status = order.deliveryStatus ?? "UNASSIGNED";
   const [pending, setPending] = useState<string | null>(null); // rider chosen for a reassignment, waiting for a reason
   const [reason, setReason] = useState("");
@@ -46,6 +47,23 @@ function DeliveryCard({ order, branchId }: { order: DeliveryOrder; branchId: str
       { orderId: order.id, driverId, reason: why },
       { onSuccess: () => { setPending(null); setReason(""); }, onError: (err) => toast.error(errMsg(err)) },
     );
+  // A link the customer opens to watch their delivery. Shared with the phone's share sheet where there is one, else copied.
+  const shareLink = () =>
+    trackLink.mutate(order.id, {
+      onSuccess: async (r) => {
+        const url = `${window.location.origin}/track/${r.token}`;
+        try {
+          if (navigator.share) await navigator.share({ title: `Order ${order.orderNumber}`, url });
+          else {
+            await navigator.clipboard.writeText(url);
+            setLinkNote("Link copied. Send it to the customer.");
+          }
+        } catch {
+          setLinkNote(url); // clipboard blocked: show it so it can be copied by hand
+        }
+      },
+      onError: (e) => setLinkNote(errMsg(e)),
+    });
   const move = (next: DeliveryStatus) =>
     setStatus.mutate({ orderId: order.id, status: next }, { onError: (e) => toast.error(errMsg(e)) });
 
@@ -89,6 +107,7 @@ function DeliveryCard({ order, branchId }: { order: DeliveryOrder; branchId: str
         {order.scheduledFor && ` · scheduled ${time(order.scheduledFor)}`}
       </p>
       {order.notes && <p className="text-xs italic text-muted-foreground">{order.notes}</p>}
+      {linkNote && <p className="break-all text-xs text-muted-foreground" role="status">{linkNote}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {(status === "UNASSIGNED" || status === "ASSIGNED") && (
           <select
@@ -115,6 +134,9 @@ function DeliveryCard({ order, branchId }: { order: DeliveryOrder; branchId: str
           <span className="text-xs font-medium text-foreground">Rider: {order.driver.name}</span>
         )}
         {status === "UNASSIGNED" && <span className="text-xs font-medium text-muted-foreground">Unassigned</span>}
+        {status !== "DELIVERED" && status !== "FAILED" && (
+          <Button size="sm" variant="outline" disabled={trackLink.isPending} onClick={shareLink}>Customer link</Button>
+        )}
         {status === "ASSIGNED" && <Button size="sm" onClick={() => move("PICKED_UP")}>Picked up</Button>}
         {status === "PICKED_UP" && <Button size="sm" onClick={() => move("DELIVERED")}>Delivered</Button>}
         {status !== "DELIVERED" && status !== "FAILED" && (

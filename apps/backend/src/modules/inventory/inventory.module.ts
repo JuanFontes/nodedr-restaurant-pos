@@ -10,6 +10,9 @@ import { PurchaseRequestsService } from './purchase-requests.service';
 import { StockService } from './stock.service';
 import { SupplierInvoicesService } from './supplier-invoices.service';
 import { SupplierQuotationsService } from './supplier-quotations.service';
+import { ProcurementController } from './procurement.controller';
+import { PriceVarianceService } from './price-variance.service';
+import { PurchaseReturnsService } from './purchase-returns.service';
 import { TransfersController } from './transfers.controller';
 import { TransfersService } from './transfers.service';
 import { ProductionService } from './production.service';
@@ -30,6 +33,7 @@ import { WasteService } from './waste.service';
     InventoryController,
     TransfersController,
     StockJournalController,
+    ProcurementController,
   ],
   providers: [
     InventoryService,
@@ -50,6 +54,8 @@ import { WasteService } from './waste.service';
     PurchaseRequestsService,
     SupplierQuotationsService,
     SupplierInvoicesService,
+    PurchaseReturnsService,
+    PriceVarianceService,
     BranchAccessService,
   ],
   exports: [InventoryService],

@@ -23,7 +23,7 @@ services:
       - nodedr-restaurant-pos
 
   backend:
-    image: ghcr.io/raktim94/nodedr-restaurant-pos-backend:1.44.0
+    image: ghcr.io/raktim94/nodedr-restaurant-pos-backend:1.46.0
     container_name: nodedr-restaurant-pos-backend
     hostname: nodedr-restaurant-pos-backend
     restart: unless-stopped
@@ -85,7 +85,7 @@ services:
             en_US: Auto-generated login security key. Created automatically on first launch — leave it alone.
 
   web:
-    image: ghcr.io/raktim94/nodedr-restaurant-pos-web:1.44.0
+    image: ghcr.io/raktim94/nodedr-restaurant-pos-web:1.46.0
     container_name: nodedr-restaurant-pos-web
     hostname: nodedr-restaurant-pos-web
     restart: unless-stopped
@@ -184,9 +184,13 @@ x-casaos:
   scheme: http
   port_map: "1995"
   version: "1.39.2"
-  update_at: "2026-11-25"
+  update_at: "2026-11-27"
   release_notes:
     en_US: |-
+      1.46.0: Pause a dish until a return time. Server sync fixed: a large backlog could skip rows (update both ends). Disagreeing edits between devices are kept for a manager to review, and the sync page says plainly what is only saved on this PC. Restores check backup checksums. Three additive database migrations.
+
+      1.45.0: Split a bill by guest, purchase returns with supplier credit, a price-variance check and a smarter shopping list, expense approvals and a petty cash box, a balanced accounting journal export, a customer delivery tracking link, and reports that reach back five years with a read-only bill view. Two additive database migrations.
+
       1.44.0: Reports rebuilt. Daily sales now has a totals line and opens every bill of a day; a new All bills (day book) report lists each invoice with time, payment, discount, tax, refunds and who billed it, and exports to Excel, PDF or CSV. Order history can be searched by any date range, and an admin can delete a finished bill from its detail window (password asked, a record stays in the Audit Log). The Audit Log can be exported and is now permanent: nobody, admins included, can edit or delete entries. One additive database migration.
 
       1.42.2: fixes a rare failure in 1.42.1 where several payment attempts for the same bill at the same moment could all fail with an error (nothing was charged); stock journal actions are also safe under the same load. Update straight to this version. No database migration.

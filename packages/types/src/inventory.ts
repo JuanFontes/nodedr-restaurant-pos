@@ -234,3 +234,26 @@ export const supplierPaymentSchema = z.object({
   reference: z.string().optional(),
 });
 export type SupplierPaymentDto = z.infer<typeof supplierPaymentSchema>;
+
+const threeDecimals = (n: number) => Math.abs(n * 1000 - Math.round(n * 1000)) < 1e-6;
+
+// Goods sent back to a supplier against one goods receipt.
+export const purchaseReturnSchema = z.object({
+  goodsReceiptId: z.string().min(1),
+  reason: z.string().trim().min(1).max(200),
+  notes: z.string().trim().max(500).optional(),
+  items: z
+    .array(
+      z.object({
+        goodsReceiptItemId: z.string().min(1),
+        quantity: z.coerce.number().positive().max(1_000_000).refine(threeDecimals, "At most 3 decimals"),
+      }),
+    )
+    .min(1)
+    .max(100),
+  // Which unpaid invoice the credit goes against. Defaults to the invoice recorded for that receipt.
+  invoiceId: z.string().min(1).optional(),
+  // One per attempt: a retry or double click returns the first return instead of taking stock out twice.
+  clientRequestId: z.string().min(8).max(64).optional(),
+});
+export type PurchaseReturnDto = z.infer<typeof purchaseReturnSchema>;

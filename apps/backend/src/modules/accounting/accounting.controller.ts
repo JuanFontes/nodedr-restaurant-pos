@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,8 +7,10 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UsePipes,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import {
   cashClosingSchema,
@@ -23,6 +26,7 @@ import { AuditAction } from '../../audit/audit-action';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { BranchAccessService } from '../../common/services/branch-access.service';
+import { EXPORT_TYPES, renderReport } from '../reports/export';
 import { AccountingService } from './accounting.service';
 
 @ApiTags('accounting')
@@ -114,6 +118,32 @@ export class AccountingController {
     await this.access(u, branchId);
     const { note } = expenseDecisionSchema.parse(body ?? {});
     return this.accounting.decideExpense(branchId, id, u.id, false, note);
+  }
+
+  // Journal for an accountant: CSV or Excel, balanced vouchers. Needs the export permission as well.
+  @Auth('accounting.manage', 'data.export')
+  @AuditAction('accounting.exported', 'Journal')
+  @Get('export/journal')
+  async exportJournal(
+    @CurrentUser() u: SessionUser,
+    @Query('branchId') branchId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('format') format = 'csv',
+    @Res() res: Response,
+  ) {
+    if (format !== 'csv' && format !== 'xlsx')
+      throw new BadRequestException('format must be csv or xlsx');
+    await this.access(u, branchId);
+    const j = await this.accounting.journalExport(branchId, from, to);
+    const body = await renderReport(j, format, `${from} to ${to}`);
+    const t = EXPORT_TYPES[format];
+    res.setHeader('Content-Type', t.mime);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="journal_${from}_${to}.${t.ext}"`,
+    );
+    res.send(body);
   }
 
   @Auth('accounting.manage')

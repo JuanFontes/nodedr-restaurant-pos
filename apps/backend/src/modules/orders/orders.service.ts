@@ -46,7 +46,7 @@ import {
   settlePayments,
   type Bill,
 } from './settlement';
-import type { TaxMode } from '@nodedr-restaurant/types';
+import type { SplitOrderDto, TaxMode } from '@nodedr-restaurant/types';
 import {
   adjustOnlinePrice,
   type OnlinePriceAdjust,
@@ -2768,6 +2768,163 @@ export class OrdersService {
       id: sourceOrderId,
     });
     return this.getOrder(branchId, updated.id);
+  }
+
+  /**
+   * Split one open bill into a second open bill holding some of its lines, so each guest pays their own
+   * (each is then checked out as usual, with any payment methods). Whole lines move, or part of a line's quantity:
+   * the moved share of the line total is rounded to cents and the remainder keeps the exact complement, so the
+   * two bills always add up to the original. Nothing may be paid on the bill yet, and at least one line stays.
+   * A retried requestId returns the bill the first call created.
+   */
+  async splitOrder(
+    branchId: string,
+    orderId: string,
+    userId: string,
+    dto: SplitOrderDto,
+  ) {
+    const replay = await this.prisma.order.findFirst({
+      where: { branchId, clientRequestId: `split:${dto.requestId}` },
+      select: { id: true },
+    });
+    if (replay) return this.getOrder(branchId, replay.id);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      // Two splits of one bill must see each other's result.
+      await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} AND "branchId" = ${branchId} FOR UPDATE`;
+      // A copy of this same request that was waiting on the lock must not split a second time.
+      const done = await tx.order.findFirst({
+        where: { branchId, clientRequestId: `split:${dto.requestId}` },
+      });
+      if (done) return done;
+      const order = await tx.order.findFirst({
+        where: { id: orderId, branchId },
+        include: {
+          items: { include: { modifiers: true } },
+          payments: { select: { id: true } },
+        },
+      });
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== 'OPEN')
+        throw new BadRequestException('Only an open bill can be split');
+      if (order.type === 'DELIVERY' || order.channel === 'ONLINE')
+        throw new BadRequestException(
+          'Delivery and online orders cannot be split',
+        );
+      this.assertNoPayments(order);
+
+      const live = order.items.filter((i) => i.status !== 'CANCELLED');
+      const byId = new Map(live.map((i) => [i.id, i]));
+      const want = new Map<string, number>();
+      for (const l of dto.lines)
+        want.set(l.orderItemId, (want.get(l.orderItemId) ?? 0) + l.quantity);
+      for (const [id, q] of want) {
+        const item = byId.get(id);
+        if (!item) throw new BadRequestException('A line is not on this bill');
+        if (q > item.quantity)
+          throw new BadRequestException(
+            `Only ${item.quantity} of ${item.nameSnapshot} on this bill`,
+          );
+      }
+      const staying = live.reduce(
+        (n, i) => n + (i.quantity - (want.get(i.id) ?? 0)),
+        0,
+      );
+      if (staying === 0)
+        throw new BadRequestException(
+          'Leave at least one item on the original bill',
+        );
+
+      const orderNumber = await this.nextOrderNumber(branchId, tx);
+      const child = await tx.order.create({
+        data: {
+          branchId,
+          orderNumber,
+          type: order.type,
+          channel: order.channel,
+          acceptance: order.acceptance,
+          tableId: order.tableId,
+          guestCount: order.guestCount,
+          customerId: order.customerId,
+          guestName: order.guestName,
+          notes: `Split from ${order.orderNumber}`,
+          clientRequestId: `split:${dto.requestId}`,
+          createdById: userId,
+          subtotal: 0,
+          taxAmount: 0,
+          discountAmount: 0,
+          totalAmount: 0,
+        },
+      });
+
+      for (const [id, q] of want) {
+        const item = byId.get(id)!;
+        if (q === item.quantity) {
+          await tx.orderItem.update({
+            where: { id },
+            data: { orderId: child.id },
+          });
+          continue;
+        }
+        // Part of the line: the moved share is rounded to cents, the original keeps the exact remainder.
+        const total = new Prisma.Decimal(item.lineTotal);
+        const moved = total.mul(q).div(item.quantity).toDecimalPlaces(2);
+        await tx.orderItem.update({
+          where: { id },
+          data: { quantity: item.quantity - q, lineTotal: total.minus(moved) },
+        });
+        await tx.orderItem.create({
+          data: {
+            orderId: child.id,
+            menuItemId: item.menuItemId,
+            nameSnapshot: item.nameSnapshot,
+            unitPriceSnapshot: item.unitPriceSnapshot,
+            taxRateSnapshot: item.taxRateSnapshot,
+            quantity: q,
+            lineTotal: moved,
+            kitchenNote: item.kitchenNote,
+            status: item.status,
+            portion: item.portion,
+            portionRatio: item.portionRatio,
+            modifiers: {
+              create: item.modifiers.map((m) => ({
+                modifierId: m.modifierId,
+                nameSnapshot: m.nameSnapshot,
+                priceAdjSnapshot: m.priceAdjSnapshot,
+              })),
+            },
+          },
+        });
+      }
+
+      for (const id of [orderId, child.id]) {
+        const rows = await tx.orderItem.findMany({
+          where: { orderId: id, status: { not: 'CANCELLED' } },
+        });
+        const totals = computeOrderTotals(
+          rows.map((r) =>
+            priceLine({
+              quantity: r.quantity,
+              unitPriceInclusive: Number(r.lineTotal) / r.quantity,
+              taxRatePercent: Number(r.taxRateSnapshot),
+            }),
+          ),
+        );
+        await tx.order.update({
+          where: { id },
+          data: {
+            subtotal: totals.subtotal,
+            taxAmount: totals.taxAmount,
+            totalAmount: totals.subtotal,
+          },
+        });
+      }
+      return child;
+    });
+
+    this.realtime.emitToBranch(branchId, 'order.updated', { id: orderId });
+    this.realtime.emitToBranch(branchId, 'order.updated', { id: created.id });
+    return this.getOrder(branchId, created.id);
   }
 
   private buildLine(

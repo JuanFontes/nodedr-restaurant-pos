@@ -11,13 +11,17 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { BranchTimeService } from './../src/common/services/branch-time.service';
+import { localDate } from './../src/common/time';
 import { PrismaService } from './../src/prisma/prisma.service';
 
 const run = process.env.FINANCE_E2E ? describe : describe.skip;
 const BRANCH = 'demo-branch';
 const q = `?branchId=${BRANCH}`;
 const tag = randomUUID().slice(0, 6);
-const today = new Date().toISOString().slice(0, 10);
+// The restaurant's own calendar day (reports and expenses use its time zone), not the UTC day: between 18:30 and
+// midnight UTC the two differ for the seeded Asia/Kolkata restaurant.
+let today = '';
 
 run('Expense approvals and petty cash (e2e)', () => {
   let app: INestApplication<App>;
@@ -74,6 +78,10 @@ run('Expense approvals and petty cash (e2e)', () => {
     app.setGlobalPrefix('api', { exclude: [] });
     await app.init();
     prisma = app.get(PrismaService);
+    today = localDate(
+      new Date(),
+      await app.get(BranchTimeService).tzForBranch(BRANCH),
+    );
     owner = await login('owner@demo.local');
     const roles = (await owner.get('/api/v1/users/roles').expect(200)).body as {
       id: string;

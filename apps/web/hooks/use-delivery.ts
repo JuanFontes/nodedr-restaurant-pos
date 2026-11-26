@@ -77,6 +77,10 @@ export function useDeliveryActions(branchId: string | null) {
         qc.invalidateQueries({ queryKey: ["delivery-assignments", v.orderId] });
       },
     }),
+    trackLink: useMutation({
+      mutationFn: (orderId: string) =>
+        api.post<{ token: string; expiresInSeconds: number }>(`/delivery/orders/${orderId}/track-link?branchId=${branchId}`),
+    }),
     setStatus: useMutation({
       mutationFn: (v: { orderId: string; status: DeliveryStatus }) =>
         api.patch(`/delivery/${v.orderId}/status?branchId=${branchId}`, { status: v.status }),
