@@ -72,10 +72,8 @@ export class CustomersService {
     });
   }
 
-  // Hard delete — Order.customerId and GiftCard.customerId are both
-  // optional with onDelete: SetNull (schema.prisma), so this never orphans
-  // or blocks on past orders/gift cards; it just detaches them from the
-  // profile being removed.
+  // Orders, gift cards and points ledger entries retain their history when
+  // the database detaches them from the deleted profile.
   async remove(branchId: string, id: string) {
     await this.assertInBranch(branchId, id);
     await this.prisma.customer.delete({ where: { id } });

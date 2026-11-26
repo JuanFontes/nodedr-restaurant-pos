@@ -46,6 +46,10 @@ const CONFIG_ID = 'singleton';
 const BACKUP_CTX = 'backup-config:s3';
 const RENEW_EVERY_MS = 60_000;
 const LEASE_MS = 5 * RENEW_EVERY_MS;
+const HISTORY_MIGRATIONS = [
+  '20261127020000_financial_history_retention',
+  '20261127020100_gateway_order_history',
+];
 
 async function sha256File(file: string): Promise<string> {
   const hash = createHash('sha256');
@@ -964,6 +968,28 @@ export class BackupService {
         process.env.DATABASE_URL!,
         dbDumpPath,
       ]);
+      // An older dump restores its own constraints. pg_restore --clean leaves
+      // newer tables outside the archive in place, so replaying unrelated
+      // CREATE TABLE migrations here can fail after the restore has committed.
+      // Reinstall only the missing retention rules. Both scripts can run
+      // again during the normal startup migration.
+      const applied = await this.prisma.$queryRaw<{ migration_name: string }[]>`
+        SELECT migration_name FROM _prisma_migrations
+        WHERE migration_name IN (${Prisma.join(HISTORY_MIGRATIONS)})
+          AND finished_at IS NOT NULL AND rolled_back_at IS NULL
+      `;
+      for (const name of HISTORY_MIGRATIONS) {
+        if (applied.some((row) => row.migration_name === name)) continue;
+        await execFileAsync(process.execPath, [
+          require.resolve('prisma/build/index.js'),
+          'db',
+          'execute',
+          '--schema',
+          'prisma/schema.prisma',
+          '--file',
+          path.join('prisma', 'migrations', name, 'migration.sql'),
+        ]);
+      }
       if (!restoresSchedule) {
         await this.prisma.backupScheduleState.deleteMany({
           where: { id: CONFIG_ID },

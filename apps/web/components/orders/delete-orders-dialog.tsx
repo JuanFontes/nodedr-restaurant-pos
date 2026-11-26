@@ -73,8 +73,9 @@ export function DeleteOrdersDialog({
               Delete {count} transaction{count === 1 ? "" : "s"}?
             </DialogTitle>
             <DialogDescription>
-              They are removed from sales history, reports and the dashboard for good. A record of
-              each stays in the Audit Log. Enter your admin password to confirm.
+              You can permanently delete finished bills that have no payment history, refund history
+              or VERI*FACTU invoice. Every selected bill must qualify. The Audit Log records each
+              deletion. Enter your admin password to confirm.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">

@@ -20,9 +20,10 @@ function tx(over: {
   redeem?: number;
   balance?: number;
   prior?: { reason: string; delta: number; customerId?: string }[];
-  earnCustomer?: string;
-  redeemCustomer?: string;
+  earnCustomer?: string | null;
+  redeemCustomer?: string | null;
 }) {
+  const { earnCustomer = 'c1', redeemCustomer = 'c1' } = over;
   const updates: any[] = [];
   const ledger: any[] = [];
   const db: any = {
@@ -34,10 +35,10 @@ function tx(over: {
       findUnique: jest.fn(async ({ where }: any) => {
         if (where.idempotencyKey === 'earn:o1')
           return over.earn
-            ? { delta: over.earn, customerId: over.earnCustomer ?? 'c1' }
+            ? { delta: over.earn, customerId: earnCustomer }
             : null;
         return over.redeem
-          ? { delta: -over.redeem, customerId: over.redeemCustomer ?? 'c1' }
+          ? { delta: -over.redeem, customerId: redeemCustomer }
           : null;
       }),
       findMany: jest.fn(async () => over.prior ?? []),
@@ -176,5 +177,63 @@ describe('refund loyalty reversal', () => {
     await run(t, { pointsRedeemed: 0 });
     expect(t.updates).toHaveLength(0);
     expect(t.ledger).toHaveLength(0);
+  });
+
+  it('leaves a replacement customer untouched when both original ledger entries have lost their owner', async () => {
+    const t = tx({
+      earn: 100,
+      redeem: 40,
+      earnCustomer: null,
+      redeemCustomer: null,
+      balance: 200,
+    });
+    await run(t, { customerId: 'replacement' });
+    expect(t.updates).toEqual([]);
+    expect(t.ledger).toEqual([]);
+  });
+
+  it.each([
+    [null, 'redeemer', 'REFUND_REDEEM_RESTORATION', 40],
+    ['earner', null, 'REFUND_EARN_REVERSAL', -100],
+  ] as const)(
+    'processes only the surviving owner when earn belongs to %s and redeem belongs to %s',
+    async (earnCustomer, redeemCustomer, reason, delta) => {
+      const t = tx({
+        earn: 100,
+        redeem: 40,
+        earnCustomer,
+        redeemCustomer,
+        balance: 200,
+      });
+      await run(t, { customerId: 'replacement' });
+      const customerId = earnCustomer ?? redeemCustomer;
+      expect(t.updates).toEqual([
+        {
+          where: { id: customerId },
+          data: {
+            loyaltyPoints: delta > 0 ? { increment: 40 } : { decrement: 100 },
+          },
+        },
+      ]);
+      expect(t.ledger).toHaveLength(1);
+      expect(t.ledger[0].data).toEqual([
+        expect.objectContaining({ customerId, reason, delta }),
+      ]);
+    },
+  );
+
+  it('restores legacy redeemed points to the order customer when no redemption entry exists', async () => {
+    const t = tx({});
+    await run(t);
+    expect(t.updates).toEqual([
+      { where: { id: 'c1' }, data: { loyaltyPoints: { increment: 40 } } },
+    ]);
+    expect(t.ledger[0].data).toEqual([
+      expect.objectContaining({
+        customerId: 'c1',
+        reason: 'REFUND_REDEEM_RESTORATION',
+        delta: 40,
+      }),
+    ]);
   });
 });

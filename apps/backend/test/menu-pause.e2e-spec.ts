@@ -88,6 +88,7 @@ run('Temporary menu pauses', () => {
   afterAll(async () => {
     try {
       if (db) {
+        await db.payment.deleteMany({ where: { order: { branchId } } });
         await db.order.deleteMany({ where: { branchId } });
         await db.branch.deleteMany({ where: { id: branchId } });
       }
