@@ -325,6 +325,10 @@ found (also: an order this key did not place), `400` invalid request body
 `413` body over 100 KB, `422` idempotency key reused with a different request, `429` rate limited (see `Retry-After`). Error bodies are
 `{ "message": "...", "error": "...", "statusCode": ... }`.
 
+For an oversized JSON request, the response contains `statusCode: 413`,
+`error: "Payload Too Large"` and `message: "request entity too large"`.
+Reduce the payload before retrying. The configured `BODY_LIMIT` applies here.
+
 ### Rate limits
 
 Each integration key is limited to **30 write requests/minute** (placing
