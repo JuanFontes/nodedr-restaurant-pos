@@ -7,7 +7,7 @@ let dbp;
 function open() {
   if (!dbp) {
     dbp = new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB, 5);
+      const req = indexedDB.open(DB, 6);
       req.onupgradeneeded = () => {
         // Only add what is missing: a phone upgrading from v1 keeps its sales and settings untouched.
         const db = req.result;
@@ -23,6 +23,7 @@ function open() {
         if (!db.objectStoreNames.contains('expenses')) db.createObjectStore('expenses', { keyPath: 'id' }); // money paid out
         if (!db.objectStoreNames.contains('reservations')) db.createObjectStore('reservations', { keyPath: 'id' }); // table bookings
         if (!db.objectStoreNames.contains('events')) db.createObjectStore('events', { keyPath: 'id' }); // kitchen events waiting for the server
+        if (!db.objectStoreNames.contains('peerSales')) db.createObjectStore('peerSales', { keyPath: 'id' }); // sales handed over by a nearby phone, held until uploaded
         if (!db.objectStoreNames.contains('shifts')) db.createObjectStore('shifts', { keyPath: 'day' }); // closed days (cash counted)
       };
       req.onsuccess = () => resolve(req.result);
@@ -133,6 +134,23 @@ export const refunds = plain('refunds');
 export const expenses = plain('expenses');
 export const shifts = plain('shifts');
 export const reservations = plain('reservations');
+// Sales another phone handed over through Nearby. Kept apart from `sales` on purpose: they never enter this phone's
+// own sales list, till, numbering or reports. { id, sale, from:{deviceId,name}, receivedAt, status:'held'|'synced'|'refused', reason? }
+export const peerSales = plain('peerSales');
+
+/** Which nearby phones have confirmed (on their disk) a copy of which of our sales: { saleId: [deviceId] }. */
+export const nearbyAcks = {
+  get: async () => (await kv.get('nearbyAcks')) || {},
+  add: (saleId, deviceId) =>
+    kv.update('nearbyAcks', (cur) => {
+      const m = { ...(cur || {}) };
+      const list = new Set(m[saleId] || []);
+      if (list.has(deviceId)) return cur;
+      list.add(deviceId);
+      m[saleId] = [...list];
+      return m;
+    }),
+};
 
 // `events` is the outbox of unsent money/kitchen records (expenses, refunds, collections, till closes). A backup
 // without it restores local rows whose server-side record was never sent.

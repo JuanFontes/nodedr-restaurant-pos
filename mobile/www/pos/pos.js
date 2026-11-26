@@ -18,6 +18,8 @@ import { dismissEvent, queueEvent, retryEvent, shiftState } from './lib/journal.
 import { NO_RECIPES_FOR_PRODUCT, capsFrom, createInventoryItem, loadCosting, createMenuItem, deleteDraft, emptyForm, fillFromRecipe, formFromDraft, formProblem, friendlyError, loadRecipes, loadStockItems, postDraft, postNew, recipeProblem, saveDraft, saveRecipe, shortRows, voucherBody } from './lib/stockjournal.js';
 import { fetchMenuPauses, login, pullSnapshot, syncNow, retrySale } from './lib/sync.js';
 import { checkAll } from './lib/net.js';
+import { createSession } from './lib/nearby.js';
+import { nearbyAcks, peerSales } from './lib/store.js';
 import { addOnsText, addSection, addTable, addTables, removeSection, removeTable, changeLocalPassword, checkLocalPassword, createLocalAccount, eraseLocalAccount, hasLocalAccount, remapSalesToServer, removeDish, setSoldOut, upsertDish, useStock } from './lib/local.js';
 
 // Guards shared across sheet instances: closing a sheet must not let a second
@@ -2573,6 +2575,97 @@ async function viewSyncLocal() {
   $('lock').onclick = async () => (await flushPersist(), (S.unlocked = false), (S.ownerUnlock = false), (S.who = null), (S.cart = new Map()), (S.orderId = null), (S.restored = false), render());
 }
 
+
+// ---- Nearby phones (phone-to-phone, no WiFi or internet) -------------------------------------------------------
+// See lib/nearby.js for what travels and why. Android app only; needs Google Play services.
+let nearby = null;
+let nearbyTimer = null;
+let nearbyReady = null; // { supported, permission }
+function nearbyTransport() {
+  const np = plugins().Nearby;
+  const wrap = (m) => (a) => np[m](a || {});
+  return {
+    start: wrap('start'), stop: wrap('stop'), connect: wrap('connect'), accept: wrap('accept'),
+    reject: wrap('reject'), disconnect: wrap('disconnect'), send: wrap('send'),
+    on: (ev, fn) => {
+      const h = np.addListener(ev, fn);
+      return () => Promise.resolve(h).then((x) => x && x.remove && x.remove());
+    },
+  };
+}
+function nearbySession() {
+  if (!nearby)
+    nearby = createSession({
+      transport: nearbyTransport(),
+      peerSales,
+      ownSales: sales,
+      acks: nearbyAcks,
+      me: () => ({ deviceId: nearbyDeviceId, name: nearbyName, branchId: S.snap && !S.snap.local ? S.snap.branch.id : '' }),
+      onChange: () => paintNearby(),
+    });
+  return nearby;
+}
+let nearbyDeviceId = '';
+let nearbyName = 'Phone';
+async function paintNearby() {
+  const box = $('nearby');
+  if (!box || S.view !== 'sync') return;
+  const np = plugins().Nearby;
+  if (!np) {
+    box.innerHTML = `<h2 style="font-size:1.05rem">Nearby phones</h2><p class="mute">Sharing sales with a phone next to you works in the OrderRestro Android app.</p>`;
+    return;
+  }
+  const peers = nearby ? nearby.peers() : [];
+  const held = (await peerSales.all()).filter((r) => r.status === 'held').length;
+  const acks = await nearbyAcks.get();
+  const mine = (await sales.all()).filter((x) => x.status === 'pending');
+  const alsoHeld = mine.filter((x) => (acks[x.id] || []).length).length;
+  const row = (p) =>
+    p.state === 'verify'
+      ? `<div class="card mt"><b>${esc(p.name)}</b><p class="mute">Check that <b>both phones show this code</b>:</p><p class="center" style="font-size:2rem;letter-spacing:.3em;font-weight:700">${esc(p.code)}</p><button class="btn block" data-nconfirm="${esc(p.id)}">Yes, same code</button><button class="btn line block mt" data-ndeny="${esc(p.id)}">No, different</button></div>`
+      : `<div class="mt"><b>${esc(p.name)}</b> <span class="mute">${p.state === 'ready' ? `connected · sent ${p.sent} · received ${p.received}` : p.state === 'connected' ? 'checking…' : p.state === 'refused' ? 'different restaurant branch' : 'found'}</span>${p.state === 'found' ? ` <button class="btn ghost" data-nconnect="${esc(p.id)}">Connect</button>` : ''}</div>`;
+  const log = nearby ? nearby.log().slice(0, 3) : [];
+  box.innerHTML = `
+    <h2 style="font-size:1.05rem">Nearby phones</h2>
+    <p class="mute">Phones of this restaurant can keep a copy of each other's finished sales with no WiFi or internet, so a sale is not only on one phone. It is <b>not</b> on the server until a phone syncs. Keep this screen open on both phones.</p>
+    <dl class="kv">
+      <dt>Your waiting sales also saved on another phone</dt><dd>${alsoHeld} of ${mine.length}</dd>
+      <dt>Held for other phones, not on the server yet</dt><dd>${held}</dd>
+    </dl>
+    ${nearby && nearbyTimer ? `${peers.map(row).join('') || '<p class="mute mt">Looking for phones…</p>'}<button class="btn line block mt" id="nstop">Stop looking</button>` : `<button class="btn ghost block mt" id="nstart">Look for nearby phones</button>`}
+    ${log.map((l) => `<p class="mute">${esc(l.text)}</p>`).join('')}`;
+  const st = $('nstart');
+  if (st) st.onclick = startNearby;
+  const sp = $('nstop');
+  if (sp) sp.onclick = stopNearby;
+  box.querySelectorAll('[data-nconnect]').forEach((b) => (b.onclick = () => nearby.connect(b.dataset.nconnect).catch((e) => toast(e.message || 'Could not connect'))));
+  box.querySelectorAll('[data-nconfirm]').forEach((b) => (b.onclick = () => nearby.confirm(b.dataset.nconfirm).catch((e) => toast(e.message || 'Could not accept'))));
+  box.querySelectorAll('[data-ndeny]').forEach((b) => (b.onclick = () => nearby.deny(b.dataset.ndeny)));
+}
+async function startNearby() {
+  const np = plugins().Nearby;
+  try {
+    nearbyDeviceId = (await kv.get('deviceId')) || '';
+    nearbyName = (await kv.get('deviceName')) || 'Phone';
+    nearbyReady = await np.status();
+    if (!nearbyReady.supported) return toast('This phone has no Google Play services, so Nearby cannot be used.', 5000);
+    if (nearbyReady.permission !== 'granted') nearbyReady = await np.requestAccess();
+    if (nearbyReady.permission !== 'granted') return toast('Allow "Nearby devices" to find other phones.', 5000);
+    await nearbySession().start();
+    clearInterval(nearbyTimer);
+    nearbyTimer = setInterval(() => nearby && nearby.tick().catch(() => {}), 5000);
+  } catch (e) {
+    toast(e && e.message ? e.message : 'Could not start Nearby', 5000);
+  }
+  paintNearby();
+}
+async function stopNearby() {
+  clearInterval(nearbyTimer);
+  nearbyTimer = null;
+  if (nearby) await nearby.stop().catch(() => {});
+  paintNearby();
+}
+
 async function viewSync() {
   if (S.snap.local) return viewSyncLocal();
   S.hasPhoneAccount = !!(await kv.get('localAccount')) && !!(await kv.get('localMenuBackup'));
@@ -2597,6 +2690,7 @@ async function viewSync() {
     </div>
     ${servers}
     ${await settingsCard()}
+    <div class="card mt" id="nearby"></div>
     <div class="card mt">
       <h2 style="font-size:1.05rem">Bluetooth printer</h2>
       <p class="mute">${printer ? `Printing on <b>${esc(printer.name)}</b>` : 'No printer chosen yet.'}</p>
@@ -2608,6 +2702,7 @@ async function viewSync() {
     </div>`;
   $('syncnow').onclick = doSync;
   bindSettings(viewSync);
+  paintNearby();
   $('pick').onclick = async () => (await choosePrinter(), viewSync());
   $('full').onclick = async () => {
     const link = plugins().ServerLink;

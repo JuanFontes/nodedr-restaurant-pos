@@ -60,10 +60,21 @@ Domain notes and **limits**:
 - Menu/price/tax: whole-row newest wins; a completed order keeps its own line prices.
 - Whole-row granularity: two different fields edited on the same row on two devices are *not* merged; the loser is kept in review, not combined.
 
-## 5. Transport research (what to build next, honestly)
+## 5. Phone-to-phone (Nearby) — built in Android 1.46.0, not yet tested on real phones
+
+Sync tab > **Nearby phones** (Android app, phones linked to the same server branch). `NearbyPlugin.java` wraps Google's Nearby Connections (P2P_CLUSTER; Bluetooth/Wi-Fi Direct chosen by Play services); `www/pos/lib/nearby.js` is the protocol; `nearby.test.mjs` runs it against a fake radio (cut wire, duplicates, hostile messages).
+
+- **What travels:** each *final* sale not yet on the server (no pay-later, no part-collected sales) goes to a nearby phone as a copy keyed by its sale id. The receiver writes it to its own disk (store `peerSales`, never mixed into its own sales, till, numbering or reports), then acks. The sender shows "also saved on another phone", never "on the server". Either phone uploads it on the next sync; the server records it once by sale id (`duplicate` counts as done). This gives a sale a second durable copy when a phone is lost before it can sync.
+- **Pairing:** both phones show the same 4-digit code (Nearby's authentication digits); nothing is accepted or sent until a person taps "same code" on each. Phone-only accounts (`branch = local`) never pair; a phone from another branch is disconnected at hello.
+- **Limits:** Android with Google Play services only (no iOS, no de-Googled phones, no browser); about 100 m in the open; both phones keep the screen open on the Sync tab (no background service); one message is at most 30 KB; 500 sales per session per direction; kitchen tickets, orders, refunds and collections do **not** travel yet.
+- **Permissions:** Nearby devices (Android 12+ / 13+) or location (Android 11 and older). Adds the `play-services-nearby` dependency (Google Play services terms).
+- **Verified:** native code compiles, the app starts on an Android 14 emulator and registers the plugin, protocol tests pass. **Not verified:** any real phone-to-phone connection, range, battery, Bluetooth-only vs Wi-Fi Direct behaviour, or Play review of the new permissions. An emulator has no radios. Use the checklist below before telling customers it works.
+- **Manual check (two real Android phones, same branch, linked to a server):** (1) both open Sync > Look for nearby phones; (2) connect, confirm the code on both; (3) make a cash sale on A with the server unreachable; (4) B shows "held for other phones: 1"; (5) A shows "also saved on another phone"; (6) restore the connection and Sync now on B only: the sale appears on the server once; (7) Sync now on A: no duplicate; (8) move 100 m apart and confirm it drops cleanly; (9) try a phone from another branch.
+
+## 5b. Other transports (research notes)
 
 - **Baseline (built):** WiFi router/hotspot without internet + PC as local server + durable DB. Works on Android, iOS, desktop and browsers.
-- **Android Nearby Connections** (Google Play services, Android only, roughly 100 m, needs Bluetooth/Nearby permissions, strategies cluster/star/point-to-point; documented throughput varies by strategy and device, an independent 2023 study found star unstable) is a candidate for phone-to-phone sale hand-off when there is no router. Needs Play services, so not on de-Googled devices, and cannot talk to iOS.
+- **Android Nearby Connections** (Google Play services, Android only, roughly 100 m, strategies cluster/star/point-to-point; documented throughput varies by strategy and device, an independent 2023 study found star unstable): used above with the cluster strategy. Cannot talk to iOS.
 - **Apple:** local-network privacy prompt since iOS 14; Apple engineers steer new work from Multipeer Connectivity to Network framework with peer-to-peer WiFi. Android and Apple native peer links do not interoperate; cross-platform therefore means LAN/hotspot.
 - **Browser/PWA:** no Wi-Fi Direct or background networking; LAN only.
 - **Not claimed:** no multi-hop mesh, no automatic failover leader election (two leaders would corrupt data), no phone acting as the server (OS can suspend it).
@@ -85,4 +96,4 @@ New migration `20261127010000_sync_conflicts_peers` is additive (two new tables,
 
 ## 9. Not built
 
-Per-device roles on the sync layer (existing staff roles still apply to screens), local-network discovery/QR pairing for the PC-to-PC link, Nearby/Wi-Fi Direct transport, kitchen-ticket acknowledgement states ("saved locally" vs "kitchen has it") beyond the existing 409 rules, an operation-level event log with per-field merge, sale-number reservation per device, and any real-device pilot.
+Per-device roles on the sync layer (existing staff roles still apply to screens), local-network discovery/QR pairing for the PC-to-PC link, Nearby for kitchen tickets/orders (sales only today) and any iOS or desktop peer link, kitchen-ticket acknowledgement states ("saved locally" vs "kitchen has it") beyond the existing 409 rules, an operation-level event log with per-field merge, sale-number reservation per device, and any real-device pilot.

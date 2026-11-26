@@ -22,7 +22,8 @@ Server release. Update straight from 1.45.0. Three additive database migrations 
 - Granting a permission override honours implied permissions.
 
 **Windows and Android**
-- Windows 1.0.21.0 and Android 1.46.0 (versionCode 146000) carry the pause and restore-check changes.
+- **Android 1.46.0 (versionCode 146000): Nearby phones.** Phones of one restaurant branch can keep a copy of each other's finished sales with no WiFi, internet or server (Sync tab > Nearby phones, Google Play services, confirm a 4-digit code on both phones). A sale is shown as "also saved on another phone", never as on the server; whichever phone syncs first uploads it and the server records it once. Not tested on real phones yet; sales only (no kitchen tickets). See [OFFLINE-ARCHITECTURE](OFFLINE-ARCHITECTURE.md).
+- Windows 1.0.21.0 carries the pause and restore-check changes.
 
 **Packages**
 - Docker images and `.deb` for amd64 and arm64.

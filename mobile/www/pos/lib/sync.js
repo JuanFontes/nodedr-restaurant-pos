@@ -1,7 +1,7 @@
 // Keeps the phone and the restaurant server in step:
 //   pullSnapshot  server -> phone   menu, prices, tables, settings
 //   pushSales     phone -> server   every sale taken (each only ever recorded once)
-import { kv, reservations, sales } from './store.js';
+import { kv, peerSales, reservations, sales } from './store.js';
 import { mergeFromServer, toPayload } from './reservations.js';
 import { pickServer, request, serverInfo } from './net.js';
 import { BOOK_EVENTS, SALE_EVENTS, counts, pruneSynced, pushEvents, queueEvent, DeviceRevoked, AuthExpired as EventAuthExpired } from './journal.js';
@@ -252,6 +252,43 @@ export async function pushSales(base) {
   return { done, refused, reviewed };
 }
 
+/**
+ * Upload sales another phone handed over through Nearby. Same endpoint and same sale id as the sender's own upload,
+ * so the server records the sale once whichever phone gets there first ("duplicate" counts as done). A refusal is
+ * kept with its reason. Nothing here touches this phone's own sales.
+ */
+export async function pushPeerSales(base) {
+  const branchId = await kv.get('branchId');
+  const held = (await peerSales.all()).filter((r) => r.status === 'held');
+  let done = 0;
+  let refused = 0;
+  const byPhone = new Map();
+  for (const r of held) byPhone.set(r.from.name, [...(byPhone.get(r.from.name) || []), r]);
+  for (const [phone, rows] of byPhone) {
+    for (let i = 0; i < rows.length; i += 20) {
+      const batch = rows.slice(i, i + 20);
+      const r = await request(base, 'POST', `/api/v1/mobile/standalone/sales?branchId=${encodeURIComponent(branchId)}`, {
+        deviceName: `${phone} (via nearby phone)`,
+        sales: batch.map((row) => payload(row.sale)),
+      });
+      if (r.status === 401) throw new AuthExpired();
+      if (r.status !== 201 && r.status !== 200) throw new Error('The server did not accept the sales yet. They stay on this phone.');
+      for (const res of r.data.results) {
+        const row = batch.find((b) => b.id === res.id);
+        if (!row) continue;
+        if (res.status === 'refused') {
+          refused++;
+          await peerSales.put({ ...row, status: 'refused', reason: res.reason || 'The server refused this sale.' });
+        } else {
+          done++;
+          await peerSales.put({ ...row, status: 'synced', syncedAt: new Date().toISOString() });
+        }
+      }
+    }
+  }
+  return { done, refused };
+}
+
 // The last reachable address can be the linked restaurant's LAN or external address.
 let connection;
 export async function fetchMenuPauses(branchId) {
@@ -285,6 +322,12 @@ export function syncNow({ refreshMenu = true } = {}) {
       } catch (e) {
         if (e instanceof AuthExpired) throw e;
         partial = e.message;
+      }
+      try {
+        await pushPeerSales(base); // sales a nearby phone handed over; recorded once by sale id
+      } catch (e) {
+        if (e instanceof AuthExpired) throw e;
+        partial = partial || e.message;
       }
       try {
         // A refund or a collection waits until the server has its sale (it may still be waiting, or was refused).

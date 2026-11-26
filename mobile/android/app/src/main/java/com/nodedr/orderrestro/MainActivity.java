@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ServerLinkPlugin.class);
         registerPlugin(NativePrinterPlugin.class);
+        registerPlugin(NearbyPlugin.class);
         // In standalone mode the POS bundled in the app opens instead of the
         // restaurant's web app, so it starts with no server at all.
         boolean standalone = "standalone".equals(ServerLinkPlugin.mode(this));
