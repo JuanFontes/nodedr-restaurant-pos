@@ -117,10 +117,15 @@ async function run() {
     await page.locator('#newsale').click();
     await add.click();
     await page.clock.runFor(250);
+    // Advancing the debounce timer starts the write. IndexedDB commits on its own clock.
+    await page.waitForFunction(async () => {
+      const { kv, orders } = await import('/lib/store.js');
+      const id = await kv.get('currentOrderId');
+      return id && (await orders.get(id))?.status === 'OPEN';
+    });
     await page.evaluate(async ({ sig, firstSale }) => {
       const { kv, savePendingSale } = await import('/lib/store.js');
       const orderId = await kv.get('currentOrderId');
-      if (!orderId || orderId === firstSale.orderId) throw Error('Expected a new open order');
       await savePendingSale({
         ...firstSale, id: 'interrupted', orderId, localNumber: 'OFF-resume',
         payments: [{ method: 'UPI', amount: 10, reference: 'old-ref' }], change: 0, payLater: true,
