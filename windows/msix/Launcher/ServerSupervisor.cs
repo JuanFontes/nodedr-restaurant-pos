@@ -42,10 +42,11 @@ internal sealed class ServerSupervisor : IDisposable
 
     public async Task StartAsync(CancellationToken ct)
     {
-        ServerPaths.EnsureDirectoriesExist();
+        var folderProblems = ServerPaths.EnsureDirectoriesExist();
 
         var firstRun = !File.Exists(ServerPaths.BackendEnvPath);
 
+        foreach (var problem in folderProblems) LogStartup($"WARNING: {problem}");
         LogStartup($"postgres bin dir: {ServerPaths.PostgresBinDir}");
         LogStartup($"postgres data dir: {ServerPaths.PgDataDir}");
         LogStartup($"postgres port: {ServerPaths.PostgresPort}");
