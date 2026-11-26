@@ -43,6 +43,7 @@ import { useDisplaySettings } from "@/hooks/use-settings";
 import { useI18n } from "@/lib/i18n/context";
 import { ApiError } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
+import { pausedItemsByReturn } from "@/lib/menu-pauses";
 import { cn } from "@/lib/utils";
 
 export default function MenuPage() {
@@ -58,13 +59,20 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
   // menu.view alone is read-only; every edit control needs menu.manage.
   const canManage = hasPermission(me?.user, "menu.manage");
   const { data: categories, isLoading: categoriesLoading } = useCategories(branchId);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [view, setView] = useState("all");
+  const selectedCategory = categories?.find((category) => view === `category:${category.id}`);
+  const pausedOnly = view === "paused";
   // Deleting an item that appears in past orders archives it (isActive false) instead of removing it, so hide those here.
-  const { data: rawItems, isLoading: itemsLoading } = useMenuItems(branchId, selectedCategoryId);
-  const { data: rawAllItems } = useMenuItems(branchId);
+  const { data: rawItems, isLoading: itemsLoading, isError: itemsFailed } = useMenuItems(branchId);
   const pauseLabels = useMenuPauseLabels(rawItems, timezone);
-  const items = rawItems?.filter((i) => i.isActive);
-  const allItems = rawAllItems?.filter((i) => i.isActive);
+  const allItems = rawItems?.filter((item) => item.isActive);
+  const pausedItems = rawItems && pausedItemsByReturn(rawItems, pauseLabels);
+  const items = pausedOnly ? pausedItems : allItems?.filter((item) =>
+    view === "all" || view === `category:${item.categoryId}`);
+  const views = [
+    { id: "all", label: "All items", count: allItems?.length },
+    { id: "paused", label: t("menu.pausedView"), count: pausedItems?.length },
+  ];
   const deleteItem = useDeleteMenuItem(branchId);
   const deleteCategory = useDeleteCategory(branchId);
   const [comboItem, setComboItem] = useState<MenuItem | null>(null);
@@ -103,14 +111,12 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
     );
   }
 
-  const selectedCategory = categories?.find((c) => c.id === selectedCategoryId);
-
   const onDeleteCategory = (category: MenuCategory) => {
     if (!confirm(`Delete the "${category.name}" category? This cannot be undone.`)) return;
     deleteCategory.mutate(category.id, {
       onSuccess: () => {
         toast.success(`"${category.name}" deleted`);
-        if (selectedCategoryId === category.id) setSelectedCategoryId(undefined);
+        if (selectedCategory?.id === category.id) setView("all");
       },
       onError: (err) =>
         toast.error(
@@ -157,9 +163,12 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
               <ResponsiveTabs
                 mobileOnly
                 label="Category"
-                value={selectedCategoryId ?? "all"}
-                onChange={(id) => setSelectedCategoryId(id === "all" ? undefined : id)}
-                items={[{ id: "all", label: "All items" }, ...(categories ?? []).map((c) => ({ id: c.id, label: c.name, hint: `${c._count.items} items${c.showOnWebsite ? "" : " · hidden"}` }))]}
+                value={view}
+                onChange={setView}
+                items={[
+                  ...views.map(({ id, label, count }) => ({ id, label, hint: count?.toString() })),
+                  ...(categories ?? []).map((c) => ({ id: `category:${c.id}`, label: c.name, hint: `${c._count.items} items${c.showOnWebsite ? "" : " · hidden"}` })),
+                ]}
               />
               {selectedCategory && (
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 border border-border/50 px-3 py-2">
@@ -197,37 +206,42 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
 
             {/* Desktop Categories List */}
             <div className="hidden flex-col gap-1 lg:flex">
-              <button
-                onClick={() => setSelectedCategoryId(undefined)}
-                className={cn(
-                  "flex items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold transition-all active:scale-[0.99]",
-                  !selectedCategoryId
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
-                )}
-              >
-                <span>All items</span>
-                {allItems && (
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[11px] tabular-nums font-mono",
-                    !selectedCategoryId ? "bg-white/20 text-white" : "text-muted-foreground"
-                  )}>
-                    {allItems.length}
-                  </span>
-                )}
-              </button>
+              {views.map(({ id, label, count }) => (
+                <button
+                  key={id}
+                  aria-pressed={view === id}
+                  onClick={() => setView(id)}
+                  className={cn(
+                    "flex items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold transition-all active:scale-[0.99]",
+                    view === id
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
+                  )}
+                >
+                  <span>{label}</span>
+                  {count !== undefined && (
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-[11px] tabular-nums font-mono",
+                      view === id ? "bg-white/20 text-white" : "text-muted-foreground"
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              ))}
               {categories?.map((cat) => (
                 <div
                   key={cat.id}
                   className={cn(
                     "group flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1 text-left text-xs font-medium transition-all",
-                    selectedCategoryId === cat.id
+                    selectedCategory?.id === cat.id
                       ? "bg-secondary text-foreground font-semibold"
                       : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
                   )}
                 >
                   <button
-                    onClick={() => setSelectedCategoryId(cat.id)}
+                    aria-pressed={selectedCategory?.id === cat.id}
+                    onClick={() => setView(`category:${cat.id}`)}
                     className="min-w-0 flex-1 truncate py-1 text-left text-xs"
                   >
                     {cat.name}
@@ -277,10 +291,10 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-                {selectedCategory ? selectedCategory.name : "All items"}
+                {pausedOnly ? t("menu.pausedView") : selectedCategory?.name ?? "All items"}
               </h2>
               <p className="text-xs text-muted-foreground">
-                {items ? `${items.length} dishes & items` : "Loading items…"}
+                {pausedOnly ? t("menu.pauseSortHint") : items ? `${items.length} dishes & items` : "Loading items…"}
               </p>
             </div>
             {canManage && (
@@ -299,6 +313,8 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                 <Skeleton key={i} className="h-16 rounded-xl" />
               ))}
             </div>
+          ) : itemsFailed && !rawItems ? (
+            <p role="alert" className="py-8 text-center text-sm text-destructive">{t("menu.itemsLoadFailed")}</p>
           ) : items && items.length > 0 ? (
             <>
             {/* Mobile Cards List */}
@@ -480,6 +496,8 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
               </Table>
             </div>
             </>
+          ) : pausedOnly ? (
+            <p role="status" className="py-16 text-center text-sm text-muted-foreground">{t("menu.noPausedItems")}</p>
           ) : (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
               <p className="text-sm font-semibold text-foreground">No items yet</p>

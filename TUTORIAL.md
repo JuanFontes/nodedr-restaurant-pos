@@ -80,6 +80,8 @@ If the next tray of lasagna will be ready in half an hour, open **Menu** for the
 
 The POS, table QR menu and kiosk show when the dish returns. It becomes available automatically at that time. If the kitchen is ready sooner, choose **Resume sales** in Menu. Staff can still settle orders that already include the dish.
 
+At shift change, open [**Menu → Paused**](docs/screenshots/menu-paused-list-en.png) to see every paused dish at the selected branch, with the earliest return first. On a phone, choose [**Paused** in the category picker](docs/screenshots/menu-paused-list-mobile-en.png). The count and list update when a pause expires or you resume sales early.
+
 See the [manager's pause dialog](docs/screenshots/menu-pause-editor-en.png), the [cashier's screen](docs/screenshots/menu-pause-pos-en.png) and the [guest's QR menu](docs/screenshots/menu-pause-qr-en.png).
 
 ## 4. Take an order

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatPauseTime, menuPausesAt, withReportedMenuPauses, withReportedPauses } from "./menu-pauses.ts";
+import { formatPauseTime, menuPausesAt, pausedItemsByReturn, withReportedMenuPauses, withReportedPauses } from "./menu-pauses.ts";
 
 const noon = "2026-11-25T12:00:00.000Z";
 const later = "2026-11-25T12:15:00.000Z";
@@ -10,6 +10,21 @@ const items = [
   { id: "salad", pausedUntil: null },
   { id: "bread" },
 ];
+
+test("the branch pause list hides archived, resumed and expired dishes and sorts by instant", () => {
+  const menu = [
+    { id: "rice", isActive: true, pausedUntil: later },
+    { id: "soup", isActive: true, pausedUntil: "2026-11-25T14:00:00+02:00" },
+    { id: "archived", isActive: false, pausedUntil: later },
+    { id: "bread", isActive: true, pausedUntil: null },
+    { id: "legacy", isActive: true },
+  ];
+  const viewAt = (now: number) => pausedItemsByReturn(menu, menuPausesAt(menu, now).paused).map((i) => i.id);
+  assert.deepEqual(viewAt(Date.parse(noon) - 1), ["soup", "rice"]);
+  assert.deepEqual(viewAt(Date.parse(noon)), ["rice"]);
+  assert.deepEqual(viewAt(Date.parse(later)), []);
+  assert.equal(menu[0].id, "rice");
+});
 
 test("each dish returns exactly at its own deadline while the menu stays open", () => {
   const before = menuPausesAt(items, Date.parse(noon) - 1);
