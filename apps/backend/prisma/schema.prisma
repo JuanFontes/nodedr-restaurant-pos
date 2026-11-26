@@ -2799,6 +2799,44 @@ model SyncChange {
   @@map("sync_changes")
 }
 
+// Losing side of a concurrent edit (and flagged anomalies) kept for manager review. Resolved rows are immutable
+// (trigger in the 20261127010000 migration). Modelled here so `prisma migrate dev` sees no drift.
+model SyncConflict {
+  id         String    @id @default(dbgenerated("md5(((random())::text || (clock_timestamp())::text))"))
+  dedupeKey  String    @unique
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  kind       String
+  tbl        String
+  pkKey      String
+  origin     String    @default("")
+  loser      Json?
+  loserOp    String?   @db.Char(1)
+  loserTs    DateTime? @db.Timestamptz(3)
+  winner     Json?
+  winnerTs   DateTime? @db.Timestamptz(3)
+  detail     Json?
+  status     String    @default("OPEN")
+  resolution String?
+  reason     String?
+  resolvedBy String?
+  resolvedAt DateTime? @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@map("sync_conflicts")
+}
+
+model SyncPeer {
+  deviceId      String    @id
+  firstSeenAt   DateTime  @default(now()) @db.Timestamptz(3)
+  lastSeenAt    DateTime  @default(now()) @db.Timestamptz(3)
+  lastPullAt    DateTime? @db.Timestamptz(3)
+  lastPushAt    DateTime? @db.Timestamptz(3)
+  lastPushCount Int       @default(0)
+  revokedAt     DateTime? @db.Timestamptz(3)
+
+  @@map("sync_peers")
+}
+
 // ---------------------------------------------------------------------------
 // Integrations hub: a restaurant's own connections to outside platforms
 // ---------------------------------------------------------------------------
