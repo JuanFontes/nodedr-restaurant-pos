@@ -870,6 +870,10 @@ internal sealed class ServerSupervisor : IDisposable
     {
         var env = ReadBackendEnv();
         AddNodeCompileCache(env);
+        // This app is updated by installing a newer package (Microsoft Store or the installer), not from the web UI.
+        // The backend then shows its version on Settings > Updates and makes no outside request to look for releases.
+        env["UPDATE_CHANNEL"] = "package";
+        env["APP_VERSION"] = typeof(ServerSupervisor).Assembly.GetName().Version?.ToString() ?? "";
         var mainJs = Path.Combine(ServerPaths.BackendWorkingDir, ServerPaths.BackendMainJsRelativePath);
         _backend = StartLongRunning(ServerPaths.NodeExePath, $"\"{mainJs}\"", ServerPaths.BackendWorkingDir, env, "backend");
     }

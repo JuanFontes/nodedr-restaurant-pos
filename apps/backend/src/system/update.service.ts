@@ -14,6 +14,9 @@ export interface VersionInfo {
   building: boolean;
   releaseUrl: string | null;
   checkedAt: string;
+  // Set when the host app (the packaged Windows app) is updated by installing a newer package rather than by this
+  // API; the check then makes no outside request and the Updates page explains how updates arrive.
+  managedBy?: 'package';
 }
 
 const GITHUB_REPO = 'Raktim94/nodedr-restaurant-pos';
@@ -39,6 +42,21 @@ export class UpdateService {
     }
 
     const currentVersion = (process.env.APP_VERSION ?? '').trim() || 'dev';
+
+    // The Windows app (MSIX) sets UPDATE_CHANNEL=package: it is updated by installing a newer package (Microsoft
+    // Store or the installer), so there is nothing to look up and no reason to contact GitHub from a restaurant's PC.
+    if ((process.env.UPDATE_CHANNEL ?? '').trim().toLowerCase() === 'package') {
+      return {
+        currentVersion,
+        latestVersion: null,
+        updateAvailable: false,
+        building: false,
+        releaseUrl: null,
+        checkedAt: new Date().toISOString(),
+        managedBy: 'package',
+      };
+    }
+
     let latestVersion: string | null = null;
     try {
       latestVersion = await this.fetchLatestTag();

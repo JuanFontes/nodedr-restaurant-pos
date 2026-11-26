@@ -10,6 +10,8 @@ export interface VersionInfo {
   building?: boolean;
   releaseUrl: string | null;
   checkedAt: string;
+  // "package": the Windows app, updated by installing a newer package (no GitHub lookup).
+  managedBy?: "package";
 }
 
 export function useUpdateCheck(enabled = true) {

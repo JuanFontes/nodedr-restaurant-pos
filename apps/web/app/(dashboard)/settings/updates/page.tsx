@@ -131,21 +131,36 @@ export default function UpdatesPage() {
           <div>
             <h2 className="text-base font-medium">Application Updates</h2>
             <p className="text-sm text-muted-foreground">
-              Check the current version against the latest release on GitHub.
+              {data?.managedBy === "package"
+                ? "This app is updated by installing a newer version of the app."
+                : "Check the current version against the latest release on GitHub."}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            {isFetching ? "Checking…" : "Check for update"}
-          </Button>
+          {data?.managedBy !== "package" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {isFetching ? "Checking…" : "Check for update"}
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
           <Skeleton className="h-16 w-full" />
+        ) : data?.managedBy === "package" ? (
+          <div className="flex flex-col gap-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground">Running:</span>
+              <Badge variant="outline">{data.currentVersion}</Badge>
+            </div>
+            <p className="text-muted-foreground">
+              Updates for the Windows app arrive as a new app version. Install them from the Microsoft Store
+              (Library, then Get updates), or with the installer you received. Your restaurant data is kept.
+            </p>
+          </div>
         ) : data ? (
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
