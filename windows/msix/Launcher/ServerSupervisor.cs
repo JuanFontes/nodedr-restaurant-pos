@@ -204,7 +204,10 @@ internal sealed class ServerSupervisor : IDisposable
         }
         LogStartup($"runtime copy done in {copyWatch.Elapsed.TotalSeconds:0.0}s");
         // robocopy exit codes 0-7 all count as success, including "some files skipped"; do not trust it blindly.
-        await RepairRuntimeAsync(deep: incremental, ct, stopDatabase: true);
+        // Size check only: hashing all ~28,000 files took 107 s on a PC with real-time antivirus, which is a long time to
+        // add to every update. A missing or cut-short file is what actually happens; the full hash is kept for when it
+        // is asked for (Repair-OrderRestro, the blank-page watchdog) and when the page check below fails.
+        await RepairRuntimeAsync(deep: false, ct, stopDatabase: true);
         File.WriteAllText(stamp, pkgVersion);
         try { File.Delete(RepairFlagPath); } catch { }
     }
