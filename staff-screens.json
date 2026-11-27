@@ -1,0 +1,3628 @@
+{
+  "description": "Each image is a lossless capture of the staff application with its built-in language picker. The browser locale was English (United Kingdom) throughout. Restaurant-entered data uses its original spelling. The Customers list uses the unmatched search Aurora to reproduce the reported empty state. IDs in route templates resolve to seeded local examples.",
+  "locales": {
+    "en": "en-GB",
+    "pt": "pt-BR",
+    "es": "es-ES",
+    "fr": "fr-FR"
+  },
+  "contentRoutes": 55,
+  "displayedViews": 56,
+  "totalImages": 224,
+  "redirects": {
+    "/inventory/manufacturing-reports": "/inventory/journal?view=report",
+    "/inventory/production": "/inventory/journal?view=entries"
+  },
+  "verification": {
+    "httpStatus": 200,
+    "pageExceptions": 0,
+    "browserConsoleErrors": 0,
+    "failedApiResponses": 0
+  },
+  "routes": [
+    {
+      "route": "/accounting",
+      "testedPath": "/accounting",
+      "landedPath": "/accounting",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-01.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 35428,
+          "sha256": "120e5d1c34fec940721f255eff2aff4c8d8f28d78d6bc17f4ec2d9a17ee2e98b",
+          "visibleHeadings": [
+            "Accounting"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-01.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39220,
+          "sha256": "b7567c55b9dc482f2077964fa452c0214500c048b65aa61505cecce5cff4398b",
+          "visibleHeadings": [
+            "Contabilidade"
+          ]
+        },
+        "es": {
+          "file": "s/es-01.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37716,
+          "sha256": "ec46200763e1c14e69edd77b125bb3cf2558ae69520233b6b584d104c377325f",
+          "visibleHeadings": [
+            "Contabilidad"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-01.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38464,
+          "sha256": "2e45979d602bab3857cab59d3c3142ebdbd6bdeed427071a10006939f25fc6ff",
+          "visibleHeadings": [
+            "Comptabilité"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/ask",
+      "testedPath": "/ask",
+      "landedPath": "/ask",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-02.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 46392,
+          "sha256": "2541e8bb72f285773836720a0860c58b06c8474b5c8d85d833a2829afea0fa30",
+          "visibleHeadings": [
+            "How can I help you today?"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-02.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49134,
+          "sha256": "76802e2a6e077a1a48874d3028db9fb494fdeb61d7fa8ea418995fa293adb65c",
+          "visibleHeadings": [
+            "Como posso ajudar hoje?"
+          ]
+        },
+        "es": {
+          "file": "s/es-02.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49708,
+          "sha256": "ed35dccffcab06735409cf2f1405bd0db31d00cec404add4c63306c3e81dbe27",
+          "visibleHeadings": [
+            "¿En qué puedo ayudarte hoy?"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-02.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49408,
+          "sha256": "bd44071c47cc077346777b39963d6eddceceae71e1f9e77c66f544e3b0697874",
+          "visibleHeadings": [
+            "Comment puis-je vous aider aujourd’hui ?"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/attendance",
+      "testedPath": "/attendance",
+      "landedPath": "/attendance",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-03.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31552,
+          "sha256": "0dc5905493a1889d9cc500d1b48ff7e583cbdc0a0701356135bf34905b9ed8d4",
+          "visibleHeadings": [
+            "Attendance"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-03.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 35434,
+          "sha256": "742cae27c4fa794e5893540c5e15457cb34327bfe7e1c3d9988b2bf7fa0f1926",
+          "visibleHeadings": [
+            "Ponto da equipe"
+          ]
+        },
+        "es": {
+          "file": "s/es-03.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34738,
+          "sha256": "9e49f3782a6b11657198346fb58fb73b9c314ee0c11d8c9a222e5c398812e87a",
+          "visibleHeadings": [
+            "Control de asistencia"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-03.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34854,
+          "sha256": "c07e584124265fad50a423f883a23fe2aee7c3c21fa62c4b4a09084d40d8bbed",
+          "visibleHeadings": [
+            "Présences du personnel"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/customers/[id]",
+      "testedPath": "/customers/locale-proof-customer",
+      "landedPath": "/customers/locale-proof-customer",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-04.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38286,
+          "sha256": "67cc793920c31f239eb7aaec23f2b257989f90baf650d6de40bcf1e14fee8d6d",
+          "visibleHeadings": [
+            "Casa do Sol",
+            "Points and rewards",
+            "Delivery addresses",
+            "Order history"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-04.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 43916,
+          "sha256": "3725eb40bb44b229cfde950da72daa5736a83b244c858b258bfe9eb661a11a8b",
+          "visibleHeadings": [
+            "Casa do Sol",
+            "Pontos e recompensas",
+            "Endereços de entrega",
+            "Histórico de pedidos"
+          ]
+        },
+        "es": {
+          "file": "s/es-04.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 42382,
+          "sha256": "fe9633fd8da3d18e7fc3c396dabbb0eddb188b7572fc0217dcc8abcefa011444",
+          "visibleHeadings": [
+            "Casa do Sol",
+            "Puntos y recompensas",
+            "Direcciones de entrega",
+            "Historial de pedidos"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-04.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 42864,
+          "sha256": "f05607db306e474d9c379c82541ac55705e48a14fb14e40b73b9f05d03395c59",
+          "visibleHeadings": [
+            "Casa do Sol",
+            "Points et récompenses",
+            "Adresses de livraison",
+            "Historique des commandes"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/customers/dues",
+      "testedPath": "/customers/dues",
+      "landedPath": "/customers/dues",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-05.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32416,
+          "sha256": "983dc07964c0f60ba9978bc4c2a1c47ff1cd35b3e515d77f85799e94bd3fe43e",
+          "visibleHeadings": [
+            "Customer dues"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-05.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 35462,
+          "sha256": "e91b2d651065e8947a3b99b033950876338811984aa22ef574089eacdd1879ed",
+          "visibleHeadings": [
+            "Saldos devedores de clientes"
+          ]
+        },
+        "es": {
+          "file": "s/es-05.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33892,
+          "sha256": "45c29ed80ec5f0ceecc5fed8ecc06a7225cb2f4ac345c6e5a954ae430e76088d",
+          "visibleHeadings": [
+            "Saldos pendientes de clientes"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-05.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32378,
+          "sha256": "873e3f47847878c4ea7d789ba32572118c4d78f9d61cf39ea62c607ddbf59cda",
+          "visibleHeadings": [
+            "Soldes dus par les clients"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/customers",
+      "testedPath": "/customers",
+      "landedPath": "/customers",
+      "view": "customer search: Aurora",
+      "images": {
+        "en": {
+          "file": "s/en-06.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 28598,
+          "sha256": "2ab751fb2e1f20624d0b8039c6de34225db07f04086d74a3791e2cff9b633d95",
+          "visibleHeadings": [
+            "Customers"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-06.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31726,
+          "sha256": "ae0d3a004f2d591906312b20060d458070435f559286abbda854dfebf791d514",
+          "visibleHeadings": [
+            "Clientes"
+          ]
+        },
+        "es": {
+          "file": "s/es-06.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30164,
+          "sha256": "70d0dc3d2555519752ab883fa96aee58494aed0bef89eb2c0f12b5dea4b19200",
+          "visibleHeadings": [
+            "Clientes"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-06.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 29838,
+          "sha256": "99ced77112defe328c7fa3eecd2bda4dfe3a64ae1c436b422f507e0c6458cd23",
+          "visibleHeadings": [
+            "Clients"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/dashboard",
+      "testedPath": "/dashboard",
+      "landedPath": "/dashboard",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-07.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 79342,
+          "sha256": "8b38fe32a18d64b03f4f40e2c1d0a2e3dcbfc4be25f2c54c11bad9666e3aafb8",
+          "visibleHeadings": [
+            "Good morning, Demo",
+            "Revenue — last 14 days",
+            "Food waste cost — last 14 days",
+            "Tables",
+            "Kitchen queue",
+            "Recent transactions",
+            "Order channels"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-07.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 86100,
+          "sha256": "2f40e9132b2f2e8d17b23ec03783bdb97da86d9a92992e5f7e21b119da34c3d4",
+          "visibleHeadings": [
+            "Bom dia, Demo",
+            "Faturamento nos últimos 14 dias",
+            "Custo do desperdício nos últimos 14 dias",
+            "Mesas",
+            "Fila da cozinha",
+            "Transações recentes",
+            "Canais de pedido"
+          ]
+        },
+        "es": {
+          "file": "s/es-07.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 83834,
+          "sha256": "c675dd55a2578ca0b8afa8e2443698c0900d2a8c0e887125fdcfce48a9122067",
+          "visibleHeadings": [
+            "Buenos días, Demo",
+            "Ingresos de los últimos 14 días",
+            "Coste del desperdicio de los últimos 14 días",
+            "Mesas",
+            "Cola de cocina",
+            "Transacciones recientes",
+            "Canales de pedidos"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-07.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 85594,
+          "sha256": "ff33b5d24bb4d311ac4aff31a42250475d3de787b06a5a4315dc309a0e708afb",
+          "visibleHeadings": [
+            "Bonjour, Demo",
+            "Chiffre d’affaires des 14 derniers jours",
+            "Coût du gaspillage sur les 14 derniers jours",
+            "Tables",
+            "Commandes en cuisine",
+            "Transactions récentes",
+            "Canaux de commande"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/delivery",
+      "testedPath": "/delivery",
+      "landedPath": "/delivery",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-08.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 24258,
+          "sha256": "c5a8f887d7eeda7da6ec0bbc9d74eff8690f4c0df1b3ca3796e6b978cd2b5068",
+          "visibleHeadings": [
+            "Delivery"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-08.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 25962,
+          "sha256": "df733d37456c1afe67dba10cc2755869974e31baeffa613e7e0ea10e7db6c7d5",
+          "visibleHeadings": [
+            "Entrega"
+          ]
+        },
+        "es": {
+          "file": "s/es-08.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 24940,
+          "sha256": "e974a98e597354cf4268d3a4484055dcc31391ce8ca438a8137d330e56a85de5",
+          "visibleHeadings": [
+            "A domicilio"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-08.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 24540,
+          "sha256": "04fc7885c83d7127fdb8437d044b93359687ca588faeabf94e4868852d3f1c78",
+          "visibleHeadings": [
+            "Livraison"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/areas",
+      "testedPath": "/inventory/areas",
+      "landedPath": "/inventory/areas",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-09.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38236,
+          "sha256": "6b938399a0b0fab4bf6f6e75a7b6af4e516bc614452919762c9a1524bef9d280",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-09.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 41436,
+          "sha256": "b7eaf6e86a49f39c30e3d22555bf86404e94b96e0b75b0694c4ce3fa5bb754f5",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-09.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 41344,
+          "sha256": "3430480736258758d77b2da49a660646c2bcbff8d0a48681ed68aa93f23379ed",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-09.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 41414,
+          "sha256": "b7c68f2f7b439f418e0271212700071aa12248dfe22d41f58ae11342aa40e59c",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/journal",
+      "testedPath": "/inventory/journal",
+      "landedPath": "/inventory/journal",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-10.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 46526,
+          "sha256": "71b52ab4e52aa40e590a7552729ae8bb2c543fc9202e1a8d6f53aee98b6f0d17",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-10.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 54536,
+          "sha256": "adca476d72d0eb90737b8296a59daeffce90eab3ae337d08be9ee22cadd92817",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-10.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 52814,
+          "sha256": "24ed8567b34d62a586064cf04ad319694e167610ee5524ce915a953c0fdd1dd6",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-10.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 53192,
+          "sha256": "c3856cd55c530855a09b7996320a3f86b2ff7b51a7c528c6504329ef98742fff",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory",
+      "testedPath": "/inventory",
+      "landedPath": "/inventory",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-11.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39014,
+          "sha256": "27d36e0d58232d95b0eba64e72dd626eefcd393dd3ea940057968edbc4b70dc8",
+          "visibleHeadings": [
+            "Inventory",
+            "Other (1)"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-11.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 42860,
+          "sha256": "02e01b9cf0f6190b7a24dd21334311551ba2e77256c15b8b28f84da673938642",
+          "visibleHeadings": [
+            "Estoque",
+            "Outro (1)"
+          ]
+        },
+        "es": {
+          "file": "s/es-11.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 42242,
+          "sha256": "658caeb5ba9a04bb5fe3a4fa9161cccef545c9fb8ce966b7160deb307b3de291",
+          "visibleHeadings": [
+            "Inventario",
+            "Otro (1)"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-11.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 42214,
+          "sha256": "f452b2b59a3e3563cd3819a58cc8948d0a82cabe11fd5083cdaaf25d9ee63548",
+          "visibleHeadings": [
+            "Stocks",
+            "Autre (1)"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/procurement",
+      "testedPath": "/inventory/procurement",
+      "landedPath": "/inventory/procurement",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-12.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 45802,
+          "sha256": "b59eb8b02c458f040f87f643c3aeb3dbc6d3722274f509de2e165c35b73beff2",
+          "visibleHeadings": [
+            "Inventory",
+            "Purchase requests",
+            "Supplier quotations",
+            "Vendor invoices"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-12.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 50544,
+          "sha256": "57d6aa01e3edad52c0bd80124508e77af011962bd0fbbbb05609e01e23029326",
+          "visibleHeadings": [
+            "Estoque",
+            "Solicitações de compra",
+            "Cotações de fornecedores",
+            "Faturas de fornecedores"
+          ]
+        },
+        "es": {
+          "file": "s/es-12.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49984,
+          "sha256": "d383b9398f112cf276a26fc48fc54de582796c934b3b7c270a55354cd3753cbb",
+          "visibleHeadings": [
+            "Inventario",
+            "Solicitudes de compra",
+            "Cotizaciones de proveedores",
+            "Facturas de proveedores"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-12.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 47622,
+          "sha256": "df876c386e6c0e5728837a695a07d4889a3844216e855a7b0f46c7730debda5e",
+          "visibleHeadings": [
+            "Stocks",
+            "Demandes d’achat",
+            "Devis fournisseurs",
+            "Factures fournisseurs"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/purchase-orders/[id]",
+      "testedPath": "/inventory/purchase-orders/locale-proof-purchase",
+      "landedPath": "/inventory/purchase-orders/locale-proof-purchase",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-13.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 29332,
+          "sha256": "3b4ca95747d721faba90715ca7c0a45aa12e45ea031d2fff79b545ef59e9d348",
+          "visibleHeadings": [
+            "PO-LOCAL-001"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-13.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32402,
+          "sha256": "eff18b9eded7fc408e51ff765e5530237fe943c747add3852be367c048c2a876",
+          "visibleHeadings": [
+            "PO-LOCAL-001"
+          ]
+        },
+        "es": {
+          "file": "s/es-13.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31076,
+          "sha256": "428b55018f3a43a0b689c3dd67aa9e72d3e0ae5ef791e2bee822c282704f3d79",
+          "visibleHeadings": [
+            "PO-LOCAL-001"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-13.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31798,
+          "sha256": "9b8b8d323b71a9f74159d0621adf13b56a158cb62871f9d518d1df9c6debb6e3",
+          "visibleHeadings": [
+            "PO-LOCAL-001"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/purchase-orders",
+      "testedPath": "/inventory/purchase-orders",
+      "landedPath": "/inventory/purchase-orders",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-14.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34706,
+          "sha256": "cf6545bce323b6eb7530c1c5166a7ab481527d9c88c393a45a6de4339aacc1e8",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-14.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36850,
+          "sha256": "58642a67939a4c5043c745ab93da70a36e7b2b98aa5aad2727e8b3add94ecad4",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-14.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 35786,
+          "sha256": "e6e3033efd021d15dd18259bd06c4bb2aa047d9124c90672243c169e6c94e75f",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-14.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36150,
+          "sha256": "a3e4dc69634a80c321db8dac014a1b5be5945b1906ae85601b7abe8506331b9d",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/purchase-returns",
+      "testedPath": "/inventory/purchase-returns",
+      "landedPath": "/inventory/purchase-returns",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-15.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36792,
+          "sha256": "8d58e12d6d3576f1b94be3fff931b74b2bde5931a92015204a98fe571a1e25c3",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-15.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 40864,
+          "sha256": "798dafd93922832b3da9c6afbd09725a9c48dc9a79a9ad74e93df2e8685ac61c",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-15.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 40264,
+          "sha256": "62bb855f90b8bbd595bb2eb202cb5bf6f055efc5e93ce4962690b3a23e53ed33",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-15.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39764,
+          "sha256": "8bf9b50da00c2a85db4970d4b14dde9fcadb35cc63603beb31e65722455a1946",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/recipes",
+      "testedPath": "/inventory/recipes",
+      "landedPath": "/inventory/recipes",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-16.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36522,
+          "sha256": "bf273790abc3e3916603380199b4e75074ee7462c17640968ef1386228e05849",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-16.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39700,
+          "sha256": "7faff21e369c6a65514f3c1401b65067dcd26d0e584b382638d8ed1a974b57f4",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-16.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38468,
+          "sha256": "2038057f6cae50fe0bfb341fa0778569d37e0d96a671852a4a0de1fb336134cd",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-16.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39184,
+          "sha256": "25323ed7c3ec0981456adc47b562cc1fe294526a555bbff17aca232d126b6a88",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/shopping-list",
+      "testedPath": "/inventory/shopping-list",
+      "landedPath": "/inventory/shopping-list",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-17.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37108,
+          "sha256": "d9ea0a47819c9115bc0e0de16cfc183c7ca6fa0cb8645c3a6711843f7b5fbd0d",
+          "visibleHeadings": [
+            "Inventory",
+            "Use these first (expiring in 7 days)",
+            "To buy"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-17.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39826,
+          "sha256": "30c2a2fe1c77f5f8ab021461470cd356db9ef1ccd635f10d341a13a2c3622e29",
+          "visibleHeadings": [
+            "Estoque",
+            "Usar primeiro (vencem em até sete dias)",
+            "A comprar"
+          ]
+        },
+        "es": {
+          "file": "s/es-17.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38972,
+          "sha256": "5d4056fb7bac964c94de8e581203f9d07b39389e7b87df217c4cd4aa4ced8add",
+          "visibleHeadings": [
+            "Inventario",
+            "Usar primero (caducan en siete días)",
+            "Por comprar"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-17.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39834,
+          "sha256": "cfd797300040f1039eac89a15fbc3eaa467a2bb57b5389a3d5ce048e709fc4a3",
+          "visibleHeadings": [
+            "Stocks",
+            "À utiliser en priorité (péremption dans les sept jours)",
+            "À acheter"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/stock-report",
+      "testedPath": "/inventory/stock-report",
+      "landedPath": "/inventory/stock-report",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-18.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 44502,
+          "sha256": "96a2cf65bae50cc587f3ddf5efbcfb0768ff7dcf44a4ecba5f3014e7eb9f0c5d",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-18.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 47674,
+          "sha256": "cb7da476c99841013a361966d815f9177d7e12180612303d5fe03e9390592fdd",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-18.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 46982,
+          "sha256": "7906bdf52e3ca57171afb4a2bdbd5021d26e95fe0e2b71780ba3ec8cb30b084f",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-18.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 45750,
+          "sha256": "d5af6aa8a568edd0449a00588538f16f4dae5b9bc7c263c26f5be9cb1a7061b6",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/stock-take",
+      "testedPath": "/inventory/stock-take",
+      "landedPath": "/inventory/stock-take",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-19.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39908,
+          "sha256": "dae24e4ea9642244760624f2a4e98c7dbca1b912febe5f30865e40c4dc1a1669",
+          "visibleHeadings": [
+            "Inventory",
+            "Other"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-19.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 44930,
+          "sha256": "0c0473c8aa889426f86a06b02ca60887a2dc8d9c69ecf8aff727cf2c66cc683a",
+          "visibleHeadings": [
+            "Estoque",
+            "Outro"
+          ]
+        },
+        "es": {
+          "file": "s/es-19.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 43444,
+          "sha256": "8a6ad0df8eb21ecccc57d60dd7222bad638b2cf972704cc5bdcf863a30e293ba",
+          "visibleHeadings": [
+            "Inventario",
+            "Otro"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-19.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 44942,
+          "sha256": "bb9437ccee7cb0d8b15360334ebe4a172eaeae1297af6f73aa80209e6f05c3c2",
+          "visibleHeadings": [
+            "Stocks",
+            "Autre"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/suppliers",
+      "testedPath": "/inventory/suppliers",
+      "landedPath": "/inventory/suppliers",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-20.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31056,
+          "sha256": "9ad3612aa31d68310fb4afa9c71f5851ab7b18a555ecbec6d5b93fce04b3570c",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-20.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33906,
+          "sha256": "a01fb0ffd1223d6dc7502094d2e7e7fb9f03849be3535b6e802792dfc83ff02c",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-20.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32092,
+          "sha256": "9d070a832c5dc3716c8d84461512bd8ddd3dbd1b91847758bc3212c11eb90931",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-20.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32728,
+          "sha256": "d3abef60be35ce0c6510bbcbfc0dfc12c4eb17dae771095ca9da05f0de49a831",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/transfers",
+      "testedPath": "/inventory/transfers",
+      "landedPath": "/inventory/transfers",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-21.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 29192,
+          "sha256": "9aa3681a9b2b34ef69e019e679b3b9d6dfab2f5d6bbeb10d581bf27a5c56279d",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-21.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31346,
+          "sha256": "ce5410219288c7b10821572dd3a10b8b91afb1417f75da43317aa66167708c09",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-21.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30960,
+          "sha256": "880ade9b2de58129009529db22b3137db4d00fff006036342245328f509e9f4b",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-21.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30642,
+          "sha256": "ec17b96d4f947ac9efb95a1864dc86456ff7f98e3ed7238fbc48877ebd2f43f1",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/waste",
+      "testedPath": "/inventory/waste",
+      "landedPath": "/inventory/waste",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-22.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36246,
+          "sha256": "77b19e0a42da1e3e31b2c20e5763b3b4f4636ef38117760a0cf2e6fc9204db6f",
+          "visibleHeadings": [
+            "Inventory"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-22.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 40888,
+          "sha256": "086c5d28145728a130db2dd068a26cb6bf4c8b6b58791f3524749f4decfd5dab",
+          "visibleHeadings": [
+            "Estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-22.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39304,
+          "sha256": "a5928a141d80a3ba3eaa31f67fb75c5385b3a208550e0f59aad4e10ec033c72c",
+          "visibleHeadings": [
+            "Inventario"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-22.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39524,
+          "sha256": "48f1d5c5b915173114f96046189e74e34a6ea42239a2f42d3f1ac0c5e538c3fb",
+          "visibleHeadings": [
+            "Stocks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/yield-analysis",
+      "testedPath": "/inventory/yield-analysis",
+      "landedPath": "/inventory/yield-analysis",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-23.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 35040,
+          "sha256": "0e81e650a31d66638d398143b5c77e4a332e93b13024ddc2f775303796c758fd",
+          "visibleHeadings": [
+            "Yield analysis"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-23.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39184,
+          "sha256": "ce30fc2cde8d06f1f9d06d33b969de0632d7b38d295bae69994038925753a0d2",
+          "visibleHeadings": [
+            "Análise de rendimento"
+          ]
+        },
+        "es": {
+          "file": "s/es-23.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37896,
+          "sha256": "49aa6dc7f5df435a7f38ae151f70227824392d00805a29506b6570085a04746c",
+          "visibleHeadings": [
+            "Análisis de rendimiento"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-23.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37348,
+          "sha256": "c3b6499fe1928c7ee8d8799f365212aef6f15e929ba95bf9ba65f207ff23d94f",
+          "visibleHeadings": [
+            "Analyse du rendement"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/kds",
+      "testedPath": "/kds",
+      "landedPath": "/kds",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-24.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 45108,
+          "sha256": "65236acaa3be362a4cb51cce6b748cff524a556e99bb07898f1d1bb0c00efd50",
+          "visibleHeadings": [
+            "Kitchen Display",
+            "New",
+            "Accepted",
+            "Preparing",
+            "Ready"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-24.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 48264,
+          "sha256": "78b206b5d190165eb42cf6e3e3bd1cd6dd4bebf737ede99fb5623db5ff853ad9",
+          "visibleHeadings": [
+            "Painel da cozinha",
+            "Novo",
+            "Aceito",
+            "Em preparo",
+            "Pronto"
+          ]
+        },
+        "es": {
+          "file": "s/es-24.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49076,
+          "sha256": "10edc3492743eed8652f688946ff3bff97e675cc7509eb5b61d7261305005548",
+          "visibleHeadings": [
+            "Pantalla de cocina",
+            "Nuevo",
+            "Aceptado",
+            "En preparación",
+            "Listo"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-24.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 48934,
+          "sha256": "b179b91fb91fae9301ca1176fb4f82663d0eb66f4c82b4fb6e8d4050ff7d22e1",
+          "visibleHeadings": [
+            "Écran de cuisine",
+            "Nouveau",
+            "Accepté",
+            "En préparation",
+            "Prêt"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/marketing",
+      "testedPath": "/marketing",
+      "landedPath": "/marketing",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-25.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31602,
+          "sha256": "951b68fcb0a1341debaaaa067684ea40de3e04448e88bda83d0bb611e8d38ac1",
+          "visibleHeadings": [
+            "Marketing"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-25.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33758,
+          "sha256": "79a8e9248c724d1817a41efaa0a69278ea9fcca7ae0eafea2a3366465548e2ac",
+          "visibleHeadings": [
+            "Marketing"
+          ]
+        },
+        "es": {
+          "file": "s/es-25.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32998,
+          "sha256": "6e0b1964dc21b8b4373a60209189d79d8e748af850852efd1ecf5e94b9a0c3fa",
+          "visibleHeadings": [
+            "Marketing"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-25.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33690,
+          "sha256": "52411c01a97ef250a81aef538925b426b06bb017bb296f278961317d59515910",
+          "visibleHeadings": [
+            "Marketing"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/menu",
+      "testedPath": "/menu",
+      "landedPath": "/menu",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-26.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 53726,
+          "sha256": "b9eff1a61b617d36fa50baa8b0adb5eed98fdfc42d5c910d264b824a3726cabd",
+          "visibleHeadings": [
+            "Menu",
+            "Categories",
+            "All items"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-26.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 59450,
+          "sha256": "4a79987672a72f10b14fcb61b7bdb8d11a7b3219cbf74f08064f3362f0e58ad6",
+          "visibleHeadings": [
+            "Cardápio",
+            "Categorias",
+            "Todos os itens"
+          ]
+        },
+        "es": {
+          "file": "s/es-26.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 57674,
+          "sha256": "261451d2c53314913ae92a0377be9694efbd85b1bcb69131e3e5c86d070ab7f4",
+          "visibleHeadings": [
+            "Carta",
+            "Categorías",
+            "Todos los artículos"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-26.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 58800,
+          "sha256": "1e5c790a307ae3631454750d38112ea544633c1a785ad9e2a9294040eda33695",
+          "visibleHeadings": [
+            "Carte",
+            "Catégories",
+            "Tous les articles"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/my-deliveries",
+      "testedPath": "/my-deliveries",
+      "landedPath": "/my-deliveries",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-27.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30334,
+          "sha256": "cfca3de980681a6fe6041b2e983d903b92b71d8f834b8d1ed81cd2f5ba2108d8",
+          "visibleHeadings": [
+            "My deliveries",
+            "Your deliveries"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-27.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32708,
+          "sha256": "749bd11b10289d592e618ad345ae24040019a4a237f15ce56983539e73797a42",
+          "visibleHeadings": [
+            "Minhas entregas",
+            "Suas entregas"
+          ]
+        },
+        "es": {
+          "file": "s/es-27.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30934,
+          "sha256": "7e294ed6ac04df2a2b6ef2eee3a751deec8a9161b0fe1fa378f2c9ac7ed0c41f",
+          "visibleHeadings": [
+            "Mis entregas",
+            "Tus entregas"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-27.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32290,
+          "sha256": "26eb3a6b8b5db0e73f99ff99eb7e915bf091e88e6a63a39cbf3b5e822bd923e1",
+          "visibleHeadings": [
+            "Mes livraisons",
+            "Vos livraisons"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/operations",
+      "testedPath": "/operations",
+      "landedPath": "/operations",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-28.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30004,
+          "sha256": "a3e34412087769277cf45dd2881c99ceb0725dd8cf197d9b891bda5ef64358e2",
+          "visibleHeadings": [
+            "Operations"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-28.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34576,
+          "sha256": "9fbb798a0867c4eff883bd5acf645965cdccb589482443f080d38683be365048",
+          "visibleHeadings": [
+            "Operações"
+          ]
+        },
+        "es": {
+          "file": "s/es-28.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32470,
+          "sha256": "cc4414703d302db283ef2e84eee9718418ba3449f0cf777f09ca7b01b5ced476",
+          "visibleHeadings": [
+            "Operaciones"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-28.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31076,
+          "sha256": "d80fd4fd2dbfea943eff9cadfb11050af20fbdde763a4e294fd40342515da267",
+          "visibleHeadings": [
+            "Exploitation"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/orders",
+      "testedPath": "/orders",
+      "landedPath": "/orders",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-29.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33826,
+          "sha256": "f13b93fb41c8d7e4c57c9b0b1c626863f574afed030b502b2ea545fb73da7a25",
+          "visibleHeadings": [
+            "Orders"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-29.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38112,
+          "sha256": "c3bfbd60f127b1e2a3fadf26241398729ba5afd7b7ef09bddac6720d50086bea",
+          "visibleHeadings": [
+            "Pedidos"
+          ]
+        },
+        "es": {
+          "file": "s/es-29.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36510,
+          "sha256": "a99e73eb7237842baa6cbe35ab950d57b37276ae6cebe2d45cfe859cca30f98d",
+          "visibleHeadings": [
+            "Pedidos"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-29.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38410,
+          "sha256": "d95f1f40e5d666c718dd4ba19a478793de5e39c36319dd656f862dd00e22e7f0",
+          "visibleHeadings": [
+            "Commandes"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/pos",
+      "testedPath": "/pos",
+      "landedPath": "/pos",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-30.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39404,
+          "sha256": "a43f04d7ae4a13261ed614383df2246a8af3a74980593c105024e03f12f8753e",
+          "visibleHeadings": []
+        },
+        "pt": {
+          "file": "s/pt-30.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 41780,
+          "sha256": "c7a821db36901ab1fbd8244c3e78e87fe825c4bc045ddd03129f35c0b55de047",
+          "visibleHeadings": []
+        },
+        "es": {
+          "file": "s/es-30.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 40190,
+          "sha256": "751e0c6eb9f827b816b7e2fc108edcd1e5f870060def29389733733a1ef49463",
+          "visibleHeadings": []
+        },
+        "fr": {
+          "file": "s/fr-30.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 40548,
+          "sha256": "71432792e63c4e91c6ec9669f228145533e0d3ee00ef0c9c3d2449d7297c520a",
+          "visibleHeadings": []
+        }
+      }
+    },
+    {
+      "route": "/ratings",
+      "testedPath": "/ratings",
+      "landedPath": "/ratings",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-31.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 23596,
+          "sha256": "f3655c37c8ca28802d113073ac58e5f34dff32db7d5a1379bccab716ee5d7904",
+          "visibleHeadings": [
+            "Customer ratings"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-31.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 27534,
+          "sha256": "e5d40c9501f0070721527483be534fac0e6ae37499b05538f9f92c12d32f4a36",
+          "visibleHeadings": [
+            "Avaliações dos clientes"
+          ]
+        },
+        "es": {
+          "file": "s/es-31.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 26994,
+          "sha256": "00b9ca50e3134618f995a4fcfff1bb436254fd844f4efc217501bef101d38396",
+          "visibleHeadings": [
+            "Valoraciones de clientes"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-31.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 24262,
+          "sha256": "bed0fa48db66c81a6319caabbb33d55109def656b46271a17c76fd5433ba9c30",
+          "visibleHeadings": [
+            "Avis des clients"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/reports",
+      "testedPath": "/reports",
+      "landedPath": "/reports",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-32.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 60768,
+          "sha256": "0fbb6d8b2d2842d0cc03c0721756af7e83d0a4de0bc94b5391fa79c8b7298130",
+          "visibleHeadings": [
+            "Reports",
+            "Daily sales"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-32.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 66556,
+          "sha256": "57f1ab419a4e5d5d40a1dccd16086691bf0c88647fa2a73127db334a89131ab9",
+          "visibleHeadings": [
+            "Relatórios",
+            "Vendas diárias"
+          ]
+        },
+        "es": {
+          "file": "s/es-32.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 66220,
+          "sha256": "d305858f3d68635096f2f33aedac08043c32c4fa059c1ef203d7aa0669a5ee65",
+          "visibleHeadings": [
+            "Informes",
+            "Ventas diarias"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-32.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 68188,
+          "sha256": "511f2109971979e6859cb09d8405ac37486541f0b4109ab548590f5578f8e932",
+          "visibleHeadings": [
+            "Rapports",
+            "Ventes quotidiennes"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/reservations",
+      "testedPath": "/reservations",
+      "landedPath": "/reservations",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-33.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 28894,
+          "sha256": "3a64caa3e524bb026a3bdf0fe252957d57559d9c1bae5c36446fb6d3e1451a2d",
+          "visibleHeadings": [
+            "Reservations"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-33.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 30234,
+          "sha256": "73bf086a2a0575bb3accace9f2079c08b84421ba0fd77dee819c46f49a02b8d2",
+          "visibleHeadings": [
+            "Reservas"
+          ]
+        },
+        "es": {
+          "file": "s/es-33.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 28684,
+          "sha256": "0df418f5db59eeb1a206bd05b540720cca97d4d3835853e6fdfd3bcae9b30979",
+          "visibleHeadings": [
+            "Reservas"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-33.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31590,
+          "sha256": "1f1da665b1f15491259ef29a9555c482b143ca44ac9f1c3999883ca46b6be52a",
+          "visibleHeadings": [
+            "Réservations"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/api-keys",
+      "testedPath": "/settings/api-keys",
+      "landedPath": "/settings/api-keys",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-34.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 52088,
+          "sha256": "873c7d517b1de5e94a6e0861d85d60b1cb2e5678da3af6a949665e67ecfb4040",
+          "visibleHeadings": [
+            "Settings",
+            "Personal API keys & MCP",
+            "Integration API keys"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-34.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 60176,
+          "sha256": "848f95b4dfb0129e07e414af73311f0c3f2d59b19e399770ad7425c93e5ce6aa",
+          "visibleHeadings": [
+            "Configurações",
+            "Chaves pessoais de API e MCP",
+            "Chaves da API de integração"
+          ]
+        },
+        "es": {
+          "file": "s/es-34.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 59826,
+          "sha256": "0ad5c20e1f517174b7f13322bae7a38205c20b71e5d8dd1af2e405953041f1ec",
+          "visibleHeadings": [
+            "Configuración",
+            "Claves personales de API y MCP",
+            "Claves de la API de integración"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-34.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 58236,
+          "sha256": "12d4d36f8587bbb1a2606b151b67d003dedc98335a897f967dbb756157c20b87",
+          "visibleHeadings": [
+            "Paramètres",
+            "Clés d’API personnelles et MCP",
+            "Clés de l’API d’intégration"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/audit-log",
+      "testedPath": "/settings/audit-log",
+      "landedPath": "/settings/audit-log",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-35.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37662,
+          "sha256": "a0f0eba8bd4a98ef832378248c6553d1ff4970b20b30cd38a806dd7e54f05ca0",
+          "visibleHeadings": [
+            "Settings",
+            "Audit log"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-35.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 43590,
+          "sha256": "3db129d73ca15c7afbe6eb164d4b18c0be4c140a26a7949f6779c4f1fd7c5569",
+          "visibleHeadings": [
+            "Configurações",
+            "Histórico de auditoria"
+          ]
+        },
+        "es": {
+          "file": "s/es-35.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 43072,
+          "sha256": "87932f56601651c931e83222177d09994dac72b54fd7469da5affccfaed88b71",
+          "visibleHeadings": [
+            "Configuración",
+            "Registro de auditoría"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-35.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 41134,
+          "sha256": "a15da90742a2002a707187ea0e527a8e2af2c1a58e5cf3dbc1e4cbb83f767409",
+          "visibleHeadings": [
+            "Paramètres",
+            "Journal d’audit"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/backup",
+      "testedPath": "/settings/backup",
+      "landedPath": "/settings/backup",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-36.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 52432,
+          "sha256": "c854481d786d444aa26c601210f5d29127fe9229a472c53b48bb6cbd9a64762f",
+          "visibleHeadings": [
+            "Settings",
+            "Download a backup",
+            "Cloud storage",
+            "Backup history"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-36.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 56832,
+          "sha256": "4ea8af9b84438fe075db5d6ff0c5cf7065cd9616ebc09c4e626f88b6e95fdd28",
+          "visibleHeadings": [
+            "Configurações",
+            "Baixar um backup",
+            "Armazenamento em nuvem",
+            "Histórico de backups"
+          ]
+        },
+        "es": {
+          "file": "s/es-36.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 57062,
+          "sha256": "730f2a743ead65c6a8c399457397fa398e03cae5ce973b106ab8302c27d47011",
+          "visibleHeadings": [
+            "Configuración",
+            "Descargar una copia",
+            "Almacenamiento en la nube",
+            "Historial de copias"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-36.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 57560,
+          "sha256": "dab0ef9e0f6f127c51118f633e7f9d612982e1dd70cc60791b4ae2b87af5ff87",
+          "visibleHeadings": [
+            "Paramètres",
+            "Télécharger une sauvegarde",
+            "Stockage cloud",
+            "Historique des sauvegardes"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/buzzers",
+      "testedPath": "/settings/buzzers",
+      "landedPath": "/settings/buzzers",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-37.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 62380,
+          "sha256": "82883177ac0100cf16c443e52045e001c590085211b2df78dba77e49e1567288",
+          "visibleHeadings": [
+            "Settings"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-37.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 69886,
+          "sha256": "eef9df1a38c57e21ba70112651dae264a8691d6e0ce2224e931851518abc7d8a",
+          "visibleHeadings": [
+            "Configurações"
+          ]
+        },
+        "es": {
+          "file": "s/es-37.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 65468,
+          "sha256": "8f9b8184891f009a0d10f918d982a293f27d5ad603495273677277dcf5cb68be",
+          "visibleHeadings": [
+            "Configuración"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-37.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 65294,
+          "sha256": "d17c43c32aa13321f87297413a3a1ca63afa4ba1fc8a68c352936ed7e7e4ba47",
+          "visibleHeadings": [
+            "Paramètres"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/customer-screen",
+      "testedPath": "/settings/customer-screen",
+      "landedPath": "/settings/customer-screen",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-38.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 76260,
+          "sha256": "2a7c5981957782f8063d9ba79d7a7771583eb1fd3d3a80485477c14c663db0df",
+          "visibleHeadings": [
+            "Settings",
+            "Screens",
+            "Adverts"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-38.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 82408,
+          "sha256": "8ec940469d32f603447ed053026b015468b5a6419d2a8a84d91faec9e90bedaf",
+          "visibleHeadings": [
+            "Configurações",
+            "Telas",
+            "Anúncios"
+          ]
+        },
+        "es": {
+          "file": "s/es-38.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 79922,
+          "sha256": "1aa9388d3ad589f1c93f4b990957493af63a2bc054d6ed34d1636f468c1c49a2",
+          "visibleHeadings": [
+            "Configuración",
+            "Pantallas",
+            "Anuncios"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-38.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 79340,
+          "sha256": "138cf7bde131a9b4d0afbe4804ede97c006fd85b4b0be0387760e85d20e81567",
+          "visibleHeadings": [
+            "Paramètres",
+            "Écrans",
+            "Publicités"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/devices",
+      "testedPath": "/settings/devices",
+      "landedPath": "/settings/devices",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-39.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34744,
+          "sha256": "119a7e598a9b58413669ec92bbb8ebd52ce3144b8dae4f3989da7739fa544746",
+          "visibleHeadings": [
+            "Settings"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-39.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39698,
+          "sha256": "bbd9dc4d6e2b6161cc60f841382d97328a6d38d62537c4fef98d45963fef4477",
+          "visibleHeadings": [
+            "Configurações"
+          ]
+        },
+        "es": {
+          "file": "s/es-39.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37092,
+          "sha256": "4102231ef10a15e2c827cc62cbeeefce4c4661063f2effde914546cfcd82b9f0",
+          "visibleHeadings": [
+            "Configuración"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-39.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37708,
+          "sha256": "ebf12e3c3282e96c23851100340306353123267532fc224c53a5d0ae86f1bb7d",
+          "visibleHeadings": [
+            "Paramètres"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/integrations",
+      "testedPath": "/settings/integrations",
+      "landedPath": "/settings/integrations",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-40.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 69340,
+          "sha256": "6db764a771ff487f02ac7690157000de67652fdd7e67dcc7aa0fcc7bfd4d3da7",
+          "visibleHeadings": [
+            "Settings",
+            "Food delivery platforms",
+            "Automation, webhooks and custom API"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-40.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 77790,
+          "sha256": "348b33450350690b2cb508b575c54c26e59d0dbc4e0e6899ddd3da8a9cb572c1",
+          "visibleHeadings": [
+            "Configurações",
+            "Plataformas de entrega de refeições",
+            "Automação, webhooks e API personalizada"
+          ]
+        },
+        "es": {
+          "file": "s/es-40.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 74930,
+          "sha256": "9da6d94daa5fab473c57623a7eaa92143cc6eb0c8781367d21b03f10644d09b4",
+          "visibleHeadings": [
+            "Configuración",
+            "Plataformas de reparto de comida",
+            "Automatización, webhooks y API personalizada"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-40.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 77178,
+          "sha256": "e2a4dbe9a4658134824d13b9a65be7e2d86be2e304ec36f2226841f8fd7c7e25",
+          "visibleHeadings": [
+            "Paramètres",
+            "Plateformes de livraison de repas",
+            "Automatisation, webhooks et API personnalisée"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings",
+      "testedPath": "/settings",
+      "landedPath": "/settings",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-41.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 68268,
+          "sha256": "bb3ede7aabd6fda72aae0cffe268b23677d7b34791b613b7f89a583797b0c7dc",
+          "visibleHeadings": [
+            "Settings",
+            "Restaurant",
+            "This branch",
+            "Online orders & table bookings",
+            "Customer kiosk",
+            "Notifications",
+            "Thermal printer (receipts & kitchen tickets)",
+            "Mobile app"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-41.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 75972,
+          "sha256": "a1871958c04eabf67001ffdeefd166710a836abe24a8f4c90bd666884132c2f2",
+          "visibleHeadings": [
+            "Configurações",
+            "Restaurante",
+            "Esta unidade",
+            "Pedidos online e reservas de mesa",
+            "Totem de autoatendimento",
+            "Notificações",
+            "Impressora térmica (comprovantes e comandas)",
+            "Aplicativo móvel"
+          ]
+        },
+        "es": {
+          "file": "s/es-41.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 75260,
+          "sha256": "ce068dd314a362a9692de99b9fd44a90dd76067adb5f03b3d5954ad81eaa86b5",
+          "visibleHeadings": [
+            "Configuración",
+            "Restaurante",
+            "Esta sucursal",
+            "Pedidos en línea y reservas de mesa",
+            "Quiosco de autoservicio",
+            "Notificaciones",
+            "Impresora térmica (recibos y comandas)",
+            "Aplicación móvil"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-41.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 75044,
+          "sha256": "6af67c6f3799649ee5440bb3eed764e3bec48d327bb8d7ca2417ca2eb34dc41f",
+          "visibleHeadings": [
+            "Paramètres",
+            "Restaurant",
+            "Cet établissement",
+            "Commandes en ligne et réservations de tables",
+            "Borne de commande",
+            "Notifications",
+            "Imprimante thermique (reçus et bons de cuisine)",
+            "Application mobile"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/payment-gateways",
+      "testedPath": "/settings/payment-gateways",
+      "landedPath": "/settings/payment-gateways",
+      "view": "India selected; Razorpay test setup expanded",
+      "images": {
+        "en": {
+          "file": "s/en-42.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 41344,
+          "sha256": "994d52fb662ae55e49069e1d2541c1453182720a43b14e7cbd4f192e0aa0d834",
+          "visibleHeadings": [
+            "Payment gateways",
+            "1. Where is your business based?",
+            "2. Choose a gateway",
+            "Recent online payments"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-42.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49416,
+          "sha256": "d6eabf3a676099059893c21816bb38ce57c8bf5fc62ec15532969023c429e163",
+          "visibleHeadings": [
+            "Provedores de pagamento",
+            "1. Em que país fica o seu negócio?",
+            "2. Escolha um provedor de pagamentos",
+            "Pagamentos online recentes"
+          ]
+        },
+        "es": {
+          "file": "s/es-42.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 47174,
+          "sha256": "6e2bb9165eb87b81fa7762b60a7264dcb162be3934a690251165ded99c1622de",
+          "visibleHeadings": [
+            "Pasarelas de pago",
+            "1. ¿En qué país está tu negocio?",
+            "2. Elige una pasarela de pago",
+            "Pagos en línea recientes"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-42.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 48904,
+          "sha256": "7779c71e9120113e1379db59b807324c483c0a8ac413ed67d179dbb17b6edbf1",
+          "visibleHeadings": [
+            "Prestataires de paiement",
+            "1. Dans quel pays se trouve votre établissement ?",
+            "2. Choisir une passerelle de paiement",
+            "Paiements en ligne récents"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/roles",
+      "testedPath": "/settings/roles",
+      "landedPath": "/settings/roles",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-43.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 56764,
+          "sha256": "c7bfaf18b55ad3e76d415cd686fc9831162c8c3c134745126bce7596af1c43cb",
+          "visibleHeadings": [
+            "Settings",
+            "Roles & permissions"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-43.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 65374,
+          "sha256": "742e666c882db25cf453191c731021f08e1a1545be1b4181e1f3c12e80caf2b9",
+          "visibleHeadings": [
+            "Configurações",
+            "Funções e permissões"
+          ]
+        },
+        "es": {
+          "file": "s/es-43.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 63866,
+          "sha256": "dbba0ead1eab73d7d5c71c14f73c22ccec44b21b6867487782cd14b6804531d1",
+          "visibleHeadings": [
+            "Configuración",
+            "Roles y permisos"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-43.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 62854,
+          "sha256": "ae475d12dca04a7110a890232c629804d4fb463a69160c5fe2a2db4fbd67d71d",
+          "visibleHeadings": [
+            "Paramètres",
+            "Rôles et autorisations"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/security",
+      "testedPath": "/settings/security",
+      "landedPath": "/settings/security",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-44.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36444,
+          "sha256": "984ca5f707fb87dfa8f1e51fd5339216d5768ed5d8e56cf97d274db9894078b8",
+          "visibleHeadings": [
+            "Settings",
+            "Two-factor authentication"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-44.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 40216,
+          "sha256": "32b075b4e23cef698b363126af89a89af7ef2eedc5a1ce1dfbdd5531b2ba323f",
+          "visibleHeadings": [
+            "Configurações",
+            "Autenticação de dois fatores"
+          ]
+        },
+        "es": {
+          "file": "s/es-44.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38152,
+          "sha256": "baa9e68b7173fb3cc4547906285817b2785b86c9059833b5842d3b737bebf650",
+          "visibleHeadings": [
+            "Configuración",
+            "Autenticación de dos factores"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-44.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 38658,
+          "sha256": "2de47cb4107643a5e1d56bb9ca63798baa7e496df8c2a4b4d7a7d325225bce16",
+          "visibleHeadings": [
+            "Paramètres",
+            "Authentification à deux facteurs"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/staff",
+      "testedPath": "/settings/staff",
+      "landedPath": "/settings/staff",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-45.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 44402,
+          "sha256": "bb644cc2c2bc267eebe89b3f87534a3d438f1f0d3c0625700f524719256349dd",
+          "visibleHeadings": [
+            "Settings",
+            "Staff accounts",
+            "Departments"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-45.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 51712,
+          "sha256": "11f2c1680d52409dfa6beba488f33c86d0d8b639b3da0415d615ee2344165f05",
+          "visibleHeadings": [
+            "Configurações",
+            "Contas da equipe",
+            "Departamentos"
+          ]
+        },
+        "es": {
+          "file": "s/es-45.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49060,
+          "sha256": "fe23128017c06ea6630c609424a79e705fd14da58f3c8df3b2b899c37d8a106f",
+          "visibleHeadings": [
+            "Configuración",
+            "Cuentas del personal",
+            "Departamentos"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-45.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 49062,
+          "sha256": "4c5b1f73bdd532e77496b560df979629dfbe0141d327b473b9b8345b7be4f484",
+          "visibleHeadings": [
+            "Paramètres",
+            "Comptes du personnel",
+            "Services"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/sync",
+      "testedPath": "/settings/sync",
+      "landedPath": "/settings/sync",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-46.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 45124,
+          "sha256": "265129566c33852678f4d7ef4dce1187c500827624755fd828fe1669a0155181",
+          "visibleHeadings": [
+            "Server sync"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-46.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 52196,
+          "sha256": "d1b8991e67ebeb62853ae5a9a44873871eddf0b4f1a90557893d5b22fd56335f",
+          "visibleHeadings": [
+            "Sincronização do servidor"
+          ]
+        },
+        "es": {
+          "file": "s/es-46.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 50268,
+          "sha256": "563830e9d9efb1ad57ee2bb7bdd9789ae6465b7a6924b1c6ac2c729f35da0b17",
+          "visibleHeadings": [
+            "Sincronización del servidor"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-46.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 53074,
+          "sha256": "525bc2d05d32e755150614b660efbbf082653c5993a7cd92b1edd8e306053b07",
+          "visibleHeadings": [
+            "Synchronisation du serveur"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/updates",
+      "testedPath": "/settings/updates",
+      "landedPath": "/settings/updates",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-47.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34710,
+          "sha256": "ada481494ed6f9048816afee1b356a624346d9514f86765d46db62e1ad7b7f37",
+          "visibleHeadings": [
+            "Application Updates"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-47.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37974,
+          "sha256": "c5ab6032a2b9620fe22b85282cf3d9c91f0b5c72da8f4b22216d9ac4ffa28105",
+          "visibleHeadings": [
+            "Atualizações do aplicativo"
+          ]
+        },
+        "es": {
+          "file": "s/es-47.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36108,
+          "sha256": "9980047aff7c8b94be7666d104574996b9c97c53bc5988abb3803b202ebeb543",
+          "visibleHeadings": [
+            "Actualizaciones de la aplicación"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-47.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 36584,
+          "sha256": "c84dbe77436ccf7d25bd1ce5686a650fc4cab97806ffee895ece4c94c75fa059",
+          "visibleHeadings": [
+            "Mises à jour de l’application"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/verifactu",
+      "testedPath": "/settings/verifactu",
+      "landedPath": "/settings/verifactu",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-48.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 32516,
+          "sha256": "5d480ce40878e890c6520552dbd143d5eacf4e28bfa5e929f422590e0feb2ac8",
+          "visibleHeadings": [
+            "Settings"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-48.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 35842,
+          "sha256": "17ca819a50040f03b0657ac79daed6db7fc26309ee5bcee6cdca8fd84c3145f3",
+          "visibleHeadings": [
+            "Configurações"
+          ]
+        },
+        "es": {
+          "file": "s/es-48.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33774,
+          "sha256": "6778e95c26a26048f964eb67988f296d44e910005d303a2b5eb3ec571eda3824",
+          "visibleHeadings": [
+            "Configuración"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-48.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 34880,
+          "sha256": "d63770cb9295c1f20f42149cad666f862d9b8f2d18eba4637ea92adfa3502563",
+          "visibleHeadings": [
+            "Paramètres"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/settings/webhooks",
+      "testedPath": "/settings/webhooks",
+      "landedPath": "/settings/webhooks",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-49.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 59858,
+          "sha256": "4226a921500861906b9ae4a799c2a49eec72d8d651083a2cd888c50044987ea7",
+          "visibleHeadings": [
+            "Settings",
+            "Webhooks"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-49.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 66756,
+          "sha256": "f35ff6073b23e9f05866267b0a4a079a7ed24949c98a268f707e13955a93f05a",
+          "visibleHeadings": [
+            "Configurações",
+            "Webhooks"
+          ]
+        },
+        "es": {
+          "file": "s/es-49.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 63072,
+          "sha256": "8ec0281c2838fce31184f7c4ef9812d8cc7fa7aea0876417371e3ed0a5db7969",
+          "visibleHeadings": [
+            "Configuración",
+            "Webhooks"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-49.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 64798,
+          "sha256": "ee08bc65bfcec8cd5d383890c8c117c2397f2f43c31d703ddbf7b0ed2531a2c2",
+          "visibleHeadings": [
+            "Paramètres",
+            "Webhooks"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/simulator",
+      "testedPath": "/simulator",
+      "landedPath": "/simulator",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-50.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 37212,
+          "sha256": "674fc9b2eb008e63d48f94cec17bf5614d56b1eda74895325ad94a7a9bd225c8",
+          "visibleHeadings": [
+            "Hardware simulator",
+            "1. Staff till",
+            "2. Customer display ",
+            "3. Guest phone (table QR / NFC)",
+            "4. Kitchen tablet",
+            "5. Table buzzer"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-50.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39850,
+          "sha256": "d7ddabd8116b8db44e045a4b60184849a9966876d0ad78c367381501a3749653",
+          "visibleHeadings": [
+            "Simulador de hardware",
+            "1. Caixa da equipe",
+            "2. Tela do cliente ",
+            "3. Celular do cliente (QR Code ou NFC da mesa)",
+            "4. Tablet da cozinha",
+            "5. Chamador de mesa"
+          ]
+        },
+        "es": {
+          "file": "s/es-50.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 39536,
+          "sha256": "9d65f48b9f05313ab3095027bbc0d92074cd497db4d862e846fe57a8963cd840",
+          "visibleHeadings": [
+            "Simulador de hardware",
+            "1. Caja del personal",
+            "2. Pantalla del cliente ",
+            "3. Móvil del cliente (QR o NFC de la mesa)",
+            "4. Tableta de cocina",
+            "5. Avisador de mesa"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-50.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 66928,
+          "sha256": "085e74340e7d488ec2948c8719e1ecd5631443916ae7b585c48d4ef179e10d1d",
+          "visibleHeadings": [
+            "Simulateur de matériel",
+            "1. Caisse du personnel",
+            "2. Écran client ",
+            "3. Téléphone du client (QR ou NFC de la table)",
+            "4. Tablette de cuisine",
+            "5. Avertisseur de table"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/tables/cards",
+      "testedPath": "/tables/cards",
+      "landedPath": "/tables/cards",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-51.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 70200,
+          "sha256": "32c93298795a159ce8622dc3746b7286cf92f1125daa9e634a9483624b1ddd26",
+          "visibleHeadings": [
+            "Table cards"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-51.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 72574,
+          "sha256": "6224e2a3beb1005866c281543aec36378f46c7d7d01719ccedd6faec4be8e566",
+          "visibleHeadings": [
+            "Cartões de mesa"
+          ]
+        },
+        "es": {
+          "file": "s/es-51.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 74554,
+          "sha256": "724c292e6c4f94ce90aef190d351a31812db7f975c1557f9c64af42e4df72183",
+          "visibleHeadings": [
+            "Tarjetas de mesa"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-51.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 78606,
+          "sha256": "faa9f76cd4a2d194bfcec540e79873004a4dd024327b0ed221db8e0dedc75f63",
+          "visibleHeadings": [
+            "Cartes de table"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/tables/live",
+      "testedPath": "/tables/live",
+      "landedPath": "/tables/live",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-52.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 48498,
+          "sha256": "ecf0530e3272e5ce401aaae42d8e822f61ef5dbaa4ecb5fda1ef0e84cd6350ed",
+          "visibleHeadings": [
+            "Live tables"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-52.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 54092,
+          "sha256": "6f34985987bdc2a71143933254a939766128589348375b2b4d43cfaf77361c0e",
+          "visibleHeadings": [
+            "Mesas em tempo real"
+          ]
+        },
+        "es": {
+          "file": "s/es-52.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 51864,
+          "sha256": "683fa6dc903e9b08c988a714f34da778e93caca68105e524ff1cd24eaad10c55",
+          "visibleHeadings": [
+            "Mesas en tiempo real"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-52.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 52710,
+          "sha256": "9c27f6e9a53b9c5fb161ce15ea0e6ddf4dbf0149cce562921c5e63640b2dd4d7",
+          "visibleHeadings": [
+            "Tables en temps réel"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/tables/nfc",
+      "testedPath": "/tables/nfc",
+      "landedPath": "/tables/nfc",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-53.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 44146,
+          "sha256": "d133f7d3730677bfbe3382113991077e8122ed28b590c93c48d6711161db99a3",
+          "visibleHeadings": [
+            "Table ordering mode"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-53.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 47684,
+          "sha256": "1a50689efabf59b378f6f5a7a27ce786f19edd1eedceca822eb21a70709e9a3d",
+          "visibleHeadings": [
+            "Modo de pedido na mesa"
+          ]
+        },
+        "es": {
+          "file": "s/es-53.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 45932,
+          "sha256": "01fdb0ba1b253017be6f205aa7baba266dccbfd08bf87af2509e7df13b6a2a9d",
+          "visibleHeadings": [
+            "Modo de pedido en mesa"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-53.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 48408,
+          "sha256": "9a505f6ea5a71ad80e586df5f54ed71590cf2607cee59f5a97ca4da0c30c95e9",
+          "visibleHeadings": [
+            "Mode de commande à table"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/tables",
+      "testedPath": "/tables",
+      "landedPath": "/tables",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-54.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 58054,
+          "sha256": "cb84e654b0266396eb32383a67f9b14de95365200690ec3a1dcb70f48174fb0b",
+          "visibleHeadings": [
+            "Tables",
+            "Waitlist",
+            "Guest ordering codes"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-54.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 59942,
+          "sha256": "a4672024af9aa1c21f776c647a5e97dad93db8d931b70ad493976310e294da77",
+          "visibleHeadings": [
+            "Mesas",
+            "Lista de espera",
+            "Códigos para pedidos na mesa"
+          ]
+        },
+        "es": {
+          "file": "s/es-54.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 60112,
+          "sha256": "6f594f827e4bdb8d29380ca7515286a36449bdeb8611b03912c50aee6831483e",
+          "visibleHeadings": [
+            "Mesas",
+            "Lista de espera",
+            "Códigos de pedido en mesa"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-54.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 58960,
+          "sha256": "71485147b283340447f0eb794ae66ef56f6f42b326ed34e090f5848112d89e94",
+          "visibleHeadings": [
+            "Tables",
+            "Liste d’attente",
+            "Codes de commande à table"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/team",
+      "testedPath": "/team",
+      "landedPath": "/team",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-55.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 29686,
+          "sha256": "70e92defdb7f27f7f517f4c0197cf14e5939c513098b88417f4fded7c678ab0f",
+          "visibleHeadings": [
+            "Team"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-55.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 33618,
+          "sha256": "c56d63856c8e45f9db7d58e715d470aeea26cb0144291c3e01c62792fdda5d5b",
+          "visibleHeadings": [
+            "Equipe"
+          ]
+        },
+        "es": {
+          "file": "s/es-55.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31070,
+          "sha256": "b1e7395f18412420db8417e80fcd989edb36b56733c87aee91521c84389750d3",
+          "visibleHeadings": [
+            "Equipo"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-55.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 31822,
+          "sha256": "d2b56fad3dfcade290d42bd337ba103e579338a843afe1f6ea6d0b5bd6af005c",
+          "visibleHeadings": [
+            "Équipe"
+          ]
+        }
+      }
+    },
+    {
+      "route": "/inventory/manufacturing-reports",
+      "testedPath": "/inventory/manufacturing-reports",
+      "landedPath": "/inventory/journal?view=report",
+      "view": "default view",
+      "images": {
+        "en": {
+          "file": "s/en-56.webp",
+          "documentLanguage": "en-GB",
+          "languagePicker": "EN",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 62070,
+          "sha256": "cfdcc77b6e4422910042582d23adfe12453d30b830badcf0a98feb4a8470dd95",
+          "visibleHeadings": [
+            "Inventory",
+            "Daily production: what was consumed and what was made",
+            "Batches by day",
+            "Finished items: quantity and cost per unit",
+            "Ingredients consumed",
+            "Additional production costs by category",
+            "Production history",
+            "Menu price changes made from the Stock Journal"
+          ]
+        },
+        "pt": {
+          "file": "s/pt-56.webp",
+          "documentLanguage": "pt-BR",
+          "languagePicker": "PT",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 66724,
+          "sha256": "13656cae643b005e0867386238251ded4a227f8e270e51788d93aa768e619803",
+          "visibleHeadings": [
+            "Estoque",
+            "Produção diária: consumo e produtos fabricados",
+            "Lotes por dia",
+            "Itens acabados: quantidade e custo unitário",
+            "Ingredientes consumidos",
+            "Custos adicionais de produção por categoria",
+            "Histórico de produção",
+            "Alterações de preços do cardápio feitas no diário de estoque"
+          ]
+        },
+        "es": {
+          "file": "s/es-56.webp",
+          "documentLanguage": "es-ES",
+          "languagePicker": "ES",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 67572,
+          "sha256": "a07c3c8b2eb240be2bbfb28bd72d88737ab288251f32ec0d271e253bfa3bb65f",
+          "visibleHeadings": [
+            "Inventario",
+            "Producción diaria: consumo y productos elaborados",
+            "Lotes por día",
+            "Artículos terminados: cantidad y coste unitario",
+            "Ingredientes consumidos",
+            "Costes adicionales de producción por categoría",
+            "Historial de producción",
+            "Cambios de precios del menú realizados desde el diario de existencias"
+          ]
+        },
+        "fr": {
+          "file": "s/fr-56.webp",
+          "documentLanguage": "fr-FR",
+          "languagePicker": "FR",
+          "httpStatus": 200,
+          "width": 1480,
+          "height": 940,
+          "bytes": 67028,
+          "sha256": "2743aefd7676e700be1c3db0fc764689e973403e7376ebef6e303edd41099724",
+          "visibleHeadings": [
+            "Stocks",
+            "Production quotidienne : matières consommées et produits fabriqués",
+            "Lots par jour",
+            "Articles finis : quantité et coût unitaire",
+            "Ingrédients consommés",
+            "Coûts de production supplémentaires par catégorie",
+            "Historique de production",
+            "Modifications des prix du menu depuis le journal des stocks"
+          ]
+        }
+      }
+    }
+  ]
+}
