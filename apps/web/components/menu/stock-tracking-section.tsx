@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "@/lib/toast";
@@ -45,13 +46,14 @@ export function StockTrackingSection({
   isCombo: boolean;
   onHandleReady?: (handle: StockTrackingHandle) => void;
 }) {
+  const { t } = useI18n();
   const { data: tracking } = useTracking(branchId, itemId);
   const { data: recipe } = useRecipe(branchId, itemId);
 
   if (isCombo) {
     return (
       <div className="rounded-xl border border-border/60 bg-muted/20 p-3.5 text-xs text-muted-foreground">
-        Combos deduct stock through their component items. Tracking is configured on individual component items.
+        {t("Combos deduct stock through their component items. Tracking is configured on individual component items.")}
       </div>
     );
   }
@@ -59,7 +61,7 @@ export function StockTrackingSection({
   if (!tracking || !recipe) {
     return (
       <div className="flex items-center justify-center p-4 text-xs text-muted-foreground animate-pulse">
-        Loading inventory stock rules…
+        {t("Loading inventory stock rules…")}
       </div>
     );
   }
@@ -98,6 +100,7 @@ function TrackingForm({
   initialLines: Line[];
   onHandleReady?: (handle: StockTrackingHandle) => void;
 }) {
+  const { t } = useI18n();
   const { data: ingredients } = useIngredients(branchId);
   const setTracking = useSetTracking(branchId, itemId);
   const setRecipe = useSetRecipe(branchId, itemId);
@@ -132,7 +135,7 @@ function TrackingForm({
         for (const l of lines) {
           if (!l.ingredientId) continue;
           if (!(Number(l.quantity) > 0)) {
-            toast.error("Please enter a valid positive quantity for all selected recipe ingredients.");
+            toast.error(t("Please enter a valid positive quantity for all selected recipe ingredients."));
             return false;
           }
         }
@@ -147,7 +150,7 @@ function TrackingForm({
           quantity,
         }));
         if (clean.length === 0) {
-          toast.error("Add at least one ingredient with a quantity before saving a recipe.");
+          toast.error(t("Add at least one ingredient with a quantity before saving a recipe."));
           return false;
         }
         await setRecipe.mutateAsync(clean);
@@ -163,7 +166,7 @@ function TrackingForm({
       }
       return true;
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Could not save inventory tracking");
+      toast.error(err instanceof ApiError ? err.message : t("Could not save inventory tracking"));
       return false;
     }
   };
@@ -181,14 +184,14 @@ function TrackingForm({
   }, [onHandleReady]);
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-2xs" aria-label="Stock tracking">
+    <section className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-2xs" aria-label={t("Stock tracking")}>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Inventory & Stock Tracking</h3>
-          <p className="text-xs text-muted-foreground/90 mt-0.5">{MODES.find((m) => m.value === mode)?.hint}</p>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Inventory & Stock Tracking")}</h3>
+          <p className="text-xs text-muted-foreground/90 mt-0.5">{t(MODES.find((m) => m.value === mode)?.hint ?? "")}</p>
         </div>
         <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-          Auto-deduct on sale
+          {t("Auto-deduct on sale")}
         </span>
       </div>
 
@@ -210,7 +213,7 @@ function TrackingForm({
                   : "text-muted-foreground hover:text-foreground hover:bg-background/40"
               )}
             >
-              {m.label}
+              {t(m.label)}
             </button>
           );
         })}
@@ -219,24 +222,22 @@ function TrackingForm({
       {mode === "DIRECT" && (
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_110px] gap-2.5 pt-1">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="direct-ingredient" className="text-xs font-medium text-foreground">Stock item to deduct</Label>
+            <Label htmlFor="direct-ingredient" className="text-xs font-medium text-foreground">{t("Stock item to deduct")}</Label>
             <select
               id="direct-ingredient"
               className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-xs sm:text-sm text-foreground focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer"
               value={directId}
               onChange={(e) => setDirectId(e.target.value)}
             >
-              <option value="">Choose stock item…</option>
+              <option value="">{t("Choose stock item…")}</option>
               {ingredients?.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name} ({i.unit}) — Current Stock: {Number(i.currentStock)}
-                </option>
+                <option key={i.id} value={i.id}>{t("{name} ({unit}) — Current Stock: {Number}", { name: i.name, unit: i.unit, Number: Number(i.currentStock) })}</option>
               ))}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="direct-qty" className="text-xs font-medium text-foreground">
-              Deduct Qty {unit(directId) && `(${unit(directId)})`}
+              {t("Deduct Qty")} {unit(directId) && `(${unit(directId)})`}
             </Label>
             <Input
               id="direct-qty"
@@ -254,17 +255,17 @@ function TrackingForm({
 
       {mode === "RECIPE" && (
         <div className="flex flex-col gap-2 pt-1">
-          <Label className="text-xs font-medium text-foreground">Recipe Ingredients (Bill of Materials)</Label>
+          <Label className="text-xs font-medium text-foreground">{t("Recipe Ingredients (Bill of Materials)")}</Label>
           <div className="flex flex-col gap-2">
             {lines.map((line, idx) => (
               <div key={idx} className="grid grid-cols-[1fr_96px_36px] items-center gap-2">
                 <select
-                  aria-label="Ingredient"
+                  aria-label={t("Ingredient")}
                   className="h-9 w-full rounded-xl border border-border/70 bg-background px-2.5 text-xs text-foreground focus:ring-1 focus:ring-primary outline-none cursor-pointer"
                   value={line.ingredientId}
                   onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, ingredientId: e.target.value } : l)))}
                 >
-                  <option value="">Select ingredient…</option>
+                  <option value="">{t("Select ingredient…")}</option>
                   {ingredients?.map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.name} ({i.unit})
@@ -273,14 +274,14 @@ function TrackingForm({
                 </select>
                 <div className="relative flex items-center">
                   <Input
-                    aria-label={`Quantity ${unit(line.ingredientId)}`}
+                    aria-label={t("Quantity {unit}", { unit: unit(line.ingredientId) })}
                     type="number"
                     min="0.001"
                     step="0.001"
                     value={line.quantity}
                     onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, quantity: e.target.value } : l)))}
                     className="rounded-xl h-9 text-xs pr-6"
-                    placeholder="Qty"
+                    placeholder={t("Qty")}
                   />
                   {unit(line.ingredientId) && (
                     <span className="absolute right-2 text-[10px] text-muted-foreground pointer-events-none uppercase font-semibold">
@@ -293,7 +294,7 @@ function TrackingForm({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                  aria-label="Remove ingredient"
+                  aria-label={t("Remove ingredient")}
                   onClick={() => setLines(lines.filter((_, i) => i !== idx))}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -308,19 +309,19 @@ function TrackingForm({
             className="self-start rounded-xl h-8 px-3 text-xs gap-1.5 mt-1 border-dashed text-primary hover:bg-primary/5 hover:border-primary/60 cursor-pointer"
             onClick={() => setLines([...lines, { ingredientId: "", quantity: "0.1" }])}
           >
-            <Plus className="h-3.5 w-3.5" /> Add ingredient line
+            <Plus className="h-3.5 w-3.5" /> {t("Add ingredient line")}
           </Button>
         </div>
       )}
 
       {mode === "DIRECT" && !directId && (
         <p className="text-[11px] text-amber-500 font-medium bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
-          ⚠️ Please select the stock item to deduct on checkout.
+          {t("⚠️ Please select the stock item to deduct on checkout.")}
         </p>
       )}
       {mode === "RECIPE" && lines.filter((l) => l.ingredientId).length === 0 && (
         <p className="text-[11px] text-amber-500 font-medium bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
-          ⚠️ Add at least one ingredient line so recipe stock is deducted when ordered.
+          {t("⚠️ Add at least one ingredient line so recipe stock is deducted when ordered.")}
         </p>
       )}
     </section>

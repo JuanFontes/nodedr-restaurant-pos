@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import type { IngredientUnit } from "@nodedr-restaurant/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -28,6 +30,8 @@ export function VoucherAddItemDialog({ branchId, kind, existing, open, onOpenCha
   onOpenChange: (o: boolean) => void;
   onCreated: (id: string) => void;
 }) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const { data: categories } = useCategories(branchId);
   const finished = kind === "PREPARED";
@@ -44,11 +48,11 @@ export function VoucherAddItemDialog({ branchId, kind, existing, open, onOpenCha
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) return setError("Type the item name.");
+    if (!name.trim()) return setError(t("Type the item name."));
     if (finished && onMenu) {
-      if (!categoryId) return setError("Choose the menu category this item will appear under.");
-      if (price.trim() === "" || !(Number(price) >= 0)) return setError("Type the selling price (tax included). It is not filled in for you.");
-      if (tax.trim() === "" || !(Number(tax) >= 0) || Number(tax) > 100) return setError("Type the tax rate in percent (0 if none). It is not filled in for you.");
+      if (!categoryId) return setError(t("Choose the menu category this item will appear under."));
+      if (price.trim() === "" || !(Number(price) >= 0)) return setError(t("Type the selling price (tax included). It is not filled in for you."));
+      if (tax.trim() === "" || !(Number(tax) >= 0) || Number(tax) > 100) return setError(t("Type the tax rate in percent (0 if none). It is not filled in for you."));
     }
     setBusy(true);
     let id = existing?.id ?? "";
@@ -58,7 +62,7 @@ export function VoucherAddItemDialog({ branchId, kind, existing, open, onOpenCha
         id = ing.id;
       } catch (err) {
         setBusy(false);
-        return setError(err instanceof ApiError ? err.message : "Could not add the item. Nothing was saved.");
+        return setError(err instanceof ApiError ? err.message : t("Could not add the item. Nothing was saved."));
       }
     }
     if (finished && onMenu) {
@@ -71,7 +75,7 @@ export function VoucherAddItemDialog({ branchId, kind, existing, open, onOpenCha
         setBusy(false);
         onCreated(id);
         onOpenChange(false);
-        toast.error(`${name.trim()} was added to stock, but not to the menu${err instanceof ApiError ? `: ${err.message}` : ""}. Add it under Menu.`);
+        toast.error(t("{trim} was added to stock, but not to the menu{value}. Add it under Menu.", { trim: name.trim(), value: err instanceof ApiError ? `: ${err.message}` : "" }));
         return;
       }
     }
@@ -87,35 +91,35 @@ export function VoucherAddItemDialog({ branchId, kind, existing, open, onOpenCha
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md">
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>{existing ? `Put ${existing.name} on the POS menu` : finished ? "Add menu item" : "Add inventory item"}</DialogTitle>
-            <DialogDescription>{existing ? "Adds a menu item that sells this stock item. Type the category, selling price and tax; nothing is filled in for you." : finished ? "Creates a finished product you can produce in this voucher, and by default puts it on the POS menu. Stock starts at zero." : "Creates a raw material (inventory item) for this voucher. It is not added to the menu. Stock starts at zero; receive it through a purchase first."}</DialogDescription>
+            <DialogTitle>{existing ? t("Put {name} on the POS menu", { name: existing.name }) : finished ? t("Add menu item") : t("Add inventory item")}</DialogTitle>
+            <DialogDescription>{existing ? t("Adds a menu item that sells this stock item. Type the category, selling price and tax; nothing is filled in for you.") : finished ? t("Creates a finished product you can produce in this voucher, and by default puts it on the POS menu. Stock starts at zero.") : t("Creates a raw material (inventory item) for this voucher. It is not added to the menu. Stock starts at zero; receive it through a purchase first.")}</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-1.5"><Label htmlFor="va-name">Name</Label><Input id="va-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus required readOnly={!!existing} /></div>
-          <div className="flex flex-col gap-1.5"><Label htmlFor="va-unit">Stock unit</Label>
-            <SearchSelect id="va-unit" value={unit} disabled={!!existing} onChange={(v) => v && setUnit(v as IngredientUnit)} options={UNITS.map((u) => ({ value: u, label: u }))} />
+          <div className="flex flex-col gap-1.5"><Label htmlFor="va-name">{t("Name")}</Label><Input id="va-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus required readOnly={!!existing} /></div>
+          <div className="flex flex-col gap-1.5"><Label htmlFor="va-unit">{t("Stock unit")}</Label>
+            <SearchSelect id="va-unit" value={unit} disabled={!!existing} onChange={(v) => v && setUnit(v as IngredientUnit)} options={UNITS.map((u) => ({ value: u, label: fmt.unit(u) }))} />
           </div>
           {finished && (
             <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-              {!existing && <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onMenu} onChange={(e) => setOnMenu(e.target.checked)} /> Also sell this on the POS menu</label>}
+              {!existing && <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onMenu} onChange={(e) => setOnMenu(e.target.checked)} /> {t("Also sell this on the POS menu")}</label>}
               {onMenu && (
                 <>
-                  <div className="flex flex-col gap-1.5"><Label htmlFor="va-cat">Menu category</Label>
-                    <SearchSelect id="va-cat" value={categoryId} onChange={setCategoryId} placeholder="Choose a category" emptyText="No category matches" options={(categories ?? []).map((c) => ({ value: c.id, label: c.name }))} />
-                    {categories?.length === 0 && <p className="text-xs text-destructive">There are no menu categories yet. Add one under Menu first.</p>}
+                  <div className="flex flex-col gap-1.5"><Label htmlFor="va-cat">{t("Menu category")}</Label>
+                    <SearchSelect id="va-cat" value={categoryId} onChange={setCategoryId} placeholder={t("Choose a category")} emptyText={t("No category matches")} options={(categories ?? []).map((c) => ({ value: c.id, label: c.name }))} />
+                    {categories?.length === 0 && <p className="text-xs text-destructive">{t("There are no menu categories yet. Add one under Menu first.")}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5"><Label htmlFor="va-price">Selling price (tax included)</Label><Input id="va-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
-                    <div className="flex flex-col gap-1.5"><Label htmlFor="va-tax">Tax rate %</Label><Input id="va-tax" inputMode="decimal" value={tax} onChange={(e) => setTax(e.target.value)} placeholder="e.g. 5" required /></div>
+                    <div className="flex flex-col gap-1.5"><Label htmlFor="va-price">{t("Selling price (tax included)")}</Label><Input id="va-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
+                    <div className="flex flex-col gap-1.5"><Label htmlFor="va-tax">{t("Tax rate %")}</Label><Input id="va-tax" inputMode="decimal" value={tax} onChange={(e) => setTax(e.target.value)} placeholder="e.g. 5" required /></div>
                   </div>
-                  <p className="text-xs text-muted-foreground">Each sale takes one {unit.toLowerCase()} out of this item&apos;s stock.</p>
+                  <p className="text-xs text-muted-foreground">{t("Each sale takes one {value} out of this item's stock.", { value: fmt.unit(unit) })}</p>
                 </>
               )}
             </div>
           )}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-            <Button type="submit" disabled={busy}>{busy ? "Adding…" : existing ? "Put on POS menu" : finished ? "Add menu item" : "Add inventory item"}</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>{t("Cancel")}</Button>
+            <Button type="submit" disabled={busy}>{busy ? t("Adding…") : existing ? t("Put on POS menu") : finished ? t("Add menu item") : t("Add inventory item")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

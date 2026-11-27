@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { ArrowLeft, CreditCard, Gift, Pencil, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,9 +18,10 @@ import { QueryError } from "@/components/ui/query-error";
 import { useBranch } from "@/hooks/use-branch";
 import { useCustomer, useDeleteCustomer } from "@/hooks/use-customers";
 import { ApiError } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const { id } = use(params);
   const { branchId } = useBranch();
   const { data: customer, isLoading, isError, error, refetch, isFetching } = useCustomer(branchId, id);
@@ -27,21 +30,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const [isEditing, setIsEditing] = useState(false);
 
   if (isError) {
-    return <QueryError error={error} what="this customer" onRetry={() => void refetch()} retrying={isFetching} />;
+    return <QueryError error={error} what={t("this customer")} onRetry={() => void refetch()} retrying={isFetching} />;
   }
   if (isLoading || !customer) {
     return <Skeleton className="h-96 rounded-2xl" />;
   }
 
   const onDelete = () => {
-    if (!confirm(`Delete ${customer.name ?? "this customer"}? This cannot be undone.`)) return;
+    if (!confirm(t("Delete {value}? This cannot be undone.", { value: customer.name ?? t("this customer") }))) return;
     deleteCustomer.mutate(customer.id, {
       onSuccess: () => {
-        toast.success(`${customer.name ?? "Customer"} deleted`);
+        toast.success(t("{value} deleted", { value: customer.name ?? t("Customer") }));
         router.replace("/customers");
       },
       onError: (err) =>
-        toast.error(err instanceof ApiError ? err.message : "Could not delete customer"),
+        toast.error(err instanceof ApiError ? err.message : t("Could not delete customer")),
     });
   };
 
@@ -54,21 +57,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Customers
+            {t("Customers")}
           </Link>
           <h1 className="mt-2 text-[32px] font-semibold tracking-tight text-foreground">
-            {customer.name ?? "Unnamed customer"}
-            {customer.status === "INACTIVE" && <Badge variant="outline" className="ml-3 align-middle text-xs font-normal">Inactive</Badge>}
+            {customer.name ?? t("Unnamed customer")}
+            {customer.status === "INACTIVE" && <Badge variant="outline" className="ml-3 align-middle text-xs font-normal">{t("Inactive")}</Badge>}
           </h1>
           <p className="text-sm text-muted-foreground">
             {[customer.phone, customer.email, [customer.address, customer.pincode].filter(Boolean).join(" – ")].filter(Boolean).join(" · ") ||
-              "No contact info on file"}
+              t("No contact info on file")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
             <Pencil className="h-3.5 w-3.5" />
-            Edit
+            {t("Edit")}
           </Button>
           <Button
             variant="outline"
@@ -77,7 +80,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             onClick={onDelete}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {t("Delete")}
           </Button>
         </div>
       </div>
@@ -88,7 +91,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <Star className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Loyalty points</p>
+            <p className="text-xs text-muted-foreground">{t("Loyalty points")}</p>
             <p className="text-xl font-semibold tabular-nums text-foreground">
               {customer.loyaltyPoints}
             </p>
@@ -99,9 +102,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <Gift className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Store credit</p>
+            <p className="text-xs text-muted-foreground">{t("Store credit")}</p>
             <p className="text-xl font-semibold tabular-nums text-foreground">
-              {formatCurrency(customer.walletBalance)}
+              {fmt.currency(customer.walletBalance)}
             </p>
           </div>
         </Card>
@@ -110,7 +113,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CreditCard className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Gift cards</p>
+            <p className="text-xs text-muted-foreground">{t("Gift cards")}</p>
             <p className="text-xl font-semibold tabular-nums text-foreground">
               {customer.giftCards.length}
             </p>
@@ -121,7 +124,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       {customer.allergies && (
         <Card className="p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Allergies
+            {t("Allergies")}
           </p>
           <p className="mt-1 text-sm text-destructive">{customer.allergies}</p>
         </Card>
@@ -132,13 +135,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
       {customer.giftCards.length > 0 && (
         <Card className="flex flex-col gap-3 p-5">
-          <h2 className="text-[18px] font-medium text-foreground">Gift cards</h2>
+          <h2 className="text-[18px] font-medium text-foreground">{t("Gift cards")}</h2>
           <div className="flex flex-col divide-y divide-border">
             {customer.giftCards.map((gc) => (
               <div key={gc.id} className="flex items-center justify-between py-2 text-sm">
                 <span className="font-mono text-muted-foreground">{gc.code}</span>
                 <span className="font-medium tabular-nums text-foreground">
-                  {formatCurrency(gc.balance)} / {formatCurrency(gc.initialValue)}
+                  {fmt.currency(gc.balance)} / {fmt.currency(gc.initialValue)}
                 </span>
               </div>
             ))}
@@ -147,7 +150,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       )}
 
       <Card className="flex flex-col gap-3 p-5">
-        <h2 className="text-[18px] font-medium text-foreground">Order history</h2>
+        <h2 className="text-[18px] font-medium text-foreground">{t("Order history")}</h2>
         {customer.orders.length > 0 ? (
           <div className="flex flex-col divide-y divide-border">
             {customer.orders.map((o) => (
@@ -155,17 +158,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <div className="flex flex-col">
                   <span className="font-medium text-foreground">#{o.orderNumber}</span>
                   <Badge variant="secondary" className="mt-0.5 w-fit text-[11px] font-normal">
-                    {new Date(o.billedAt).toLocaleDateString()}
+                    {new Date(o.billedAt).toLocaleDateString(fmt.localeTag)}
                   </Badge>
                 </div>
                 <span className="font-medium tabular-nums text-foreground">
-                  {formatCurrency(o.totalAmount)}
+                  {fmt.currency(o.totalAmount)}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="py-4 text-sm text-muted-foreground">No paid orders yet.</p>
+          <p className="py-4 text-sm text-muted-foreground">{t("No paid orders yet.")}</p>
         )}
       </Card>
 

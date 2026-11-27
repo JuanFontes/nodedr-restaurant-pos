@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat, type StaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Printer } from "lucide-react";
 import { useState } from "react";
@@ -46,12 +48,29 @@ const PRESETS: { label: string; get: () => { from: string; to: string } }[] = [
   { label: "All time", get: () => ({ from: daysAgo(1829), to: daysAgo(0) }) },
 ];
 const MONEY_COLS = /sales|tax|discount|tips|total|amount|refund|revenue|cost|margin|value|price/i;
-const money = (v: string | number | null, col: string) =>
-  typeof v === "number" && MONEY_COLS.test(col)
-    ? v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : (v ?? "—");
+function reportCell(fmt: StaffFormat, value: string | number | null, column: string) {
+  if (typeof value === "number") {
+    if (["Bill no.", "Order", "Table"].includes(column)) return value;
+    return fmt.number(value, MONEY_COLS.test(column) ? 2 : undefined);
+  }
+  const billCount = column === "Bill no." && value?.match(/^(\d+) bills(?: \(first (\d+) only - narrow the dates\))?$/);
+  if (billCount) {
+    const count = fmt.number(Number(billCount[1]));
+    return billCount[2]
+      ? fmt.label("{count} bills (first {limit} only - narrow the dates)", { count, limit: fmt.number(Number(billCount[2])) })
+      : fmt.label("{count} bills", { count });
+  }
+  if (column === "Date" && value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return fmt.day(value);
+  if (column === "Month" && value && /^\d{4}-\d{2}$/.test(value)) return fmt.day(value + "-01", { month: "long", year: "numeric" });
+  if (value && ["Day", "Status", "Method", "Reason", "Type"].includes(column)) return fmt.code(value.toUpperCase().replaceAll(" ", "_"));
+  if (value && column === "Unit") return fmt.unit(value);
+  if (value && column === "Paid by") return value.split(" + ").map(fmt.code).join(" + ");
+  return value ?? "—";
+}
 
 export default function ReportsPage() {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const { branchId } = useBranch();
   const { data: me } = useCurrentUser();
   const canExport = hasPermission(me?.user, "data.export");
@@ -81,15 +100,15 @@ export default function ReportsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="print:hidden">
-        <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Reports</h1>
-        <p className="text-sm text-muted-foreground">Pick a day or range, open any bill, then print or export to Excel, PDF or CSV</p>
+        <h1 className="text-[32px] font-semibold tracking-tight text-foreground">{t("Reports")}</h1>
+        <p className="text-sm text-muted-foreground">{t("Pick a day or range, open any bill, then print or export to Excel, PDF or CSV")}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-        <nav className="flex flex-col gap-4 print:hidden" aria-label="Reports">
+        <nav className="flex flex-col gap-4 print:hidden" aria-label={t("Reports")}>
           {groups.map((g) => (
             <div key={g} className="flex flex-col gap-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{g}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{fmt.label(g)}</p>
               {catalog
                 ?.filter((c) => c.group === g)
                 .map((c) => (
@@ -102,7 +121,7 @@ export default function ReportsPage() {
                       key === c.key ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary",
                     )}
                   >
-                    {c.title}
+                    {fmt.label(c.title)}
                   </button>
                 ))}
             </div>
@@ -125,19 +144,19 @@ export default function ReportsPage() {
                     on ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-secondary",
                   )}
                 >
-                  {p.label}
+                  {t(p.label)}
                 </button>
               );
             })}
           </div>
           <div className="flex flex-wrap items-center gap-2 print:hidden">
-            <Input aria-label="Report from date" type="date" className="w-40" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
-            <Input aria-label="Report to date" type="date" className="w-40" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+            <Input aria-label={t("Report from date")} type="date" className="w-40" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
+            <Input aria-label={t("Report to date")} type="date" className="w-40" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
             {data?.rowOrderIds && (
-              <Input aria-label="Find a bill" placeholder="Find bill, customer, payment…" className="w-56" value={find} onChange={(e) => setFind(e.target.value)} />
+              <Input aria-label={t("Find a bill")} placeholder={t("Find bill, customer, payment…")} className="w-56" value={find} onChange={(e) => setFind(e.target.value)} />
             )}
             <Button variant="outline" size="sm" onClick={() => window.print()}>
-              <Printer className="mr-2 h-4 w-4" /> Print
+              <Printer className="mr-2 h-4 w-4" /> {t("Print")}
             </Button>
             {canExport &&
               (["xlsx", "pdf", "csv"] as const).map((f) => (
@@ -146,26 +165,24 @@ export default function ReportsPage() {
                   href={`/api/v1/reports/${key}/export?${qs}&format=${f}`}
                   className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-secondary"
                 >
-                  <Download className="mr-2 h-4 w-4" /> {f === "xlsx" ? "Excel" : f.toUpperCase()}
+                  <Download className="mr-2 h-4 w-4" /> {f === "xlsx" ? t("Excel") : f.toUpperCase()}
                 </a>
               ))}
           </div>
 
           <Card className="overflow-x-auto p-4">
-            <h2 className="mb-3 text-lg font-semibold text-foreground">{data?.title ?? catalog?.find((c) => c.key === key)?.title}</h2>
-            <p className="mb-3 hidden text-xs text-muted-foreground print:block">
-              {range.from} to {range.to}
-            </p>
+            <h2 className="mb-3 text-lg font-semibold text-foreground">{fmt.label(data?.title ?? catalog?.find((c) => c.key === key)?.title ?? "")}</h2>
+            <p className="mb-3 hidden text-xs text-muted-foreground print:block">{t("{from} to {to}", { from: fmt.day(range.from), to: fmt.day(range.to) })}</p>
             {isLoading ? (
               <Skeleton className="h-32" />
             ) : error ? (
-              <p className="text-sm text-destructive">{error instanceof ApiError ? error.message : "Could not load report"}</p>
+              <p className="text-sm text-destructive">{error instanceof ApiError ? error.message : t("Could not load report")}</p>
             ) : data && data.rows.length > 0 ? (
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
                   <tr>
                     {data.columns.map((c) => (
-                      <th key={c} className="py-1 pr-4 font-medium">{c}</th>
+                      <th key={c} className="py-1 pr-4 font-medium">{fmt.label(c)}</th>
                     ))}
                   </tr>
                 </thead>
@@ -194,7 +211,7 @@ export default function ReportsPage() {
                               onClick: go,
                               tabIndex: 0,
                               role: "button",
-                              "aria-label": orderId ? `Open bill ${r[2]}` : `Show every bill on ${r[0]}`,
+                              "aria-label": orderId ? t("Open bill {value}", { value: (r[2]) ?? "" }) : t("Show every bill on {value}", { value: (r[0]) ?? "" }),
                               onKeyDown: (e: React.KeyboardEvent) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
@@ -205,7 +222,7 @@ export default function ReportsPage() {
                           : {})}
                       >
                         {r.map((cell, j) => (
-                          <td key={j} className="py-1.5 pr-4 tabular-nums">{money(cell, data.columns[j])}</td>
+                          <td key={j} className="py-1.5 pr-4 tabular-nums">{reportCell(fmt, cell, data.columns[j])}</td>
                         ))}
                       </tr>
                     );
@@ -215,14 +232,14 @@ export default function ReportsPage() {
                   <tfoot>
                     <tr className="border-t-2 border-border font-semibold">
                       {data.totals.map((cell, j) => (
-                        <td key={j} className="py-2 pr-4 tabular-nums">{money(cell, data.columns[j])}</td>
+                        <td key={j} className="py-2 pr-4 tabular-nums">{j === 0 && cell === "Total" ? t("Total") : reportCell(fmt, cell, data.columns[j])}</td>
                       ))}
                     </tr>
                   </tfoot>
                 )}
               </table>
             ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">No data for this period.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">{t("No data for this period.")}</p>
             )}
           </Card>
 
@@ -232,7 +249,7 @@ export default function ReportsPage() {
             <SchedulesPanel
               branchId={branchId}
               reportKey={key}
-              titles={Object.fromEntries((catalog ?? []).map((c) => [c.key, c.title]))}
+              titles={Object.fromEntries((catalog ?? []).map((c) => [c.key, fmt.label(c.title)]))}
             />
           )}
         </div>

@@ -2,6 +2,7 @@
    The viewport element is shared through a callback ref (the standard way to merge a forwarded ref with an internal one). */
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import * as React from "react";
 import { ArrowDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,7 @@ export type MessageScrollerViewportProps = React.HTMLAttributes<HTMLDivElement>;
 
 export const MessageScrollerViewport = React.forwardRef<HTMLDivElement, MessageScrollerViewportProps>(
   ({ className, children, ...props }, ref) => {
+    const { t } = useI18n();
     const { viewportRef } = useMessageScroller();
 
     // Hands the element to both the scroller's own ref and any ref the caller passed.
@@ -110,7 +112,7 @@ export const MessageScrollerViewport = React.forwardRef<HTMLDivElement, MessageS
         ref={setRefs}
         tabIndex={0}
         role="region"
-        aria-label="Message transcript"
+        aria-label={t("Message transcript")}
         className={cn(
           "flex-1 overflow-y-auto focus-visible:outline-none scroll-smooth",
           className
@@ -163,6 +165,7 @@ export type MessageScrollerButtonProps = React.ButtonHTMLAttributes<HTMLButtonEl
 
 export const MessageScrollerButton = React.forwardRef<HTMLButtonElement, MessageScrollerButtonProps>(
   ({ className, ...props }, ref) => {
+    const { t } = useI18n();
     const { isAtBottom, scrollToBottom } = useMessageScroller();
 
     if (isAtBottom) return null;
@@ -178,7 +181,7 @@ export const MessageScrollerButton = React.forwardRef<HTMLButtonElement, Message
         )}
         {...props}
       >
-        <span>Latest messages</span>
+        <span>{t("Latest messages")}</span>
         <ArrowDownIcon className="h-3.5 w-3.5" />
       </button>
     );

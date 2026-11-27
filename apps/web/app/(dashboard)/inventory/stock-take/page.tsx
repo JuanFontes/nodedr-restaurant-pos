@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import type { IngredientUnit } from "@nodedr-restaurant/types";
 import { useMemo, useState } from "react";
 import { InventoryTabs } from "@/components/inventory/inventory-tabs";
@@ -18,6 +20,8 @@ import { toast } from "@/lib/toast";
 // The shelf count every kitchen does: walk the store room, type what is really there, see the differences.
 // Only items with a number typed are booked; the rest are left alone.
 export default function StockTakePage() {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const { branchId } = useBranch();
   const { data: ingredients, isLoading } = useIngredients(branchId);
   const { data: units } = useStockItems(branchId);
@@ -48,8 +52,8 @@ export default function StockTakePage() {
     take.mutate(
       { area: area || undefined, note: note || undefined, idempotencyKey: key, lines: filled.map(([id, c]) => ({ ingredientId: id, counted: c.v.trim(), unit: (c.u || items.find((i) => i.id === id)!.unit) as IngredientUnit })) },
       {
-        onSuccess: (r) => { setResult(r); setCounts({}); setKey(`web-${crypto.randomUUID()}`); toast.success("Stock take saved"); },
-        onError: (e) => setError(e instanceof ApiError ? e.message : "Could not save the count. Nothing was changed."),
+        onSuccess: (r) => { setResult(r); setCounts({}); setKey(`web-${crypto.randomUUID()}`); toast.success(t("Stock take saved")); },
+        onError: (e) => setError(e instanceof ApiError ? e.message : t("Could not save the count. Nothing was changed.")),
       },
     );
   };
@@ -61,14 +65,14 @@ export default function StockTakePage() {
         <Header />
         <InventoryTabs />
         <Card className="flex flex-col gap-3 p-5">
-          <h2 className="text-lg font-semibold">Count saved</h2>
-          <p className="text-sm text-muted-foreground">{result.lines.length} item(s) counted, {changed.length} different from the system. Each difference is in the Stock journal as an adjustment.</p>
+          <h2 className="text-lg font-semibold">{t("Count saved")}</h2>
+          <p className="text-sm text-muted-foreground">{t("{count} item(s) counted, {count2} different from the system. Each difference is in the Stock journal as an adjustment.", { count: result.lines.length, count2: changed.length })}</p>
           {changed.length > 0 && (
             <ul className="flex flex-col gap-1 text-sm">
-              {changed.map((l) => (<li key={l.ingredientId} className="flex justify-between"><span>{l.name}</span><span className={`tabular-nums ${Number(l.difference) < 0 ? "text-destructive" : ""}`}>{l.expected} → {l.counted} {l.unit} ({Number(l.difference) > 0 ? "+" : ""}{l.difference})</span></li>))}
+              {changed.map((l) => (<li key={l.ingredientId} className="flex justify-between"><span>{l.name}</span><span className={`tabular-nums ${Number(l.difference) < 0 ? "text-destructive" : ""}`}>{l.expected} → {fmt.quantity(l.counted)} {fmt.unit(l.unit)} ({Number(l.difference) > 0 ? "+" : ""}{fmt.quantity(l.difference)})</span></li>))}
             </ul>
           )}
-          <div><Button onClick={() => setResult(null)}>Start another count</Button></div>
+          <div><Button onClick={() => setResult(null)}>{t("Start another count")}</Button></div>
         </Card>
       </div>
     );
@@ -80,11 +84,11 @@ export default function StockTakePage() {
       <InventoryTabs />
       <Card className="flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" aria-pressed={!area} onClick={() => setArea("")} className={"rounded-full border px-3 py-1 text-sm " + (!area ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>All areas</button>
+          <button type="button" aria-pressed={!area} onClick={() => setArea("")} className={"rounded-full border px-3 py-1 text-sm " + (!area ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>{t("All areas")}</button>
           {areas.map((a) => (<button key={a} type="button" aria-pressed={area === a} onClick={() => setArea(a)} className={"rounded-full border px-3 py-1 text-sm " + (area === a ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>{a}</button>))}
-          <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Blind count (hide system quantity)</label>
+          <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> {t("Blind count (hide system quantity)")}</label>
         </div>
-        <p className="text-sm text-muted-foreground">Type what is really on the shelf. Leave an item empty to skip it. Nothing changes until you press Save count.</p>
+        <p className="text-sm text-muted-foreground">{t("Type what is really on the shelf. Leave an item empty to skip it. Nothing changes until you press Save count.")}</p>
       </Card>
 
       {isLoading ? (
@@ -98,15 +102,15 @@ export default function StockTakePage() {
             const header = idx === 0 || shown[idx - 1].category !== i.category;
             return (
               <li key={i.id}>
-                {header && <h2 className="mb-1 mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{i.category || "Other"}</h2>}
+                {header && <h2 className="mb-1 mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{i.category || t("Other")}</h2>}
                 <div className="grid grid-cols-[1fr_6rem_5rem] items-center gap-2 rounded-lg border border-border p-2 sm:grid-cols-[1fr_8rem_6rem_7rem]">
                   <div className="col-span-3 sm:col-span-1">
                     <p className="font-medium">{i.name}</p>
-                    <p className="text-xs text-muted-foreground">{i.storageLocation ?? "No storage area"}{blind ? "" : ` · ${place ? `recorded here: ${placeLevel(i.id) ?? 0}` : `system: ${i.currentStock}`} ${i.unit}`}</p>
+                    <p className="text-xs text-muted-foreground">{i.storageLocation ?? t("No storage area")}{blind ? "" : ` · ${place ? `recorded here: ${placeLevel(i.id) ?? 0}` : `system: ${fmt.quantity(i.currentStock)}`} ${fmt.unit(i.unit)}`}</p>
                   </div>
-                  <Input aria-label={`Counted ${i.name}`} inputMode="decimal" placeholder="Counted" value={c.v} onChange={(e) => setCounts({ ...counts, [i.id]: { ...c, v: e.target.value } })} />
-                  <select aria-label={`Unit for ${i.name}`} className={selectClass} value={c.u || i.unit} onChange={(e) => setCounts({ ...counts, [i.id]: { ...c, u: e.target.value === i.unit ? "" : (e.target.value as IngredientUnit) } })}>
-                    {(unitsOf(i.id).length ? unitsOf(i.id) : [i.unit]).map((u) => (<option key={u}>{u}</option>))}
+                  <Input aria-label={t("Counted {name}", { name: i.name })} inputMode="decimal" placeholder={t("Counted")} value={c.v} onChange={(e) => setCounts({ ...counts, [i.id]: { ...c, v: e.target.value } })} />
+                  <select aria-label={t("Unit for {name}", { name: i.name })} className={selectClass} value={c.u || i.unit} onChange={(e) => setCounts({ ...counts, [i.id]: { ...c, u: e.target.value === i.unit ? "" : (e.target.value as IngredientUnit) } })}>
+                    {(unitsOf(i.id).length ? unitsOf(i.id) : [i.unit]).map((u) => (<option key={u} value={u}>{fmt.unit(u)}</option>))}
                   </select>
                   <span className={`hidden text-right text-sm tabular-nums sm:block ${diff && diff < 0 ? "text-destructive" : ""}`}>{!blind && diff !== null && diff !== 0 ? `${diff > 0 ? "+" : ""}${Math.round(diff * 1000) / 1000}` : ""}</span>
                 </div>
@@ -117,20 +121,21 @@ export default function StockTakePage() {
       )}
 
       <div className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-border bg-background py-3">
-        <Input aria-label="Note" className="max-w-xs" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
-        <span className="text-sm text-muted-foreground">{filled.length} counted</span>
+        <Input aria-label={t("Note")} className="max-w-xs" placeholder={t("Note (optional)")} value={note} onChange={(e) => setNote(e.target.value)} />
+        <span className="text-sm text-muted-foreground">{t("{count} counted", { count: filled.length })}</span>
         {error && <span role="alert" className="text-sm text-destructive">{error}</span>}
-        <Button className="ml-auto" disabled={filled.length === 0 || take.isPending} onClick={submit}>{take.isPending ? "Saving…" : "Save count"}</Button>
+        <Button className="ml-auto" disabled={filled.length === 0 || take.isPending} onClick={submit}>{take.isPending ? t("Saving…") : t("Save count")}</Button>
       </div>
     </div>
   );
 }
 
 function Header() {
+  const { t } = useI18n();
   return (
     <div>
-      <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Inventory</h1>
-      <p className="text-sm text-muted-foreground">Stock, daily production, purchasing, and food waste</p>
+      <h1 className="text-[32px] font-semibold tracking-tight text-foreground">{t("Inventory")}</h1>
+      <p className="text-sm text-muted-foreground">{t("Stock, daily production, purchasing, and food waste")}</p>
     </div>
   );
 }

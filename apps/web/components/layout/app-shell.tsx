@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import type { SessionUser } from "@nodedr-restaurant/types";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -8,6 +9,7 @@ import { EntityDialogHost } from "@/components/layout/entity-dialog-host";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useBranch } from "@/hooks/use-branch";
 import { useDisplaySettings } from "@/hooks/use-settings";
+import { StaffCurrencyContext } from "@/hooks/use-staff-format";
 import { setDefaultCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { BrandFooter } from "./brand-footer";
@@ -63,6 +65,7 @@ export function AppShell({
   user?: SessionUser;
   children: React.ReactNode;
 }) {
+  const { t: translate } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   // Desktop sidebar is compact (icons) by default so the page gets the room. The toggle button pins it open or
   // compact (remembered per browser; mouse, touch and keyboard all work). On top of that, hovering with a mouse or
@@ -94,8 +97,7 @@ export function AppShell({
   const toggle = () => setCollapsed((c) => { const n = !c; try { localStorage.setItem("orderrestro.sidebar.collapsed", n ? "1" : "0"); } catch { /* storage blocked */ } return n; });
   const { branchId: shellBranch } = useBranch();
   const { data: shellDisplay } = useDisplaySettings(shellBranch);
-  const shellCurrency = shellDisplay?.restaurant.currency;
-  setDefaultCurrency(shellCurrency);
+  const currency = setDefaultCurrency(shellDisplay?.restaurant.currency);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -104,13 +106,14 @@ export function AppShell({
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-2 focus:ring-ring"
       >
-        Skip to content
+        {translate("Skip to content")}
       </a>
+      <StaffCurrencyContext.Provider value={currency}>
       <div className="flex min-h-0 flex-1">
       {/* Desktop sidebar */}
       <aside
         id="app-sidebar"
-        aria-label="Main navigation"
+        aria-label={translate("Main navigation")}
         className={`relative hidden shrink-0 transition-[width] duration-200 motion-reduce:transition-none lg:block ${collapsed ? "w-[4.5rem]" : "w-64"}`}
         onPointerEnter={(e) => { if (e.pointerType === "mouse") scheduleHover(true); }}
         onPointerLeave={(e) => { if (e.pointerType === "mouse") scheduleHover(false); }}
@@ -146,7 +149,7 @@ export function AppShell({
       {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 bg-sidebar p-0">
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetTitle className="sr-only">{translate("Navigation")}</SheetTitle>
           <div className="flex h-16 items-center gap-2 px-5">
             <RestaurantBrand />
           </div>
@@ -166,7 +169,7 @@ export function AppShell({
             type="button"
             onClick={() => setMobileOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary lg:hidden"
-            aria-label="Open navigation"
+            aria-label={translate("Open navigation")}
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -176,7 +179,7 @@ export function AppShell({
               onClick={toggle}
               aria-controls="app-sidebar"
               aria-expanded={!collapsed}
-              aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+              aria-label={collapsed ? translate("Expand navigation") : translate("Collapse navigation")}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
             >
               {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -190,11 +193,12 @@ export function AppShell({
             <UserMenu user={user} />
           </div>
         </header>
-        <main key={shellCurrency ?? "default"} id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24 lg:p-6 lg:pb-6">{children}</main>
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24 lg:p-6 lg:pb-6">{children}</main>
         <EntityDialogHost />
       </div>
       <MobileBottomNav user={user} onMore={() => setMobileOpen(true)} />
       </div>
+      </StaffCurrencyContext.Provider>
     </div>
   );
 }

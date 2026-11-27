@@ -1,5 +1,6 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
 import * as React from "react";
 import { ChevronDown, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export function Reasoning({
   className,
   ...props
 }: ReasoningProps) {
+  const fmt = useStaffFormat();
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
 
   return (
@@ -35,10 +37,10 @@ export function Reasoning({
       >
         <div className="flex items-center gap-1.5 text-foreground/80">
           <Brain className="h-3.5 w-3.5 text-primary" />
-          <span>Thought process</span>
+          <span>{fmt.label("Thought process")}</span>
           {durationMs !== undefined && (
             <span className="text-[11px] text-muted-foreground tabular-nums">
-              ({(durationMs / 1000).toFixed(1)}s)
+              ({fmt.number(durationMs / 1000, 1)} s)
             </span>
           )}
         </div>

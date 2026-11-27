@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import * as React from "react";
 import { Check, X, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,8 @@ export function ApprovalReviewDeck({
   isRejected = false,
   className,
 }: ApprovalReviewDeckProps) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const items = proposal.items || [];
   const bomLines = proposal.bomLines || [];
   const toolName = (proposal.toolName || "").toLowerCase();
@@ -84,7 +88,7 @@ export function ApprovalReviewDeck({
       <div className="flex flex-col gap-0.5 px-4 pt-3.5 pb-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground truncate">
-            {proposal.toolName || "Action Proposal"}
+            {proposal.toolName || t("Action Proposal")}
           </span>
           <Badge
             variant={isCompleted ? "default" : isRejected ? "destructive" : "secondary"}
@@ -93,7 +97,7 @@ export function ApprovalReviewDeck({
               isCompleted && "bg-emerald-600 hover:bg-emerald-600 text-white"
             )}
           >
-            {isCompleted ? "Approved & Recorded" : isRejected ? "Cancelled" : "Review Required"}
+            {isCompleted ? t("Approved & Recorded") : isRejected ? t("Cancelled") : t("Review Required")}
           </Badge>
         </div>
         <p className="text-sm sm:text-base font-semibold text-foreground leading-snug">
@@ -116,29 +120,29 @@ export function ApprovalReviewDeck({
         {isStaffProposal && (
           <div className="rounded-lg border border-border/80 overflow-hidden bg-background/50 divide-y divide-border/40 text-xs">
             <div className="flex items-center justify-between px-3 py-2 bg-muted/40 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-              <span>Staff Profile</span>
-              <span>Account Configuration</span>
+              <span>{t("Staff Profile")}</span>
+              <span>{t("Account Configuration")}</span>
             </div>
             <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-muted-foreground font-medium">Full Name</span>
+              <span className="text-muted-foreground font-medium">{t("Full Name")}</span>
               <span className="font-semibold text-foreground">{rawParams.name || proposal.title.replace(/^Register Staff Member\s*/i, "")}</span>
             </div>
             {rawParams.email && (
               <div className="flex items-center justify-between px-3 py-2.5">
-                <span className="text-muted-foreground font-medium">Email / Login ID</span>
+                <span className="text-muted-foreground font-medium">{t("Email / Login ID")}</span>
                 <span className="font-mono text-primary">{rawParams.email}</span>
               </div>
             )}
             <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-muted-foreground font-medium">Assigned Role</span>
+              <span className="text-muted-foreground font-medium">{t("Assigned Role")}</span>
               <span className="font-medium px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px]">
-                {rawParams.role || "KITCHEN_STAFF"}
+                {rawParams.role || t("KITCHEN_STAFF")}
               </span>
             </div>
             <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-muted-foreground font-medium">POS / KDS Quick PIN</span>
+              <span className="text-muted-foreground font-medium">{t("POS / KDS Quick PIN")}</span>
               <span className="font-mono font-semibold text-foreground tracking-wider">
-                {rawParams.pin || "None (set in profile)"}
+                {rawParams.pin || t("None (set in profile)")}
               </span>
             </div>
           </div>
@@ -148,16 +152,16 @@ export function ApprovalReviewDeck({
         {isTableProposal && (
           <div className="rounded-lg border border-border/80 overflow-hidden bg-background/50 divide-y divide-border/40 text-xs">
             <div className="flex items-center justify-between px-3 py-2 bg-muted/40 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-              <span>Section / Floor</span>
-              <span>Table Plan</span>
+              <span>{t("Section / Floor")}</span>
+              <span>{t("Table Plan")}</span>
             </div>
             <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-muted-foreground font-medium">Floor Section</span>
-              <span className="font-semibold text-foreground">{rawParams.floorName || "Main Dining"}</span>
+              <span className="text-muted-foreground font-medium">{t("Floor Section")}</span>
+              <span className="font-semibold text-foreground">{rawParams.floorName || t("Main Dining")}</span>
             </div>
             {rawParams.numbers && (
               <div className="flex items-center justify-between px-3 py-2.5">
-                <span className="text-muted-foreground font-medium">Generated Table Numbers</span>
+                <span className="text-muted-foreground font-medium">{t("Generated Table Numbers")}</span>
                 <div className="flex flex-wrap gap-1 justify-end">
                   {(rawParams.numbers as string[]).map((num: string, idx: number) => (
                     <span key={idx} className="font-mono font-semibold px-1.5 py-0.5 rounded bg-muted text-[11px]">
@@ -169,8 +173,8 @@ export function ApprovalReviewDeck({
             )}
             {rawParams.capacity && (
               <div className="flex items-center justify-between px-3 py-2.5">
-                <span className="text-muted-foreground font-medium">Seats Per Table</span>
-                <span className="font-semibold text-foreground">{rawParams.capacity} guests</span>
+                <span className="text-muted-foreground font-medium">{t("Seats Per Table")}</span>
+                <span className="font-semibold text-foreground">{rawParams.capacity} {t("guests")}</span>
               </div>
             )}
           </div>
@@ -179,9 +183,7 @@ export function ApprovalReviewDeck({
         {/* Case C: Multi-Action Pipeline Preview */}
         {isMultiAction && (
           <div className="rounded-lg border border-border/80 overflow-hidden bg-background/50 divide-y divide-border/40 text-xs">
-            <div className="px-3 py-2 bg-muted/40 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Pipeline Execution Plan ({actions?.length} Steps)
-            </div>
+            <div className="px-3 py-2 bg-muted/40 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">{t("Pipeline Execution Plan ({count} Steps)", { count: actions?.length })}</div>
             {actions?.map((act, idx) => (
               <div key={idx} className="flex items-center justify-between px-3 py-2.5">
                 <div className="flex items-center gap-2">
@@ -204,9 +206,9 @@ export function ApprovalReviewDeck({
             {items.length > 0 && (
               <>
                 <div className="grid grid-cols-[1.5fr_1fr_1fr] items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border/80 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  <span>Dish / Menu Item</span>
-                  <span>Category</span>
-                  <span className="text-right">Price</span>
+                  <span>{t("Dish / Menu Item")}</span>
+                  <span>{t("Category")}</span>
+                  <span className="text-right">{t("Price")}</span>
                 </div>
 
                 {items.map((item, idx) => (
@@ -219,10 +221,10 @@ export function ApprovalReviewDeck({
                       <span className="truncate">{item.name}</span>
                     </div>
                     <div className="text-muted-foreground truncate text-[11px]">
-                      {item.category || proposal.category || "Menu Item"}
+                      {item.category || proposal.category || t("Menu Item")}
                     </div>
                     <div className="text-right font-medium text-primary tabular-nums">
-                      {item.price ? `₹${item.price.toFixed(2)}` : "Standard"}
+                      {item.price ? fmt.currency(item.price) : t("Standard")}
                     </div>
                   </div>
                 ))}
@@ -233,7 +235,7 @@ export function ApprovalReviewDeck({
             {bomLines.length > 0 && (
               <div className="p-3 bg-muted/15 border-t border-border/40">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                  Recipe Bill of Materials (Automatic Stock Deduction):
+                  {t("Recipe Bill of Materials (Automatic Stock Deduction):")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {bomLines.map((line, idx) => (
@@ -264,7 +266,7 @@ export function ApprovalReviewDeck({
             className="h-8 px-3 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
-            <span>Reject</span>
+            <span>{t("Reject")}</span>
           </Button>
           <Button
             size="sm"
@@ -275,12 +277,12 @@ export function ApprovalReviewDeck({
             {isExecuting ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Saving to Database…</span>
+                <span>{t("Saving to Database…")}</span>
               </>
             ) : (
               <>
                 <Check className="h-3.5 w-3.5 stroke-[3]" />
-                <span>Approve</span>
+                <span>{t("Approve")}</span>
               </>
             )}
           </Button>

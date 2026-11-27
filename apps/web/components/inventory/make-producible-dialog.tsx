@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import type { IngredientUnit } from "@nodedr-restaurant/types";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,8 @@ export function MakeProducibleDialog({ branchId, item, onDone, onCancel }: {
   onDone: (stockItemId: string, unit: IngredientUnit) => void;
   onCancel: () => void;
 }) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const make = useMakeProducible(branchId);
   const [unit, setUnit] = useState<IngredientUnit>("PIECE");
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +34,7 @@ export function MakeProducibleDialog({ branchId, item, onDone, onCancel }: {
     setError(null);
     make.mutate({ menuItemId: item.id, unit }, {
       onSuccess: (r) => onDone(r.id, unit),
-      onError: (e) => setError(e instanceof ApiError ? e.message : "Could not link this menu item. Nothing was changed."),
+      onError: (e) => setError(e instanceof ApiError ? e.message : t("Could not link this menu item. Nothing was changed.")),
     });
   };
 
@@ -38,25 +42,21 @@ export function MakeProducibleDialog({ branchId, item, onDone, onCancel }: {
     <Dialog open onOpenChange={(o) => !o && !make.isPending && onCancel()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Produce {item.name} into stock</DialogTitle>
-          <DialogDescription>
-            {item.name} is on your menu but not tracked in stock yet. This adds a stock item with the same name and links it, so the quantity you make is kept in stock and each sale takes one off.
-          </DialogDescription>
+          <DialogTitle>{t("Produce {name} into stock", { name: item.name })}</DialogTitle>
+          <DialogDescription>{t("{name} is on your menu but not tracked in stock yet. This adds a stock item with the same name and links it, so the quantity you make is kept in stock and each sale takes one off.", { name: item.name })}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="mp-unit">Count it in</Label>
-          <SearchSelect id="mp-unit" value={unit} onChange={(v) => v && setUnit(v as IngredientUnit)} options={UNITS.map((u) => ({ value: u, label: u }))} />
-          <p className="text-xs text-muted-foreground">One sale takes one {unit.toLowerCase()} off stock. Menu price and tax stay as they are.</p>
+          <Label htmlFor="mp-unit">{t("Count it in")}</Label>
+          <SearchSelect id="mp-unit" value={unit} onChange={(v) => v && setUnit(v as IngredientUnit)} options={UNITS.map((u) => ({ value: u, label: fmt.unit(u) }))} />
+          <p className="text-xs text-muted-foreground">{t("One sale takes one {value} off stock. Menu price and tax stay as they are.", { value: fmt.unit(unit) })}</p>
         </div>
         {item.inventoryTracking === "RECIPE" && (
-          <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
-            Sales of {item.name} currently take its recipe ingredients off stock. After this they take the finished {item.name} you produce instead, so the ingredients are used up when you post the voucher, not at each sale.
-          </p>
+          <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">{t("Sales of {name} currently take its recipe ingredients off stock. After this they take the finished {name2} you produce instead, so the ingredients are used up when you post the voucher, not at each sale.", { name: item.name, name2: item.name })}</p>
         )}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel} disabled={make.isPending}>Cancel</Button>
-          <Button type="button" onClick={confirm} disabled={make.isPending}>{make.isPending ? "Linking…" : `Use ${item.name} as finished product`}</Button>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={make.isPending}>{t("Cancel")}</Button>
+          <Button type="button" onClick={confirm} disabled={make.isPending}>{make.isPending ? t("Linking…") : t("Use {name} as finished product", { name: item.name })}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -416,7 +416,7 @@ partially built, the note says what's missing.
 | Feature | Status | Note |
 |---|---|---|
 | Multi-location (schema-level) | Shipped | `Restaurant`→`Branch` from day one, not bolted on |
-| Multi-brand, multi-language, multi-currency | Planned | |
+| Multi-brand, multi-language, multi-currency | Partial | The staff dashboard supports English, Spanish, French and Brazilian Portuguese. Prices use the restaurant's configured currency. |
 | API / Swagger docs | Shipped | Versioned REST (`/api/v1`), Swagger at `/api/docs` |
 | Webhooks, developer portal, app marketplace | Planned | |
 | Advanced audit logs | Partial | AuditLog model exists; no dedicated UI/report over it yet |

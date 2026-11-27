@@ -1,5 +1,6 @@
 "use client";
 
+import type { Translate } from "@/lib/i18n/context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -129,31 +130,31 @@ export function useSetSyncPeerRevoked() {
 }
 
 /** Plain wording for staff. "Synced" is only said when the server has everything and nothing is disputed. */
-export function describeSyncState(state: SyncStateName, pending: number, open: number) {
+export function describeSyncState(t: Translate, state: SyncStateName, pending: number, open: number) {
   switch (state) {
     case "synced":
-      return { label: "Synced", tone: "ok" as const, text: "The central server has everything from this PC." };
+      return { label: t("Synced"), tone: "ok" as const, text: t("The central server has everything from this PC.") };
     case "pending":
       return {
-        label: "Saved on this PC",
+        label: t("Saved on this PC"),
         tone: "warn" as const,
-        text: `${pending} change${pending === 1 ? "" : "s"} saved on this PC, waiting to reach the central server.`,
+        text: (pending === 1 ? t("{pending} change saved on this PC, waiting to reach the central server.", { pending }) : t("{pending} changes saved on this PC, waiting to reach the central server.", { pending })),
       };
     case "conflict":
       return {
-        label: "Needs review",
+        label: t("Needs review"),
         tone: "warn" as const,
-        text: `${open} item${open === 1 ? "" : "s"} where two devices disagreed need a manager's decision.`,
+        text: (open === 1 ? t("{open} item where two devices disagreed need a manager's decision.", { open }) : t("{open} items where two devices disagreed need a manager's decision.", { open })),
       };
     case "offline":
       return {
-        label: "Working offline",
+        label: t("Working offline"),
         tone: "bad" as const,
-        text: "Cannot reach the central server. Orders and bills are still saved on this PC and will be sent when the connection returns.",
+        text: t("Cannot reach the central server. Orders and bills are still saved on this PC and will be sent when the connection returns."),
       };
     case "server":
-      return { label: "Server", tone: "ok" as const, text: "This installation is the central server." };
+      return { label: t("Server"), tone: "ok" as const, text: t("This installation is the central server.") };
     default:
-      return { label: "Not connected", tone: "bad" as const, text: "Sync is off. This PC works on its own." };
+      return { label: t("Not connected"), tone: "bad" as const, text: t("Sync is off. This PC works on its own.") };
   }
 }

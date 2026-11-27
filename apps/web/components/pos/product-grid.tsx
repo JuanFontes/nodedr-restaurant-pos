@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { useState } from "react";
 import { PauseBadge } from "@/components/menu/pause-badge";
 import { Input } from "@/components/ui/input";
@@ -8,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMenuCosts, useMfgSettings } from "@/hooks/use-manufacturing";
 import { useCategories, type useMenuItems, type MenuItem } from "@/hooks/use-menu";
-import { formatCurrency } from "@/lib/format";
 import { toInclusivePrice } from "@/lib/pricing-preview";
 import { findItemByCode } from "@/lib/pos-scan";
 
@@ -25,6 +26,8 @@ export function ProductGrid({
   pauseLabels: ReadonlyMap<string, string>;
   taxMode?: "INCLUSIVE" | "EXCLUSIVE";
 }) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const { data: categories } = useCategories(branchId);
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState("");
@@ -56,8 +59,8 @@ export function ProductGrid({
     <div className="flex h-full flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input
-          placeholder="Search menu…"
-          aria-label="Search menu"
+          placeholder={t("Search menu…")}
+          aria-label={t("Search menu")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
@@ -76,16 +79,16 @@ export function ProductGrid({
             value={activeCategoryId ?? "all"}
             onValueChange={(v) => setActiveCategoryId(!v || v === "all" ? undefined : v)}
           >
-            <SelectTrigger aria-label="Category" className="h-11 w-full sm:w-56">
+            <SelectTrigger aria-label={t("Category")} className="h-11 w-full sm:w-56">
               <SelectValue>
                 {(value: string | null) => {
                   const c = categories.find((x) => x.id === value);
-                  return c ? `${c.name} (${c._count.items})` : "All categories";
+                  return c ? `${c.name} (${c._count.items})` : t("All categories");
                 }}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
+              <SelectItem value="all">{t("All categories")}</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name} ({c._count.items})
@@ -105,14 +108,14 @@ export function ProductGrid({
             <span aria-hidden className={`relative inline-block h-5 w-9 rounded-full transition-colors ${showCost ? "bg-primary" : "bg-muted-foreground/40"}`}>
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${showCost ? "left-[1.125rem]" : "left-0.5"}`} />
             </span>
-            Show cost today
+            {t("Show cost today")}
           </button>
         )}
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {isError && !items ? (
-        <QueryError error={error} what="the menu" onRetry={() => void refetch()} retrying={isFetching} />
+        <QueryError error={error} what={t("the menu")} onRetry={() => void refetch()} retrying={isFetching} />
       ) : (
       <div className="grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto pb-4 sm:grid-cols-3 lg:grid-cols-3 lg:gap-4 xl:grid-cols-4 2xl:grid-cols-5">
         {isLoading &&
@@ -135,7 +138,7 @@ export function ProductGrid({
             <PauseBadge label={pauseLabels.get(item.id)} />
             <span className="flex w-full items-baseline justify-between gap-2">
               <span className="text-sm font-semibold tabular-nums text-foreground lg:text-base">
-                {formatCurrency(
+                {fmt.currency(
                   toInclusivePrice(
                     Number(item.price),
                     Number(item.taxRatePercent ?? 0),
@@ -144,25 +147,22 @@ export function ProductGrid({
                 )}
               </span>
               {item.halfPrice != null && (
-                <span className="hidden text-[11px] tabular-nums text-muted-foreground lg:inline">
-                  Half{" "}
-                  {formatCurrency(
+                <span className="hidden text-[11px] tabular-nums text-muted-foreground lg:inline">{t("Half {formatCurrency}", { formatCurrency: fmt.currency(
                     toInclusivePrice(
                       Number(item.halfPrice),
                       Number(item.taxRatePercent ?? 0),
                       taxMode,
                     ),
-                  )}
-                </span>
+                  ) })}</span>
               )}
             </span>
             {showCost && costOf.get(item.id) && (() => {
               const c = costOf.get(item.id)!;
               return (
                 <span className="w-full border-t border-border/70 pt-1 text-[11px] leading-snug text-muted-foreground" data-testid="pos-production-cost">
-                  {c.isToday ? "Today\u2019s production cost" : `Production cost (${new Date(`${c.costDate}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}, not today)`}{" "}
-                  <b className="tabular-nums text-foreground">{formatCurrency(c.costPerPortion)}</b>
-                  <span className="hidden lg:block">Difference {formatCurrency(c.indicativeDifference)} before expenses, discounts and tax</span>
+                  {c.isToday ? t("Today’s production cost") : t("Production cost ({toLocaleDateString}, not today)", { toLocaleDateString: new Date(`${c.costDate}T12:00:00`).toLocaleDateString(fmt.localeTag, { day: "numeric", month: "short" }) })}{" "}
+                  <b className="tabular-nums text-foreground">{fmt.currency(c.costPerPortion)}</b>
+                  <span className="hidden lg:block">{t("Difference {formatCurrency} before expenses, discounts and tax", { formatCurrency: fmt.currency(c.indicativeDifference) })}</span>
                 </span>
               );
             })()}
@@ -170,7 +170,7 @@ export function ProductGrid({
         ))}
         {filtered?.length === 0 && !isLoading && (
           <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
-            {search ? <>No items match &quot;{search}&quot;</> : "No items in this category yet"}
+            {search ? <>{t("No items match \"{search}\"", { search })}</> : t("No items in this category yet")}
           </p>
         )}
       </div>

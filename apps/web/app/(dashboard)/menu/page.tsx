@@ -1,5 +1,6 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
 import { EyeOff, Layers, Leaf, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "@/lib/toast";
@@ -42,7 +43,6 @@ import { useMenuPauseLabels } from "@/hooks/use-menu-pauses";
 import { useDisplaySettings } from "@/hooks/use-settings";
 import { useI18n } from "@/lib/i18n/context";
 import { ApiError } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function MenuPage() {
@@ -51,6 +51,7 @@ export default function MenuPage() {
 }
 
 function BranchMenu({ branchId }: { branchId: string | null }) {
+  const fmt = useStaffFormat();
   const { t } = useI18n();
   const { data: settings } = useDisplaySettings(branchId);
   const timezone = settings?.restaurant.timezone;
@@ -106,15 +107,15 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
   const selectedCategory = categories?.find((c) => c.id === selectedCategoryId);
 
   const onDeleteCategory = (category: MenuCategory) => {
-    if (!confirm(`Delete the "${category.name}" category? This cannot be undone.`)) return;
+    if (!confirm(t("Delete the \"{name}\" category? This cannot be undone.", { name: category.name }))) return;
     deleteCategory.mutate(category.id, {
       onSuccess: () => {
-        toast.success(`"${category.name}" deleted`);
+        toast.success(t("\"{name}\" deleted", { name: category.name }));
         if (selectedCategoryId === category.id) setSelectedCategoryId(undefined);
       },
       onError: (err) =>
         toast.error(
-          err instanceof ApiError ? err.message : "Could not delete category — remove its items first",
+          err instanceof ApiError ? err.message : t("Could not delete category — remove its items first"),
         ),
     });
   };
@@ -123,9 +124,9 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
     <div className="flex flex-col gap-5 sm:gap-6 pb-12">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Menu</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{t("Menu")}</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {canManage ? "Categories, items, and pricing" : "Categories, items, and pricing (view only)"}
+            {canManage ? t("Categories, items, and pricing") : t("Categories, items, and pricing (view only)")}
           </p>
         </div>
       </div>
@@ -135,7 +136,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
         <Card className="flex flex-col gap-3.5 p-4 rounded-2xl border-border/70 bg-card shadow-xs">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Categories
+              {t("Categories")}
             </h2>
             {categories && (
               <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
@@ -156,10 +157,10 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
             <div className="flex flex-col gap-2.5 lg:hidden">
               <ResponsiveTabs
                 mobileOnly
-                label="Category"
+                label={t("Category")}
                 value={selectedCategoryId ?? "all"}
                 onChange={(id) => setSelectedCategoryId(id === "all" ? undefined : id)}
-                items={[{ id: "all", label: "All items" }, ...(categories ?? []).map((c) => ({ id: c.id, label: c.name, hint: `${c._count.items} items${c.showOnWebsite ? "" : " · hidden"}` }))]}
+                items={[{ id: "all", label: t("All items") }, ...(categories ?? []).map((c) => ({ id: c.id, label: c.name, hint: t("{items} items{value}", { items: c._count.items, value: c.showOnWebsite ? "" : t(" · hidden") }) }))]}
               />
               {selectedCategory && (
                 <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 border border-border/50 px-3 py-2">
@@ -167,7 +168,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                     <span className="truncate text-xs font-semibold text-foreground">{selectedCategory.name}</span>
                     {!selectedCategory.showOnWebsite && (
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <EyeOff className="h-3 w-3" /> Hidden from website
+                        <EyeOff className="h-3 w-3" /> {t("Hidden from website")}
                       </span>
                     )}
                   </span>
@@ -179,7 +180,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         className="h-8 gap-1 rounded-lg px-2 text-xs font-medium hover:bg-secondary active:scale-95 transition-transform"
                         onClick={() => setEditingCategory(selectedCategory)}
                       >
-                        <Pencil className="h-3.5 w-3.5" /> Edit
+                        <Pencil className="h-3.5 w-3.5" /> {t("Edit")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -187,7 +188,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         className="h-8 gap-1 rounded-lg px-2 text-xs font-medium text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
                         onClick={() => onDeleteCategory(selectedCategory)}
                       >
-                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                        <Trash2 className="h-3.5 w-3.5" /> {t("Delete")}
                       </Button>
                     </div>
                   )}
@@ -206,7 +207,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                     : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
                 )}
               >
-                <span>All items</span>
+                <span>{t("All items")}</span>
                 {allItems && (
                   <span className={cn(
                     "rounded-full px-2 py-0.5 text-[11px] tabular-nums font-mono",
@@ -233,9 +234,9 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                     {cat.name}
                   </button>
                   {!cat.showOnWebsite && (
-                    <span title="Hidden from website" className="mr-1 shrink-0 text-muted-foreground">
+                    <span title={t("Hidden from website")} className="mr-1 shrink-0 text-muted-foreground">
                       <EyeOff className="h-3.5 w-3.5" />
-                      <span className="sr-only">Hidden from website</span>
+                      <span className="sr-only">{t("Hidden from website")}</span>
                     </span>
                   )}
                   <span className={cn("shrink-0 text-xs text-muted-foreground px-1.5 font-mono", canManage && "group-hover:hidden group-focus-within:hidden")}>
@@ -247,7 +248,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
-                        title="Edit category"
+                        title={t("Edit category")}
                         onClick={() => setEditingCategory(cat)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -256,7 +257,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive active:scale-95 transition-transform"
-                        title="Delete category"
+                        title={t("Delete category")}
                         onClick={() => onDeleteCategory(cat)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -277,10 +278,10 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-                {selectedCategory ? selectedCategory.name : "All items"}
+                {selectedCategory ? selectedCategory.name : t("All items")}
               </h2>
               <p className="text-xs text-muted-foreground">
-                {items ? `${items.length} dishes & items` : "Loading items…"}
+                {items ? t("{count} dishes & items", { count: items.length }) : t("Loading items…")}
               </p>
             </div>
             {canManage && (
@@ -326,12 +327,12 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                       <p className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-1">
                         <span>{item.category.name}</span>
                         {item.station && <span>· {item.station.name}</span>}
-                        <span>· {Number(item.taxRatePercent)}% tax</span>
+                        <span>{t("· {Number}% tax", { Number: Number(item.taxRatePercent) })}</span>
                       </p>
                       {pauseLabels.has(item.id) && <div className="mt-1.5"><PauseBadge label={pauseLabels.get(item.id)} /></div>}
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(item.price)}</p>
+                      <p className="text-sm font-bold tabular-nums text-foreground">{fmt.currency(item.price)}</p>
                     </div>
                   </div>
 
@@ -347,7 +348,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         )}
                         onClick={() => setComboItem(item)}
                       >
-                        <Layers className="h-3.5 w-3.5 mr-1" /> Combo
+                        <Layers className="h-3.5 w-3.5 mr-1" /> {t("Combo")}
                       </Button>
                       <Button
                         variant="outline"
@@ -355,18 +356,18 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         className="h-8 rounded-lg px-2.5 text-xs font-medium border-border/70 hover:bg-secondary/70 active:scale-95 transition-transform"
                         onClick={() => setEditingItem(item)}
                       >
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> {t("Edit")}
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
                         className="h-8 w-8 rounded-lg border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 active:scale-95 transition-transform"
-                        aria-label={`Delete ${item.name}`}
+                        aria-label={t("Delete {name}", { name: item.name })}
                         onClick={() =>
                           deleteItem.mutate(item.id, {
-                            onSuccess: () => toast.success(`${item.name} removed`),
+                            onSuccess: () => toast.success(t("{name} removed", { name: item.name })),
                             onError: (err) =>
-                              toast.error(err instanceof ApiError ? err.message : "Could not remove item"),
+                              toast.error(err instanceof ApiError ? err.message : t("Could not remove item")),
                           })
                         }
                       >
@@ -383,11 +384,11 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/60 hover:bg-transparent">
-                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Item</TableHead>
-                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</TableHead>
-                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Station</TableHead>
-                    <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">Price</TableHead>
-                    <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">Tax</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("Item")}</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("Category")}</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("Station")}</TableHead>
+                    <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("Price")}</TableHead>
+                    <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("Tax")}</TableHead>
                     <TableHead className="w-20" />
                   </TableRow>
                 </TableHeader>
@@ -426,7 +427,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                         )}
                       </TableCell>
                       <TableCell className="text-right text-xs font-bold tabular-nums py-2.5">
-                        {formatCurrency(item.price)}
+                        {fmt.currency(item.price)}
                       </TableCell>
                       <TableCell className="text-right text-xs tabular-nums text-muted-foreground py-2.5 font-mono">
                         {Number(item.taxRatePercent)}%
@@ -442,7 +443,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                                 "h-8 w-8 rounded-lg text-muted-foreground hover:text-primary active:scale-95 transition-transform",
                                 item.isCombo && "text-primary bg-primary/10",
                               )}
-                              title="Combo components"
+                              title={t("Combo components")}
                               onClick={() => setComboItem(item)}
                             >
                               <Layers className="h-4 w-4" />
@@ -451,7 +452,7 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
-                              title="Edit item"
+                              title={t("Edit item")}
                               onClick={() => setEditingItem(item)}
                             >
                               <Pencil className="h-4 w-4" />
@@ -460,12 +461,12 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive active:scale-95 transition-transform"
-                              title="Delete item"
+                              title={t("Delete item")}
                               onClick={() =>
                                 deleteItem.mutate(item.id, {
-                                  onSuccess: () => toast.success(`${item.name} removed`),
+                                  onSuccess: () => toast.success(t("{name} removed", { name: item.name })),
                                   onError: (err) =>
-                                    toast.error(err instanceof ApiError ? err.message : "Could not remove item"),
+                                    toast.error(err instanceof ApiError ? err.message : t("Could not remove item")),
                                 })
                               }
                             >
@@ -482,9 +483,9 @@ function BranchMenu({ branchId }: { branchId: string | null }) {
             </>
           ) : (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <p className="text-sm font-semibold text-foreground">No items yet</p>
+              <p className="text-sm font-semibold text-foreground">{t("No items yet")}</p>
               <p className="text-xs text-muted-foreground">
-                Add a category, then add your first menu item.
+                {t("Add a category, then add your first menu item.")}
               </p>
             </div>
           )}

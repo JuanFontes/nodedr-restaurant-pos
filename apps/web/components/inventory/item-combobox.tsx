@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat, type StaffFormat } from "@/hooks/use-staff-format";
+import { type Translate, useI18n } from "@/lib/i18n/context";
 import { useMemo } from "react";
 import { type SearchOption, SearchSelect } from "@/components/ui/search-select";
 import type { StockItem } from "@/hooks/use-stock-journal";
@@ -9,7 +11,7 @@ const KIND_LABEL = { PURCHASED: "Raw materials", PREPARED: "Finished products" }
 export const MENU_PREFIX = "menu:";
 
 /** Stock items as searchable picker options: raw materials first, then finished products, with stock on hand beside each name. */
-export function stockItemOptions(items: StockItem[]): SearchOption[] {
+export function stockItemOptions(t: Translate, fmt: StaffFormat, items: StockItem[]): SearchOption[] {
   return [...items]
     .sort((a, b) => {
       const ma = a.id.startsWith(MENU_PREFIX);
@@ -18,14 +20,14 @@ export function stockItemOptions(items: StockItem[]): SearchOption[] {
       return a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "PURCHASED" ? -1 : 1;
     })
     .map((i) => i.id.startsWith(MENU_PREFIX)
-      ? { value: i.id, label: i.name, hint: i.category ?? undefined, aside: "menu item", group: "Menu items (not in stock yet)" }
+      ? { value: i.id, label: i.name, hint: i.category ?? undefined, aside: t("menu item"), group: t("Menu items (not in stock yet)") }
       : {
       value: i.id,
       label: i.name,
       hint: i.category ?? undefined,
-      aside: `${i.currentStock} ${i.unit.toLowerCase()}`,
+      aside: `${fmt.quantity(i.currentStock)} ${fmt.unit(i.unit)}`,
       warn: Number(i.currentStock) <= 0,
-      group: KIND_LABEL[i.kind],
+      group: t(KIND_LABEL[i.kind]),
     });
 }
 
@@ -42,7 +44,7 @@ export function ItemCombobox({
   describedBy,
   autoFocus,
   id,
-  placeholder = "Search items…",
+  placeholder: providedPlaceholder,
 }: {
   items: StockItem[];
   value: string;
@@ -54,7 +56,10 @@ export function ItemCombobox({
   id?: string;
   placeholder?: string;
 }) {
-  const options = useMemo(() => stockItemOptions(items), [items]);
+  const { t } = useI18n();
+  const fmt = useStaffFormat();
+  const placeholder = providedPlaceholder ?? t("Search items…");
+  const options = useMemo(() => stockItemOptions(t, fmt, items), [items, t, fmt]);
   return (
     <SearchSelect
       id={id}
@@ -66,7 +71,7 @@ export function ItemCombobox({
       invalid={invalid}
       autoFocus={autoFocus}
       placeholder={placeholder}
-      emptyText="No item matches"
+      emptyText={t("No item matches")}
     />
   );
 }
