@@ -570,6 +570,22 @@ docs/           Screenshots and supplementary docs
   logging uses the same function with `allowNegative: false`, since it has
   no such urgency. See `apps/backend/src/modules/inventory/stock.service.ts`.
 
+## Sponsor OrderRestro
+
+OrderRestro is free: no subscription, no per-terminal fee, no paywalled features, and your data stays on your own server. It stays that way because people back it.
+
+If it saves your restaurant time or money, please consider sponsoring. Your support pays for:
+
+- faster releases and fixes for the bugs restaurants report
+- testing on real phones, printers and kitchen hardware
+- more languages, payment gateways and delivery integrations
+- security reviews, dependency updates and long-term upkeep
+- hosting for the website, demo and downloads
+
+[![Sponsor OrderRestro](https://img.shields.io/badge/Sponsor%20OrderRestro-%E2%9D%A4-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Raktim94)
+
+Can't sponsor? Starring the repo, telling another restaurant owner, reporting a bug or sending a translation helps just as much. Sponsoring never changes the license or unlocks hidden features. More at [orderrestro.nodedr.com/sponsor](https://orderrestro.nodedr.com/sponsor).
+
 ## Contributing
 
 Contributions are very welcome — this is early-stage with a lot of open
