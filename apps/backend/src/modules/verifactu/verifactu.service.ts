@@ -571,8 +571,11 @@ export class VerifactuService {
   }
 
   /** True when this paid order already has an invoice, so deleting it would break the fiscal log. */
-  async ordersWithRecords(orderIds: string[]): Promise<string[]> {
-    const rows = await this.prisma.verifactuRecord.findMany({
+  async ordersWithRecords(
+    orderIds: string[],
+    tx: Tx = this.prisma,
+  ): Promise<string[]> {
+    const rows = await tx.verifactuRecord.findMany({
       where: { orderId: { in: orderIds } },
       select: { orderId: true },
       distinct: ['orderId'],

@@ -882,32 +882,62 @@ export class OrdersService {
     }
 
     const ids = [...new Set(orderIds)];
-    const orders = await this.prisma.order.findMany({
-      where: { id: { in: ids }, branchId },
-      include: { items: true, payments: true },
-    });
-    if (orders.length !== ids.length) {
-      throw new NotFoundException('Some selected transactions no longer exist');
-    }
-    const live = orders.filter(
-      (o) => !['PAID', 'CANCELLED'].includes(o.status),
-    );
-    if (live.length > 0) {
-      throw new BadRequestException(
-        `Only finished transactions can be deleted — ${live
-          .map((o) => `#${o.orderNumber}`)
-          .join(', ')} still in progress`,
-      );
-    }
-
-    const invoiced = await this.verifactu.ordersWithRecords(ids);
-    if (invoiced.length > 0) {
-      throw new BadRequestException(
-        'Sales with a VERI*FACTU invoice cannot be deleted - the fiscal log must keep them. Refund the sale instead.',
-      );
-    }
-
+    if (!ids.length) return { deleted: 0 };
     await this.prisma.$transaction(async (tx) => {
+      // Keep the eligibility check and audit snapshot consistent with the
+      // delete. Acquire overlapping batch locks in the same order.
+      const lockedOrders = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM orders
+        WHERE "branchId" = ${branchId} AND id IN (${Prisma.join(ids)})
+        ORDER BY id FOR UPDATE
+      `;
+      if (lockedOrders.length !== ids.length) {
+        throw new NotFoundException(
+          'Some selected transactions no longer exist',
+        );
+      }
+      const orders = await tx.order.findMany({
+        where: { id: { in: ids }, branchId },
+        include: { items: true },
+      });
+      const live = orders.filter(
+        (o) => !['PAID', 'CANCELLED'].includes(o.status),
+      );
+      if (live.length > 0) {
+        throw new BadRequestException(
+          `Only finished transactions can be deleted — ${live
+            .map((o) => `#${o.orderNumber}`)
+            .join(', ')} still in progress`,
+        );
+      }
+
+      try {
+        // The database enforces the same retention rules for sync and SQL.
+        // A fiscal rejection below rolls back this entire batch as well.
+        await tx.order.deleteMany({ where: { id: { in: ids }, branchId } });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2003' &&
+          [
+            'payments_orderId_fkey',
+            'refunds_orderId_fkey',
+            'gateway_order_history',
+          ].includes(String(error.meta?.constraint))
+        ) {
+          throw new ConflictException(
+            'Orders with payment or refund history cannot be deleted. Refund or void the transaction as appropriate, or review pending gateway activity.',
+          );
+        }
+        throw error;
+      }
+
+      const invoiced = await this.verifactu.ordersWithRecords(ids, tx);
+      if (invoiced.length > 0) {
+        throw new BadRequestException(
+          'Sales with a VERI*FACTU invoice cannot be deleted - the fiscal log must keep them. Refund the sale instead.',
+        );
+      }
       await tx.auditLog.createMany({
         data: orders.map((o) => ({
           userId: actor.id,
@@ -921,14 +951,10 @@ export class OrdersService {
             totalAmount: o.totalAmount.toString(),
             createdAt: o.createdAt.toISOString(),
             items: o.items.map((i) => `${i.quantity}x ${i.nameSnapshot}`),
-            payments: o.payments.map((p) => ({
-              method: p.method,
-              amount: p.amount.toString(),
-            })),
+            payments: [],
           },
         })),
       });
-      await tx.order.deleteMany({ where: { id: { in: ids }, branchId } });
     });
     this.realtime.emitToBranch(branchId, 'order.deleted', { orderIds: ids });
     return { deleted: ids.length };
@@ -2231,10 +2257,10 @@ export class OrdersService {
     const earned = Math.max(earn?.delta ?? 0, 0);
     const redeemed = Math.max(a.pointsRedeemed, -(redeem?.delta ?? 0));
     if (!earned && !redeemed) return;
-    // Use the customer recorded on the original ledger rows: updateOrder can
-    // change the order's customer between validation and a later refund.
-    const earnCustomer = earn?.customerId ?? a.customerId;
-    const redeemCustomer = redeem?.customerId ?? a.customerId;
+    // A detached ledger entry still belongs to the deleted customer. Only
+    // legacy redemptions without a ledger entry use the order's customer.
+    const earnCustomer = earn?.customerId ?? null;
+    const redeemCustomer = redeem ? redeem.customerId : a.customerId;
     if (!earnCustomer && !redeemCustomer) return;
 
     const priorReversedEarn = prior
@@ -2312,31 +2338,31 @@ export class OrdersService {
     const shortfall = reverseEarn - collected;
 
     const rows: Prisma.PointsLedgerCreateManyInput[] = [];
-    if (collected > 0) {
+    if (earnCustomer && collected > 0) {
       rows.push({
         branchId: a.branchId,
-        customerId: earnCustomer as string,
+        customerId: earnCustomer,
         delta: -collected,
         reason: 'REFUND_EARN_REVERSAL',
         orderId: a.orderId,
         idempotencyKey: `refund:${a.refundId}:earn`,
       });
     }
-    if (shortfall > 0) {
+    if (earnCustomer && shortfall > 0) {
       // Records the debt without touching the balance or blocking the refund.
       rows.push({
         branchId: a.branchId,
-        customerId: earnCustomer as string,
+        customerId: earnCustomer,
         delta: -shortfall,
         reason: 'REFUND_EARN_REVERSAL_PENDING',
         orderId: a.orderId,
         idempotencyKey: `refund:${a.refundId}:earn-pending`,
       });
     }
-    if (restoreRedeem > 0) {
+    if (redeemCustomer && restoreRedeem > 0) {
       rows.push({
         branchId: a.branchId,
-        customerId: redeemCustomer as string,
+        customerId: redeemCustomer,
         delta: restoreRedeem,
         reason: 'REFUND_REDEEM_RESTORATION',
         orderId: a.orderId,

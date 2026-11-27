@@ -208,11 +208,11 @@ export function OrderDetailDialog({
             )}
             {order.status === "PAID" && (
               <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                This bill is paid. To correct it, issue a refund from the Dashboard — paid bills are never edited in place.
-                {canDeleteFinished ? " An admin can also delete it; a record stays in the Audit Log." : ""}
+                To correct this paid bill, issue a refund from the Dashboard. Bills with payment or
+                refund history stay on record.
               </p>
             )}
-            {canDeleteFinished && (order.status === "PAID" || order.status === "CANCELLED") && (
+            {canDeleteFinished && order.payments.length === 0 && (order.status === "PAID" || order.status === "CANCELLED") && (
               <Button variant="outline" className="border-destructive/40 text-destructive" onClick={() => setDeleteOpen(true)}>
                 Delete this bill (admin)
               </Button>

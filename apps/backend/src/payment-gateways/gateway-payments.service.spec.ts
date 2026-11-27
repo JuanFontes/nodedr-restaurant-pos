@@ -78,7 +78,7 @@ function setup(over: Partial<Row> = {}) {
     },
     gatewayRefund: {
       findMany: jest.fn(async () => []),
-      update: jest.fn(async ({ data }: Row) => data),
+      updateMany: jest.fn(async () => ({ count: 1 })),
     },
   };
   prisma.payment = { findFirst: jest.fn(async () => null) };
@@ -291,7 +291,9 @@ describe('webhooks', () => {
   it('does not record the event when handling failed, so the provider retries', async () => {
     const { svc, prisma } = setup();
     fake.verifyWebhook.mockReturnValue({ eventId: 'e3', providerRef: 'ref1' });
-    prisma.gatewayPayment.update.mockRejectedValueOnce(new Error('db down'));
+    prisma.gatewayPayment.updateMany.mockRejectedValueOnce(
+      new Error('db down'),
+    );
     fake.fetchStatus.mockResolvedValue({ ...paid(), state: 'EXPIRED' });
     await expect(svc.webhook('r1', 'fake', 'LIVE', {}, '{}')).rejects.toThrow(
       'db down',
@@ -396,9 +398,9 @@ describe('stale pending refunds', () => {
       expect.objectContaining({ mode: 'LIVE' }),
       're_9',
     );
-    expect(prisma.gatewayRefund.update).toHaveBeenCalledWith(
+    expect(prisma.gatewayRefund.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'grStale' },
+        where: { id: 'grStale', status: 'PENDING', refundId: null },
         data: expect.objectContaining({ status: 'FAILED' }),
       }),
     );
@@ -420,8 +422,11 @@ describe('stale pending refunds', () => {
       createdAt: new Date(Date.now() - 20 * 60_000),
     };
     prisma.gatewayRefund.findMany.mockResolvedValue([row]);
-    prisma.gatewayRefund.update.mockImplementation(async ({ data }: Row) =>
-      Object.assign(row, data),
+    prisma.gatewayRefund.updateMany.mockImplementation(
+      async ({ data }: Row) => {
+        Object.assign(row, data);
+        return { count: 1 };
+      },
     );
     fake.fetchRefundStatus.mockResolvedValue({
       providerRefundId: 're_linked',

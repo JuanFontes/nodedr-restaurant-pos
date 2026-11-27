@@ -8,7 +8,9 @@ import {
 import {
   Prisma,
   type GatewayPayment,
+  type GatewayPaymentStatus,
   type GatewayRefund,
+  type Order,
 } from '@prisma/client';
 import { round2 } from '../modules/orders/pricing';
 import { PrismaService } from '../prisma/prisma.service';
@@ -99,31 +101,15 @@ export class GatewayPaymentsService {
       );
     }
 
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, branchId },
-      select: { id: true, status: true, acceptance: true, orderNumber: true },
-    });
-    if (!order) throw new NotFoundException('Order not found');
-    if (order.status !== 'OPEN') {
-      throw new BadRequestException('Order is not open for payment');
-    }
-    if (order.acceptance === 'PENDING') {
-      throw new ConflictException('Accept this order before taking payment');
-    }
-
     // The amount is ours, from the server-side bill. The client never supplies it.
     const bill = await this.orders.previewBill(branchId, orderId, {});
     const balance = Number(bill.balanceDue);
-    if (!(balance > 0))
-      throw new BadRequestException('Nothing is due on this order');
     const restaurant = await this.prisma.restaurant.findUniqueOrThrow({
       where: { id: restaurantId },
       select: { currency: true, name: true },
     });
     const currency = restaurant.currency.toUpperCase();
     const amountMinor = toMinor(balance, currency);
-    if (amountMinor <= 0)
-      throw new BadRequestException('Nothing is due on this order');
 
     if (adapter.requiresCustomerPhone && !input.customerPhone) {
       throw new BadRequestException(
@@ -131,34 +117,56 @@ export class GatewayPaymentsService {
       );
     }
 
-    // Reuse an open link for the same bill instead of creating a second one.
-    const reusable = await this.prisma.gatewayPayment.findFirst({
-      where: {
-        orderId,
-        provider: connection.provider,
-        mode,
-        status: 'CREATED',
-        amountMinor,
-        currency,
-        checkoutUrl: { not: null },
-        createdAt: { gt: new Date(Date.now() - REUSE_WINDOW_MS) },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (reusable) return this.present(reusable);
+    const { row, orderNumber } = await this.prisma.$transaction(async (tx) => {
+      // Reserve the attempt while the order is still open. Deletion takes
+      // this same lock and must see the CREATED row before it can proceed.
+      const [order] = await tx.$queryRaw<
+        Pick<Order, 'status' | 'acceptance' | 'orderNumber'>[]
+      >`
+        SELECT status, acceptance, "orderNumber" FROM orders
+        WHERE id = ${orderId} AND "branchId" = ${branchId} FOR UPDATE
+      `;
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== 'OPEN') {
+        throw new BadRequestException('Order is not open for payment');
+      }
+      if (order.acceptance === 'PENDING') {
+        throw new ConflictException('Accept this order before taking payment');
+      }
+      if (!(amountMinor > 0))
+        throw new BadRequestException('Nothing is due on this order');
 
-    const row = await this.prisma.gatewayPayment.create({
-      data: {
-        restaurantId,
-        branchId,
-        orderId,
-        provider: connection.provider,
-        mode,
-        amountMinor,
-        currency,
-        createdById: userId,
-      },
+      const reusable = await tx.gatewayPayment.findFirst({
+        where: {
+          orderId,
+          provider: connection.provider,
+          mode,
+          status: 'CREATED',
+          amountMinor,
+          currency,
+          checkoutUrl: { not: null },
+          createdAt: { gt: new Date(Date.now() - REUSE_WINDOW_MS) },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      const row =
+        reusable ??
+        (await tx.gatewayPayment.create({
+          data: {
+            restaurantId,
+            branchId,
+            orderId,
+            provider: connection.provider,
+            mode,
+            amountMinor,
+            currency,
+            createdById: userId,
+          },
+        }));
+      return { row, orderNumber: order.orderNumber };
     });
+    if (row.checkoutUrl !== null) return this.present(row);
+
     const base = this.baseUrl(input.origin);
     try {
       const ctx = this.gateways.context(restaurantId, connection, mode);
@@ -166,7 +174,7 @@ export class GatewayPaymentsService {
         amountMinor,
         currency,
         reference: row.id,
-        description: `${restaurant.name} - order ${order.orderNumber}`,
+        description: `${restaurant.name} - order ${orderNumber}`,
         returnUrl: `${base}/pay/return?gp=${row.id}`,
         notifyUrl: `${base}/api/v1/payment-gateways/webhook/${restaurantId}/${connection.provider}/${mode}`,
         customer: { name: input.customerName, phone: input.customerPhone },
@@ -202,7 +210,7 @@ export class GatewayPaymentsService {
     id: string,
     scope?: { restaurantId: string; branchId?: string },
   ) {
-    let p = await this.prisma.gatewayPayment.findFirst({
+    const p = await this.prisma.gatewayPayment.findFirst({
       where: {
         id,
         ...(scope ? { restaurantId: scope.restaurantId } : {}),
@@ -253,11 +261,9 @@ export class GatewayPaymentsService {
     }
 
     if (remote.state === 'EXPIRED') {
-      p = await this.prisma.gatewayPayment.update({
-        where: { id: p.id },
-        data: { status: 'EXPIRED' },
-      });
-      return this.present(p);
+      return this.present(
+        await this.updateUnclaimed(p.id, ['CREATED'], { status: 'EXPIRED' }),
+      );
     }
     if (remote.state !== 'PAID') return this.present(p);
 
@@ -267,17 +273,29 @@ export class GatewayPaymentsService {
       remote.paidMinor !== p.amountMinor ||
       (remote.reference != null && remote.reference !== p.id);
     if (mismatch) {
-      p = await this.prisma.gatewayPayment.update({
-        where: { id: p.id },
-        data: {
+      return this.present(
+        await this.updateUnclaimed(p.id, ['CREATED', 'NEEDS_REVIEW'], {
           status: 'NEEDS_REVIEW',
           providerPaymentId: remote.providerPaymentId ?? p.providerPaymentId,
           note: 'The provider reports an amount, currency or reference different from what was requested. Check it in the provider dashboard.',
-        },
-      });
-      return this.present(p);
+        }),
+      );
     }
     return this.present(await this.apply(p, remote.providerPaymentId ?? null));
+  }
+
+  // A provider call runs outside the database. A slower poll or webhook must
+  // not reopen a terminal attempt, or expire one already claimed for checkout.
+  private async updateUnclaimed(
+    id: string,
+    statuses: GatewayPaymentStatus[],
+    data: Prisma.GatewayPaymentUpdateManyMutationInput,
+  ) {
+    await this.prisma.gatewayPayment.updateMany({
+      where: { id, status: { in: statuses }, appliedAt: null },
+      data,
+    });
+    return this.prisma.gatewayPayment.findUniqueOrThrow({ where: { id } });
   }
 
   /** Settles the order once, however many times this is reached. */
@@ -285,13 +303,10 @@ export class GatewayPaymentsService {
     if (p.mode === 'TEST') {
       // A test payment proves the wiring but moved no money, so it must not
       // mark a real order as paid.
-      return this.prisma.gatewayPayment.update({
-        where: { id: p.id },
-        data: {
-          status: 'SUCCEEDED',
-          providerPaymentId,
-          note: 'Test payment: no real money moved and the order was left unpaid.',
-        },
+      return this.updateUnclaimed(p.id, ['CREATED', 'NEEDS_REVIEW'], {
+        status: 'SUCCEEDED',
+        providerPaymentId,
+        note: 'Test payment: no real money moved and the order was left unpaid.',
       });
     }
     // Atomic claim: only one caller (webhook, return page, poll) gets past this.
@@ -764,8 +779,8 @@ export class GatewayPaymentsService {
         r.providerRefundId,
       );
       if (remote.state === 'DONE') {
-        await this.prisma.gatewayRefund.update({
-          where: { id: r.id },
+        await this.prisma.gatewayRefund.updateMany({
+          where: { id: r.id, status: 'PENDING', refundId: r.refundId },
           data: r.refundId
             ? {
                 status: 'SUCCEEDED',
@@ -780,8 +795,8 @@ export class GatewayPaymentsService {
         });
       } else if (remote.state === 'FAILED') {
         // Releases the hold: FAILED rows are no longer counted as refundable.
-        await this.prisma.gatewayRefund.update({
-          where: { id: r.id },
+        await this.prisma.gatewayRefund.updateMany({
+          where: { id: r.id, status: 'PENDING', refundId: r.refundId },
           data: {
             // A linked row still backs a local Refund that reduces the order's
             // refundable balance. Leave it in the review list with its note;

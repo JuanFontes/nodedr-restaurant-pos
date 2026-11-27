@@ -200,6 +200,7 @@ Staff **clock in and out** from **Attendance** and can request leave. Managers s
 | **Waste** | Log spoilage, deducted first-in-first-out at the real batch cost | ![Waste](docs/screenshots/tutorial/inventory-waste.png) |
 | **Transfers** | Move stock between branches | ![Transfers](docs/screenshots/tutorial/inventory-transfers.png) |
 
+- A supplier invoice stays on record once you record a payment against it, including a partial payment. The payment remains linked to the invoice for reconciliation.
 - **Recipes** link menu items to ingredients. Stock deducts at checkout, and a shortfall never blocks a sale.
 - **Transfers** need at least two branches. Choose the ingredient, quantity and destination, then **Transfer**. The source is reduced first-in-first-out, and the destination gets a new batch at the same cost.
 
@@ -226,7 +227,7 @@ Open **Accounting**. It has eight tabs.
 
 **Reports** has 19 reports: daily sales, an **All bills (day book)**, sales by item, peak hours, food cost and margins, retention, tax, waste and more. Pick Today, Yesterday, Last 7 days, This month or any dates. Every sales report ends with a totals line. Print them, or export as **Excel**, **PDF** or **CSV** (needs the `data.export` permission).
 
-**See every bill of a day:** open **Daily sales** and click the day, or choose **All bills (day book)**. Click a bill to open it. An admin can delete a finished bill from there (admin password asked); a paid bill that needs correcting is refunded instead, so your books stay right. **Orders → History** also searches any date range by bill number or guest.
+**See every bill of a day:** open **Daily sales** and click the day, or choose **All bills (day book)**. Click a bill to open it. An admin can use their password to delete an eligible finished bill, such as an unpaid cancellation. A recorded payment or refund, a gateway operation awaiting confirmation or review, a successful gateway operation, or a VERI*FACTU record protects the bill. Use **Refund** to correct a paid sale. In **Orders → History**, a protected bill keeps the entire selection in history if you try to delete several at once.
 
 ![Reports](docs/screenshots/tutorial/reports.png)
 
@@ -302,6 +303,10 @@ Once the bucket is connected, choose **Edit schedule**. For example, select **We
 See the [schedule editor](docs/screenshots/backup-schedule-en.png) and the [saved weekly schedule](docs/screenshots/backup-schedule-saved-en.png).
 
 You can also run backups daily, monthly, or every few days. If you choose the 31st, shorter months use their last day. Existing interval schedules keep working. Test a restore on a separate installation before you need one.
+
+Restoring a verified backup from an earlier version also restores that version’s database schema. Before reporting success, the restore reinstates the rules that protect financial history. The normal startup migration can safely apply those rules again.
+
+If your backup predates the offline sync conflict tables, restore it into an empty database, then start the current version to run its migrations. An in-place restore can leave the newer `sync_conflicts` table behind and stop the next startup with “relation already exists.” Keep the original database until you have verified the restored installation.
 
 Questions or bugs: [open an issue](https://github.com/Raktim94/nodedr-restaurant-pos/issues).
 
