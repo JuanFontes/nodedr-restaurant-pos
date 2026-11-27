@@ -35,6 +35,7 @@ async function run() {
       try { await route.fulfill({ contentType, body: await readFile(join(__dirname, '../www', path)) }); }
       catch { await route.fulfill({ status: 404 }); }
     });
+    await page.clock.setFixedTime(new Date('2026-03-08T03:30:00Z'));
     await page.goto(origin + '/pos/index.html');
     await page.getByRole('heading', { name: 'Create your account' }).waitFor();
     assert.equal(await page.getByLabel('Country code').inputValue(), 'BR');
@@ -49,6 +50,7 @@ async function run() {
     await page.getByRole('button', { name: 'Save regional settings' }).click();
     await page.locator('#toast').filter({ hasText: /valid currency/ }).waitFor();
     await page.getByLabel('Currency').fill('EUR');
+    await page.getByLabel('Time zone').fill('America/New_York');
     await page.getByRole('button', { name: 'Save regional settings' }).click();
     await page.waitForFunction(async () => (await (await import('/pos/lib/store.js')).kv.get('snapshot')).restaurant.currency === 'EUR');
     await page.reload();
@@ -67,6 +69,14 @@ async function run() {
     await page.locator('#done').click();
     await page.getByRole('heading', { name: 'Sale complete' }).waitFor();
     await page.locator('#newsale').click();
+    await page.locator('[data-tab="sales"]').click();
+    await page.locator('[data-sale]').filter({ hasText: /07\/03\/2026.*22:30/ }).waitFor();
+    await page.locator('#books').click();
+    await page.locator('[data-b="close"]').click();
+    await page.locator('#cc').fill('12.5');
+    await page.locator('#close').click();
+    await page.waitForFunction(async () => (await (await import('/pos/lib/store.js')).shifts.get('2026-03-07'))?.expectedCash === 12.5);
+    await page.locator('[data-close]').click();
     await page.locator('[data-tab="sync"]').click();
     restaurant.currency = 'BRL';
     await page.locator('#conn').click();

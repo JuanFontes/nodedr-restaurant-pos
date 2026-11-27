@@ -2,11 +2,12 @@
 // saved on this phone, prints, and sends the sales to the restaurant server
 // whenever it can. Plain DOM + modules: nothing here needs a build step.
 import { computeBill, round2, settle, upiLink } from './lib/bill.js';
+import { dayOf, daysAgo, storedZone, today } from './lib/calendar.js';
 import { currencyCode, formatMoney, saleCurrency, supportsUpi } from './lib/money.js';
 import { suggestCurrency, suggestRegion } from './lib/region-currency.js';
 import { escposReceipt, htmlReceipt, toBase64 } from './lib/receipt.js';
 import { completeCheckout, events, reservations, expenses, kots, kv, newId, nextKotNumber, nextLocalNumber, nextOrderNumber, orders, readEverything, refunds, replaceEverything, sales, saveKotWithOrder, savePendingSale, shifts } from './lib/store.js';
-import { agingBuckets, backupJson, buildCollection, buildExpense, buildRefund, closeDay, dayBooks, daysAgo, dueOf, dueSales, expensesCsv, parseBackup, rangeBooks, refundableLines, refundedTotal, salesCsv, today } from './lib/books.js';
+import { agingBuckets, backupJson, buildCollection, buildExpense, buildRefund, closeDay, dayBooks, dueOf, dueSales, expensesCsv, parseBackup, rangeBooks, refundableLines, refundedTotal, salesCsv } from './lib/books.js';
 import { planTables } from './lib/tables.js';
 import { pushKey } from './lib/scanburst.js';
 import { buildChoice, defaultPicks, findByCode, lineKey, needsChoice } from './lib/options.js';
@@ -44,6 +45,9 @@ let syncGate = 0; // >0 while connecting: background sync must not touch sales
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const plugins = () => (window.Capacitor && window.Capacitor.Plugins) || {};
+const restaurantZone = () => storedZone(S.snap?.restaurant.timezone);
+const transactionTime = (value) => new Date(value).toLocaleString(undefined, { timeZone: restaurantZone() });
+const transactionDate = (value) => new Date(value).toLocaleDateString(undefined, { timeZone: restaurantZone() });
 const money = (value) => formatMoney(value, S.snap.restaurant.currency);
 const billMoney = (sale, value) => formatMoney(value, saleCurrency(sale, S.snap.restaurant));
 const currencyLabel = (currency = S.snap.restaurant.currency) => currencyCode(currency) ? ` (${currencyCode(currency)})` : '';
@@ -301,7 +305,7 @@ async function printKot(kot, { reprint = false } = {}) {
 }
 
 async function printKotPdf(kot, { reprint = false } = {}) {
-  const html = htmlKot({ ...kot, reprint });
+  const html = htmlKot({ ...kot, reprint }, restaurantZone());
   const np = plugins().NativePrinter;
   if (np) {
     try {
@@ -1968,9 +1972,9 @@ async function viewSales() {
   const label = { pending: 'Waiting to sync', synced: 'Synced', refused: 'Needs attention', dismissed: 'Set aside' };
   const nAttention = all.filter((x) => x.status === 'refused').length;
   const nReview = all.filter((x) => x.review && x.review.length).length;
-  const rep = dayReport(all, await orders.all());
+  const rep = dayReport(all, await orders.all(), undefined, restaurantZone());
   const rfs = await refunds.all();
-  const books = dayBooks({ sales: all, refunds: rfs, expenses: await expenses.all() });
+  const books = dayBooks({ sales: all, refunds: rfs, expenses: await expenses.all(), timeZone: restaurantZone() });
   const reportCard = `<div class="card"><h2 style="font-size:1.05rem">Today on this phone</h2>
     <div class="tot big"><span>${rep.count} sale${rep.count === 1 ? '' : 's'}</span><span>${money(rep.total)}</span></div>
     <dl class="kv">${Object.entries(rep.byMethod).filter(([, v]) => v).map(([m, v]) => `<dt>${{ CASH: 'Cash', UPI: 'UPI', CARD: 'Card', OTHER: 'Other' }[m]}</dt><dd>${money(v)}</dd>`).join('')}
@@ -1992,7 +1996,7 @@ async function viewSales() {
       all
         .map(
           (s) => `<button class="row" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left" data-sale="${esc(s.id)}">
-            <div class="grow"><b>${esc(s.localNumber)}</b>${s.serverOrderNumber ? ` <small>#${esc(s.serverOrderNumber)}</small>` : ''}${refundedTotal(s, rfs) ? ' <small style="color:var(--bad)">Refunded</small>' : ''}${dueOf(s) > 0 ? ` <small style="color:var(--warn)">Owes ${billMoney(s, dueOf(s))}</small>` : ''}<br><small>${esc(new Date(s.soldAt).toLocaleString())} &middot; ${s.items.reduce((n, i) => n + i.quantity, 0)} items${s.customer ? ` &middot; ${esc(s.customer.name || s.customer.phone)}` : ''}${s.staffName ? ` &middot; ${esc(s.staffName)}` : ''}</small></div>
+            <div class="grow"><b>${esc(s.localNumber)}</b>${s.serverOrderNumber ? ` <small>#${esc(s.serverOrderNumber)}</small>` : ''}${refundedTotal(s, rfs) ? ' <small style="color:var(--bad)">Refunded</small>' : ''}${dueOf(s) > 0 ? ` <small style="color:var(--warn)">Owes ${billMoney(s, dueOf(s))}</small>` : ''}<br><small>${esc(transactionTime(s.soldAt))} &middot; ${s.items.reduce((n, i) => n + i.quantity, 0)} items${s.customer ? ` &middot; ${esc(s.customer.name || s.customer.phone)}` : ''}${s.staffName ? ` &middot; ${esc(s.staffName)}` : ''}</small></div>
             <div style="text-align:right"><b>${billMoney(s, s.bill.total)}</b><br><span class="status ${s.status}">${label[s.status]}</span></div></button>`,
         )
         .join('') || '<p class="mute center mt">No sales on this phone yet.</p>'
@@ -2010,15 +2014,15 @@ async function viewSales() {
              ${s.status === 'refused' ? `<div class="note bad"><b>${esc(REFUSAL_TITLE[s.refusedCode] || REFUSAL_TITLE.OTHER)}</b><br>${esc(s.refusedReason)}<br><small>The sale is still on this phone and nothing was lost. ${esc(REFUSAL_HELP[s.refusedCode] || REFUSAL_HELP.OTHER)}</small></div>
                <button class="btn block mt" id="retry">Try sending again</button>
                <button class="btn line block mt" id="aside">Set aside (keep a copy here)</button>` : ''}
-             ${s.status === 'dismissed' ? `<div class="note">Set aside on ${esc(new Date(s.dismissedAt).toLocaleString())}. The server does not have this sale. It is kept here as a record.</div><button class="btn line block mt" id="retry">Try sending again</button>` : ''}
+             ${s.status === 'dismissed' ? `<div class="note">Set aside on ${esc(transactionTime(s.dismissedAt))}. The server does not have this sale. It is kept here as a record.</div><button class="btn line block mt" id="retry">Try sending again</button>` : ''}
              ${s.review && s.review.length ? `<div class="note warn"><b>Recorded at the price shown on this phone</b><br>${s.review.map((r) => `${esc(r.name)}: charged ${billMoney(s, r.phonePrice)}, server menu now ${billMoney(s, r.serverPrice)}`).join('<br>')}<br><small>The customer paid what the phone showed, so the receipt was not changed. The server order carries a review note.</small></div>` : ''}
              ${s.customer ? `<p class="mute">For ${esc([s.customer.name, s.customer.phone].filter(Boolean).join(' · '))}</p>` : ''}${s.staffName ? `<p class="mute">Taken by ${esc(s.staffName)}</p>` : ''}
              ${s.items.map((i) => `<div class="tot"><span>${i.quantity} &times; ${esc(i.name)}</span><span>${billMoney(s, i.price * i.quantity)}</span></div>`).join('')}
              ${s.bill.serviceCharge ? `<div class="tot"><span>Service charge (optional)</span><span>${billMoney(s, s.bill.serviceCharge)}</span></div>` : ''}
              <div class="tot big mt"><span>Total</span><span>${billMoney(s, s.bill.total)}</span></div>
-             ${(s.collections || []).map((c) => `<div class="tot mute"><span>Collected ${esc(new Date(c.at).toLocaleDateString())} (${esc(METHOD_LABEL[c.method] || c.method)})</span><span>${billMoney(s, c.amount)}</span></div>`).join('')}
+             ${(s.collections || []).map((c) => `<div class="tot mute"><span>Collected ${esc(transactionDate(c.at))} (${esc(METHOD_LABEL[c.method] || c.method)})</span><span>${billMoney(s, c.amount)}</span></div>`).join('')}
              ${dueOf(s) > 0 ? `<div class="tot big" style="color:var(--warn)"><span>Still owed</span><span>${billMoney(s, dueOf(s))}</span></div><button class="btn block mt" id="collect">Collect payment</button>` : ''}
-             ${refundedTotal(s, rfs) ? `<div class="tot" style="color:var(--bad)"><span>Refunded</span><span>&minus;${billMoney(s, refundedTotal(s, rfs))}</span></div>${rfs.filter((r) => r.saleId === s.id).map((r) => `<small class="mute">${esc(new Date(r.at).toLocaleString())} &middot; ${esc(METHOD_LABEL[r.method] || r.method)} &middot; ${r.lines.map((l) => `${l.qty} &times; ${esc(l.name)}`).join(', ')}${r.reason ? ` &middot; ${esc(r.reason)}` : ''}</small>`).join('<br>')}` : ''}
+             ${refundedTotal(s, rfs) ? `<div class="tot" style="color:var(--bad)"><span>Refunded</span><span>&minus;${billMoney(s, refundedTotal(s, rfs))}</span></div>${rfs.filter((r) => r.saleId === s.id).map((r) => `<small class="mute">${esc(transactionTime(r.at))} &middot; ${esc(METHOD_LABEL[r.method] || r.method)} &middot; ${r.lines.map((l) => `${l.qty} &times; ${esc(l.name)}`).join(', ')}${r.reason ? ` &middot; ${esc(r.reason)}` : ''}</small>`).join('<br>')}` : ''}
              ${dueOf(s) === 0 && s.status !== 'refused' && s.status !== 'dismissed' && refundableLines(s, rfs).some((l) => l.left > 0) ? '<button class="btn line block mt" id="refund">Refund…</button>' : ''}
              <div class="mt">${printActions()}</div>
            </div>`,
@@ -2046,7 +2050,7 @@ async function viewSales() {
 async function duesSheet() {
   const allSales = await sales.all();
   const owed = dueSales(allSales);
-  const aging = agingBuckets(allSales);
+  const aging = agingBuckets(allSales, undefined, restaurantZone());
   // One customer, one line: the same phone number may owe on several bills.
   const byCust = new Map();
   for (const x of owed) {
@@ -2063,7 +2067,7 @@ async function duesSheet() {
        ${[...byCust.values()]
          .map(
            (g) => `<h3 style="margin:1rem 0 .2rem">${esc(g.name || g.phone)} <small class="mute">${esc(g.name ? g.phone : '')}</small> <span style="float:right">${money(g.bills.reduce((n, b) => n + dueOf(b), 0))}</span></h3>
-           ${g.bills.map((b) => `<button class="row" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left" data-c="${esc(b.id)}"><div class="grow"><b>${esc(b.localNumber)}</b><br><small>${esc(new Date(b.soldAt).toLocaleDateString())} &middot; bill ${billMoney(b, b.bill.total)}</small></div><b>${billMoney(b, dueOf(b))}</b></button>`).join('')}`,
+           ${g.bills.map((b) => `<button class="row" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);text-align:left" data-c="${esc(b.id)}"><div class="grow"><b>${esc(b.localNumber)}</b><br><small>${esc(transactionDate(b.soldAt))} &middot; bill ${billMoney(b, b.bill.total)}</small></div><b>${billMoney(b, dueOf(b))}</b></button>`).join('')}`,
          )
          .join('') || '<p class="mute center">Nobody owes anything.</p>'}
      </div>`,
@@ -2137,8 +2141,8 @@ async function collectSheet(saleId, message, draft = {}) {
 // account it all stays on the phone; on a server-linked phone refunds,
 // expenses, money collected later and the day's cash count are also sent to
 // the server (lib/journal.js, each safe to resend).
-const fmtDay = (key) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-const stamp = () => new Date().toISOString().slice(0, 10);
+const fmtDay = (key) => new Date(`${key}T12:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' });
+const stamp = () => today(undefined, restaurantZone());
 const slug = () => String(S.snap.branch.name || 'orderrestro').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'orderrestro';
 const head = (title, back) => `<header><h2>${esc(title)}</h2><button class="x" data-close aria-label="Close">&times;</button></header>`;
 const METHOD_LABEL = { CASH: 'Cash', UPI: 'UPI', CARD: 'Card', OTHER: 'Other' };
@@ -2194,7 +2198,7 @@ function booksMenu() {
 async function shareCsv() {
   const b = await allBooks();
   if (!b.sales.length) return toast('No sales to share yet');
-  await shareFile(`${slug()}-sales-${stamp()}.csv`, 'text/csv', salesCsv(b.sales, b.refunds));
+  await shareFile(`${slug()}-sales-${stamp()}.csv`, 'text/csv', salesCsv(b.sales, b.refunds, restaurantZone()));
 }
 
 async function shareBackup() {
@@ -2249,7 +2253,8 @@ function restoreSheet(message) {
 async function expensesSheet(message, draft = {}) {
   const list = (await expenses.all()).sort((a, b) => (a.at < b.at ? 1 : -1));
   const cats = [...new Set(list.map((e) => e.category).filter(Boolean))];
-  const todays = list.filter((e) => new Date(e.at).toDateString() === new Date().toDateString());
+  const day = today(undefined, restaurantZone());
+  const todays = list.filter((e) => dayOf(e.at, restaurantZone()) === day);
   const sum = todays.reduce((n, e) => n + e.amount, 0);
   openSheet(
     `${head('Expenses')}
@@ -2261,7 +2266,7 @@ async function expensesSheet(message, draft = {}) {
        <label>Paid from</label><div class="seg" role="group" aria-label="Paid from"><button data-m="CASH" aria-pressed="${draft.method !== 'OTHER'}">Cash drawer</button><button data-m="OTHER" aria-pressed="${draft.method === 'OTHER'}">Bank / other</button></div>
        <button class="btn block mt" id="add">Add expense</button>
        <h3 style="margin:1.2rem 0 .3rem">Today: ${money(sum)}</h3>
-       ${list.slice(0, 40).map((e) => `<div class="row"><div class="grow"><b>${esc(e.note)}</b><br><small>${esc(new Date(e.at).toLocaleString())}${e.category ? ` &middot; ${esc(e.category)}` : ''} &middot; ${e.method === 'CASH' ? 'Cash' : 'Other'}</small></div><div style="text-align:right"><b>${money(e.amount)}</b><br><button class="btn line" data-del="${esc(e.id)}" style="min-height:36px;padding:.2rem .7rem">Delete</button></div></div>`).join('') || '<p class="mute center mt">No expenses yet.</p>'}
+       ${list.slice(0, 40).map((e) => `<div class="row"><div class="grow"><b>${esc(e.note)}</b><br><small>${esc(transactionTime(e.at))}${e.category ? ` &middot; ${esc(e.category)}` : ''} &middot; ${e.method === 'CASH' ? 'Cash' : 'Other'}</small></div><div style="text-align:right"><b>${money(e.amount)}</b><br><button class="btn line" data-del="${esc(e.id)}" style="min-height:36px;padding:.2rem .7rem">Delete</button></div></div>`).join('') || '<p class="mute center mt">No expenses yet.</p>'}
        ${list.length ? '<button class="btn line block mt" id="csv">Share expenses as a spreadsheet</button>' : ''}
      </div>`,
     (p) => {
@@ -2273,7 +2278,7 @@ async function expensesSheet(message, draft = {}) {
           const e = buildExpense({ id: newId(), ...grab() });
           if (S.who) e.by = S.who.name;
           if (!S.snap.local) {
-            const ev = await queueEvent('expense', { spentOn: today(), note: e.note, category: e.category || undefined, amount: e.amount, paidFromCash: e.method === 'CASH' }, { userId: S.snap.user.id, deviceId: await kv.get('deviceId') });
+            const ev = await queueEvent('expense', { spentOn: dayOf(e.at, restaurantZone()), note: e.note, category: e.category || undefined, amount: e.amount, paidFromCash: e.method === 'CASH' }, { userId: S.snap.user.id, deviceId: await kv.get('deviceId') });
             e.eventId = ev.id;
           }
           await expenses.put(e);
@@ -2299,23 +2304,25 @@ async function expensesSheet(message, draft = {}) {
           }),
       );
       const csv = p.querySelector('#csv');
-      if (csv) csv.onclick = () => shareFile(`${slug()}-expenses-${stamp()}.csv`, 'text/csv', expensesCsv(list));
+      if (csv) csv.onclick = () => shareFile(`${slug()}-expenses-${stamp()}.csv`, 'text/csv', expensesCsv(list, restaurantZone()));
     },
   );
 }
 
 // ---- close the day
 async function closeDaySheet(message, draft = {}) {
-  const day = today();
+  const timeZone = restaurantZone();
+  const day = today(undefined, timeZone);
   const b = await allBooks();
   const float = draft.float != null ? draft.float : (await kv.get(`float:${day}`)) ?? '';
-  const books = dayBooks({ ...b, float: Number(float) || 0, day });
+  const books = dayBooks({ ...b, float: Number(float) || 0, day, timeZone });
   const done = await shifts.get(day);
   const past = (await shifts.all()).sort((x, y) => (x.day < y.day ? 1 : -1)).slice(0, 7);
   const line = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
   openSheet(
     `${head('Close the day')}
      <div class="body">
+       <p class="mute">${esc(fmtDay(day))} &middot; ${esc(timeZone)}</p>
        ${message ? `<div class="note bad" role="alert">${esc(message)}</div>` : ''}
        <label for="fl">Cash in the drawer when you opened${currencyLabel()}</label><input id="fl" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(float)}" placeholder="0">
        <dl class="kv mt">
@@ -2332,7 +2339,7 @@ async function closeDaySheet(message, draft = {}) {
        <div class="tot big mt"><span>Cash that should be there</span><span>${money(books.expectedCash)}</span></div>
        <p class="mute" style="margin:.2rem 0 0">Opening cash + cash taken (sales and money collected) &minus; cash refunds &minus; cash expenses.</p>
        <label for="cc">Cash you counted${currencyLabel()}</label><input id="cc" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(draft.counted ?? (done ? done.countedCash : ''))}">
-       ${done ? `<div class="note warn">This day was closed at ${esc(new Date(done.closedAt).toLocaleTimeString())}. Closing again replaces that count.</div>` : ''}
+       ${done ? `<div class="note warn">This day was closed at ${esc(new Date(done.closedAt).toLocaleTimeString(undefined, { timeZone }))}. Closing again replaces that count.</div>` : ''}
        <button class="btn block mt" id="close">${done ? 'Close again' : 'Close the day'}</button>
        ${past.length ? `<h3 style="margin:1.2rem 0 .3rem">Recent days</h3>${past.map((d) => `<div class="row"><div class="grow"><b>${esc(fmtDay(d.day))}</b><br><small>Net ${money(d.net)} &middot; counted ${money(d.countedCash)}</small></div><b style="color:${d.difference < 0 ? 'var(--bad)' : d.difference > 0 ? 'var(--warn)' : 'var(--ok)'}">${d.difference === 0 ? 'Matches' : `${d.difference > 0 ? '+' : '&minus;'}${money(Math.abs(d.difference))}`}</b></div>`).join('')}` : ''}
      </div>`,
@@ -2344,7 +2351,7 @@ async function closeDaySheet(message, draft = {}) {
       p.querySelector('#close').onclick = async () => {
         try {
           await kv.set(`float:${day}`, $('fl').value);
-          const bk = dayBooks({ ...b, float: Number($('fl').value) || 0, day });
+          const bk = dayBooks({ ...b, float: Number($('fl').value) || 0, day, timeZone });
           const rec = closeDay({ books: bk, counted: $('cc').value });
           if (!(await managerOK('Close the day (count the cash).'))) return;
           rec.by = S.who ? S.who.name : S.snap.user.name;
@@ -2370,9 +2377,10 @@ async function closeDaySheet(message, draft = {}) {
 // ---- reports
 async function reportSheet(range = 7) {
   const b = await allBooks();
-  const to = today();
-  const from = range === 1 ? to : daysAgo(range - 1);
-  const r = rangeBooks({ ...b, from, to });
+  const timeZone = restaurantZone();
+  const to = today(undefined, timeZone);
+  const from = range === 1 ? to : daysAgo(range - 1, undefined, timeZone);
+  const r = rangeBooks({ ...b, from, to, timeZone });
   openSheet(
     `${head('Reports')}
      <div class="body">
@@ -2385,7 +2393,7 @@ async function reportSheet(range = 7) {
          <dt>Left after expenses</dt><dd><b>${money(r.profit)}</b></dd>
        </dl>
        ${r.top.length ? `<h3 style="margin:1.2rem 0 .3rem">Best sellers</h3>${r.top.map((t) => `<div class="tot"><span>${esc(t.name)}</span><span>&times;${t.qty}</span></div>`).join('')}` : '<p class="mute center mt">No sales in this period.</p>'}
-       <p class="mute mt">Sales taken on this phone, by the phone's clock.</p>
+       <p class="mute mt">Sales taken on this phone, grouped by the restaurant’s time zone (${esc(timeZone)}).</p>
      </div>`,
     (p) => p.querySelectorAll('[data-r]').forEach((x) => (x.onclick = () => reportSheet(Number(x.dataset.r)))),
   );
@@ -2528,7 +2536,7 @@ async function settingsCard() {
   const auto = np && np.saveBackup;
   const refused = (await events.all()).filter((e) => BOOK_KIND[e.kind] && e.status === 'failed');
   return `${refused.length ? `<div class="card mt"><h2 style="font-size:1.05rem">Refused by the server</h2>${refused
-      .map((e) => `<div class="row"><div class="grow"><b>${BOOK_KIND[e.kind]}</b>${e.payload.amount ? ` ${money(e.payload.amount || e.payload.countedCash || 0)}` : ''}<br><small class="mute">${esc(new Date(e.createdAt).toLocaleString())}</small><div class="note bad">${esc(e.error || 'Refused')}</div></div><div><button class="btn ghost" data-evretry="${esc(e.id)}">Try again</button><button class="btn line mt" data-evaside="${esc(e.id)}">Set aside</button></div></div>`)
+      .map((e) => `<div class="row"><div class="grow"><b>${BOOK_KIND[e.kind]}</b>${e.payload.amount ? ` ${money(e.payload.amount || e.payload.countedCash || 0)}` : ''}<br><small class="mute">${esc(transactionTime(e.createdAt))}</small><div class="note bad">${esc(e.error || 'Refused')}</div></div><div><button class="btn ghost" data-evretry="${esc(e.id)}">Try again</button><button class="btn line mt" data-evaside="${esc(e.id)}">Set aside</button></div></div>`)
       .join('')}</div>` : ''}
     ${!S.snap.local && !can('offlineOptions') ? `<div class="note warn mt" role="status">Your server${S.caps.version && S.caps.version !== 'unknown' ? ` (version ${esc(S.caps.version)})` : ''} is older than this app. Pay later, the service charge, half portions and add-ons, and sending refunds, expenses and cash counts need OrderRestro server 1.38 or newer. Refunds and expenses stay on this phone and are sent once the server is updated.</div>` : ''}
     <div class="card mt">
@@ -2866,7 +2874,7 @@ async function viewKitchen() {
     <div class="card mt"><button class="btn block" id="k-prod">Stock journal: record production</button><button class="btn line block mt" id="k-drafts">Drafts and posted vouchers</button><button class="btn line block mt" id="k-waste">Record food waste</button>${S.snap.canReceive ? '<button class="btn line block mt" id="k-recv">Receive stock</button>' : ''}${S.snap.canReceive && (S.snap.stockPlaces || []).length > 1 ? '<button class="btn line block mt" id="k-move">Move stock</button>' : ''}${S.snap.canReceive ? '<button class="btn line block mt" id="k-fix">Correct stock</button>' : ''}
       <p class="mute center">Works without a connection. It is sent when the phone is online.</p></div>
     <h2 class="mt">Recent</h2>
-    ${evs.length ? evs.map((e) => `<div class="card mt" data-ev="${esc(e.id)}"><b>${esc(describe(e))}</b><div class="mute">${esc(new Date(e.createdAt).toLocaleString())} &middot; ${EV_LABEL[e.status]}</div>${e.status === 'failed' ? `<div class="note bad mt">${esc(e.error || 'Refused')}</div><div class="row mt"><button class="btn ghost" data-retry="${esc(e.id)}">Try again</button><button class="btn line" data-dismiss="${esc(e.id)}">Set aside</button></div>` : ''}</div>`).join('') : '<p class="mute center mt">Nothing recorded on this phone yet.</p>'}`;
+    ${evs.length ? evs.map((e) => `<div class="card mt" data-ev="${esc(e.id)}"><b>${esc(describe(e))}</b><div class="mute">${esc(transactionTime(e.createdAt))} &middot; ${EV_LABEL[e.status]}</div>${e.status === 'failed' ? `<div class="note bad mt">${esc(e.error || 'Refused')}</div><div class="row mt"><button class="btn ghost" data-retry="${esc(e.id)}">Try again</button><button class="btn line" data-dismiss="${esc(e.id)}">Set aside</button></div>` : ''}</div>`).join('') : '<p class="mute center mt">Nothing recorded on this phone yet.</p>'}`;
   $('k-prod').onclick = () => openStockJournal();
   $('k-drafts').onclick = openSjList;
   $('k-waste').onclick = openWaste;
@@ -3277,7 +3285,7 @@ async function openSjList() {
     if (d.status !== 200 || p.status !== 200) { body.innerHTML = `<div class="note bad" role="alert">${esc(friendlyError(d.status !== 200 ? d : p))}</div>`; return; }
     const nameOf = (e, role) => e.lines.filter((l) => l.role === role).map((l) => `${esc(sjNum(role === 'OUTPUT' ? l.quantity : l.enteredQuantity))} ${esc(role === 'OUTPUT' ? l.ingredient.unit : l.enteredUnit)} ${esc(l.ingredient.name)}`).join(', ');
     const card = (e, draft) => `<div class="card mt"><b>${esc(e.entryNo)}</b> <span class="status ${draft ? 'PREPARING' : 'READY'}">${draft ? 'Draft: stock not changed' : 'Posted'}</span>
-      <div class="mute">${esc(new Date(e.producedAt).toLocaleString())}${e.batchRef ? ` · ${esc(e.batchRef)}` : ''}</div>
+      <div class="mute">${esc(transactionTime(e.producedAt))}${e.batchRef ? ` · ${esc(e.batchRef)}` : ''}</div>
       <div>Made ${nameOf(e, 'OUTPUT') || '–'}</div><div class="mute">Used ${nameOf(e, 'INPUT') || '–'}</div>
       ${draft ? `<div class="row"><button class="btn ghost" data-open="${esc(e.id)}">Open</button>${capsFrom(S.snap).record ? `<button class="btn line" data-del="${esc(e.id)}">Delete</button>` : ''}</div>` : ''}</div>`;
     body.innerHTML = `<h3 class="sec">Drafts (${d.data.length})</h3>${d.data.map((e) => card(e, true)).join('') || '<p class="mute">No drafts.</p>'}
@@ -3451,7 +3459,7 @@ function openCorrect() {
 async function viewShift() {
   const all = (await events.all()).filter((e) => e.kind === 'attendance');
   const st = shiftState(all);
-  const fmt = (iso) => new Date(iso).toLocaleString();
+  const fmt = transactionTime;
   $('view').innerHTML = `
     ${S.note ? `<div class="note ${S.note.kind || ''}" role="status">${esc(S.note.text)}</div>` : ''}
     <div class="card mt center">

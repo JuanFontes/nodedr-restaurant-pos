@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRefund, refundableLines, refundedTotal, buildExpense, dayBooks, rangeBooks, closeDay, salesCsv, cell, backupJson, parseBackup, today } from './books.js';
+import { buildRefund, refundableLines, refundedTotal, buildExpense, dayBooks, rangeBooks, closeDay, salesCsv, expensesCsv, cell, backupJson, parseBackup, today } from './books.js';
 
 const NOW = new Date('2026-11-08T12:00:00');
 const sale = (extra = {}) => ({
@@ -155,4 +155,29 @@ test('an older backup without events leaves events undefined so a restore keeps 
   const back = parseBackup(backupJson({ snapshot: snap }, NOW));
   assert.equal(back.events, undefined);
   assert.deepEqual(back.reservations, []);
+});
+
+test('day close, range, aging and CSV use the restaurant day across the spring-forward transition', () => {
+  const timeZone = 'America/New_York';
+  const prior = due({ soldAt: '2026-03-08T04:50:00Z', collections: [{ method: 'CARD', amount: 5, at: '2026-03-08T05:05:00Z' }] });
+  const current = sale({ soldAt: '2026-03-09T03:50:00Z' });
+  const expense = { at: '2026-03-08T04:55:00Z', amount: 1, method: 'CASH', note: 'Tea' };
+  const inputs = { timeZone, sales: [prior, current], expenses: [expense], refunds: [{ amount: 2, at: current.soldAt }] };
+  const books = dayBooks({ ...inputs, day: '2026-03-08' });
+  assert.equal(books.sales, 1);
+  assert.equal(books.byMethod.CARD, 5);
+  assert.equal(books.refundTotal, 2);
+  assert.equal(books.expenseTotal, 0);
+  assert.equal(rangeBooks({ ...inputs, from: '2026-03-08', to: '2026-03-08' }).sales, 1);
+  assert.equal(agingBuckets([prior], new Date('2026-03-08T05:01:00Z'), timeZone).d1_30, 195);
+  assert.match(salesCsv([current], [], timeZone), /2026-03-08,23:50/);
+  assert.match(expensesCsv([expense], timeZone), /2026-03-07,23:55/);
+});
+
+test('both occurrences of a repeated hour belong to the same 25-hour business day', () => {
+  const timeZone = 'America/New_York';
+  const sales = ['2026-11-01T05:30:00Z', '2026-11-01T06:30:00Z', '2026-11-02T04:59:00Z', '2026-11-02T05:00:00Z']
+    .map((soldAt) => sale({ soldAt }));
+  assert.equal(dayBooks({ sales, expenses: [], refunds: [], day: '2026-11-01', timeZone }).gross, 900);
+  assert.equal(salesCsv(sales, [], timeZone).match(/2026-11-01,01:30/g).length, 2);
 });

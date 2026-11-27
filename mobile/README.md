@@ -54,7 +54,7 @@ Tests: `node --test www/pos/lib/*.test.mjs`.
 
 With no server the app opens its own POS (`www/pos/`): menu, selling, tables and held orders, kitchen tickets and the kitchen screen, Bluetooth and PDF printing, and sync to a server later. Everything is kept in the phone's IndexedDB (`lib/store.js`).
 
-During phone-only setup, confirm your country, currency and time zone. The phone suggests them from its language and time-zone settings when available. You can edit them later under **Sync > Shop settings**. Paired phones use the restaurant settings from the last downloaded menu. Amounts on screen and on receipts follow the device language. New sales retain their currency for reprints. Connecting a phone account to a server with a different currency keeps pending bills on the phone until it connects to a server that uses their currency.
+During phone-only setup, confirm your country, currency and time zone. The phone suggests them from its language and time-zone settings when available. You can edit them later under **Sync > Shop settings**. Paired phones use the restaurant settings from the last downloaded menu. Amounts on screen and on receipts follow the device language. Receipts, sales reports, cash counts and CSV exports use the restaurant’s time zone. New sales retain their currency for reprints. Connecting a phone account to a server with a different currency keeps pending bills on the phone until it connects to a server that uses their currency.
 
 <details>
 <summary>Phone-only setup with Brazil and BRL suggested</summary>

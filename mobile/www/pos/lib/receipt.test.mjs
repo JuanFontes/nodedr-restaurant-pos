@@ -72,3 +72,10 @@ test('Brazilian receipts use the configured currency and device locale, includin
   const legacy = { ...brazil, restaurant: { ...brazil.restaurant, legacySaleCurrency: 'USD' } };
   assert.match(htmlReceipt(sale, legacy, opts), /US\$\s650,00/);
 });
+
+test('receipts print the business date when the till is already on the following day', () => {
+  const ny = { ...snap, restaurant: { ...snap.restaurant, timezone: 'America/New_York' } };
+  const midnight = { ...sale, soldAt: '2026-03-09T03:50:00Z' };
+  assert.match(htmlReceipt(midnight, ny, { locale: 'en-GB' }), /08\/03\/2026, 23:50/);
+  assert.match(text(escposReceipt(midnight, ny, { locale: 'en-GB' })), /08\/03\/2026, 23:50/);
+});

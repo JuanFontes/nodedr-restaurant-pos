@@ -4,6 +4,7 @@
 // Both show the same figures. An unpaid bill ("provisional") carries the UPI
 // "scan to pay" QR when the restaurant has a UPI id.
 
+import { storedZone } from './calendar.js';
 import { formatMoney, saleCurrency, supportsUpi } from './money.js';
 const METHOD = { CASH: 'Cash', CARD: 'Card', UPI: 'UPI', OTHER: 'Other' };
 
@@ -120,7 +121,7 @@ export function escposReceipt(sale, snap, { provisional = false, upiUri = null, 
   if (snap.branch.phone) w.text(`Tel ${snap.branch.phone}`, { align: 1 });
   if (snap.branch.gstNumber) w.text(`GSTIN ${snap.branch.gstNumber}`, { align: 1 });
   w.rule();
-  w.row(new Date(sale.soldAt).toLocaleString(locale), '');
+  w.row(new Date(sale.soldAt).toLocaleString(locale, { timeZone: storedZone(snap.restaurant.timezone) }), '');
   w.row(`Bill ${sale.localNumber}`, sale.type === 'DINE_IN' ? 'DINE IN' : 'TAKEAWAY');
   if (sale.tableLabel) w.row(sale.tableLabel, '');
   if (sale.customer && (sale.customer.name || sale.customer.phone)) w.row(`For ${[sale.customer.name, sale.customer.phone].filter(Boolean).join(' ')}`, '');
@@ -196,7 +197,7 @@ th{font-size:10px;text-align:left;border-bottom:1px solid #000}td{padding:2px 0;
 ${snap.branch.address ? `<div class="s">${esc(snap.branch.address)}</div>` : ''}
 ${snap.branch.phone ? `<div class="s">Tel ${esc(snap.branch.phone)}</div>` : ''}
 ${snap.branch.gstNumber ? `<div class="s">GSTIN ${esc(snap.branch.gstNumber)}</div>` : ''}
-<hr><div class="r"><span>${esc(new Date(sale.soldAt).toLocaleString(locale))}</span></div>
+<hr><div class="r"><span>${esc(new Date(sale.soldAt).toLocaleString(locale, { timeZone: storedZone(snap.restaurant.timezone) }))}</span></div>
 <div class="r"><span>Bill ${esc(sale.localNumber)}</span><span>${sale.type === 'DINE_IN' ? 'DINE IN' : 'TAKEAWAY'}</span></div>
 ${sale.tableLabel ? `<div>${esc(sale.tableLabel)}</div>` : ''}
 ${sale.customer && (sale.customer.name || sale.customer.phone) ? `<div>For ${esc([sale.customer.name, sale.customer.phone].filter(Boolean).join(' '))}</div>` : ''}
