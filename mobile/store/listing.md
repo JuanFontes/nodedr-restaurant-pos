@@ -1,7 +1,9 @@
 # Store listing text (Google Play and App Store)
 
-**App name:** OrderRestro
-**Subtitle / short description (80):** Restaurant billing, KOT, tables and kitchen. Works offline, no server needed.
+**App name:** OrderRestro (Play title: OrderRestro: Restaurant POS)
+**Subtitle / short description (80):** Free restaurant POS: billing, KOT, tables, kitchen. Works offline, no server.
+**Play video:** https://www.youtube.com/watch?v=L7nXdduvExc
+**Search terms targeted:** restaurant POS, free restaurant POS, restaurant app, restaurant billing, KOT, table management
 **Category:** Business (Play: Business; App Store: Business, secondary Food & Drink)
 **Contact email:** info@nodedr.com
 **Website:** https://orderrestro.nodedr.com
@@ -12,15 +14,18 @@
 
 ## Full description
 
-OrderRestro is a restaurant point of sale for your phone. Start on the phone with no server and no internet: add your dishes and tables, take orders, print bills and kitchen tickets, and close the day. When you grow, connect the restaurant's own OrderRestro server (open source, hosted by you) and the same app becomes the staff and rider app for it.
+OrderRestro is a free restaurant POS app for your phone: restaurant billing, KOT (kitchen order tickets), table management and kitchen orders in one restaurant app. Start on the phone with no server and no internet: add your dishes and tables, take orders, print bills and kitchen tickets, and close the day. When you grow, connect the restaurant's own OrderRestro server (open source, hosted by you) and the same app becomes the staff and rider app for it.
 
-Billing on the phone
+Good for restaurants, cafes, food trucks, bakeries, bars, cloud kitchens and takeaway shops.
+
+Restaurant billing on the phone
 - Menu with categories, tax, half portions, add-ons and barcodes (camera or a USB/Bluetooth scanner)
 - Dine in by table or takeaway; orders are saved as you go, held and resumed
 - Cash, UPI, card or split payments, with change; UPI "scan to pay" QR on the bill
 - Customer name and phone, pay later, and Money owed with collect payment
 - Discounts with a reason, and an optional service charge only when the guest agrees
 - Print bills and kitchen tickets (KOT) on a Bluetooth thermal printer, or as a PDF
+- Nearby phones (beta): phones of one branch keep a copy of each other's finished sales with no WiFi, internet or server
 
 Staff and control
 - Each person switches in with their own PIN; every bill shows who took it
@@ -31,7 +36,7 @@ Books
 - Stock count per dish that switches a dish off at 0
 - Sales and expenses as a spreadsheet, a full backup to restore, and an automatic daily backup on the phone
 
-With your restaurant server
+Restaurant POS with your server (optional)
 - Sales taken with no connection are sent when you are back online, never twice
 - Refunds, expenses, collections and the day's cash count reach the server's accounts
 - Kitchen: record production, waste, stock received, moves and corrections offline
@@ -48,7 +53,13 @@ For waiters, cashiers and managers on a server
 
 Works on the restaurant's own network, with no internet needed day to day. Your data stays on your phone or your restaurant's server.
 
-No ads. No tracking. Delete your account any time.
+Free restaurant POS with no ads and no tracking. Delete your account any time.
+
+## What's new (1.47.0)
+- Nearby phones (beta): phones of one branch can keep a copy of each other's finished sales with no WiFi, internet or server
+- Staff screens follow the language you pick: English, Spanish, French, Brazilian Portuguese
+- Menu: a Paused view lists dishes by return time
+- Paid bills, refunds and customer points history are never lost when something is deleted
 
 ## What's new (1.38.0)
 - Half portions, add-ons and barcode scanning
