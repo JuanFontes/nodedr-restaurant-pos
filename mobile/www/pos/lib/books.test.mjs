@@ -111,6 +111,7 @@ test('collecting: part, then the rest with cash change; never more than owed by 
   s.collections = [c1];
   assert.equal(dueOf(s), 150);
   assert.throws(() => buildCollection({ id: 'x', sale: s, method: 'CARD', amount: 200 }), /Only 150.00 is owed/);
+  assert.throws(() => buildCollection({ id: 'x', sale: { ...s, currency: 'EUR' }, method: 'CARD', amount: 200, locale: 'fr-FR' }), /150,00\s€/);
   const c2 = buildCollection({ id: 'c2', sale: s, method: 'CASH', amount: 200, now: NOW });
   assert.equal(c2.amount, 150);
   assert.equal(c2.change, 50);

@@ -1,5 +1,6 @@
 // The restaurant's books on this phone: refunds, expenses, the cash drawer and
 // exports. Pure functions (no page, no database) so they are unit tested.
+import { formatMoney } from './money.js';
 import { effectiveUnit, round2 } from './bill.js';
 
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -88,12 +89,12 @@ export function agingBuckets(sales, now = new Date()) {
 }
 
 /** Money taken later on a due sale. Cash above what is owed is change, like at the till. */
-export function buildCollection({ id, sale, method = 'CASH', amount, reference = '', now = new Date() }) {
+export function buildCollection({ id, sale, method = 'CASH', amount, reference = '', now = new Date(), currency = sale.currency, locale }) {
   const due = dueOf(sale);
   if (!(due > 0)) throw new Error('Nothing is owed on this bill.');
   const given = round2(Number(amount));
   if (!Number.isFinite(given) || given <= 0) throw new Error('Enter the amount received, for example 200.');
-  if (given > due && method !== 'CASH') throw new Error(`Only ${due.toFixed(2)} is owed. Only cash can be more (the rest is change).`);
+  if (given > due && method !== 'CASH') throw new Error(`Only ${formatMoney(due, currency, locale)} is owed. Only cash can be more (the rest is change).`);
   const applied = round2(Math.min(given, due));
   return {
     id,
