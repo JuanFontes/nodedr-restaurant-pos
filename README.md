@@ -20,6 +20,7 @@ dine-in, takeaway, delivery and kitchen operations.
 [![CasaOS / ZimaOS](https://img.shields.io/badge/CasaOS%20%2F%20ZimaOS-one--click%20app-1F6FEB)](casaos/README.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 [![Status](https://img.shields.io/badge/status-active%20development-orange.svg)](./ROADMAP.md)
+[![Sponsor](https://img.shields.io/badge/sponsor-Raktim94-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Raktim94)
 
 Developed by [NodeDR Infotech Private Limited](https://www.nodedr.com/)
 
