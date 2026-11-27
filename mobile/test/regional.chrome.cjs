@@ -12,29 +12,75 @@ const snapshot = {
   items: [{ id: 'coffee', name: 'Coffee', price: 1234.5, sellOffline: true, taxRate: 0 }],
 };
 
+async function servePhone(route) {
+  const path = new URL(route.request().url()).pathname;
+  if (path.startsWith('/api/')) {
+    let json = {};
+    if (path.endsWith('/branches')) json = [branch];
+    if (path.endsWith('/setup-status')) json = { isSetup: true };
+    if (path.endsWith('/snapshot')) json = snapshot;
+    if (path.endsWith('/sales') && route.request().method() === 'POST') {
+      const { sales } = route.request().postDataJSON();
+      json = { results: sales.map((s) => ({ id: s.id, status: 'accepted', orderNumber: 42 })) };
+    }
+    if (path.endsWith('/server-info')) json = { product: 'orderrestro', capabilities: {} };
+    return route.fulfill({ json });
+  }
+  const contentType = /\.m?js$/.test(path) ? 'text/javascript' : path.endsWith('.css') ? 'text/css' : 'text/html';
+  try { await route.fulfill({ contentType, body: await readFile(join(__dirname, '../www', path)) }); }
+  catch { await route.fulfill({ status: 404 }); }
+}
+
+async function italianSetup(browser, locale, country, currency, timezoneId) {
+  const page = await browser.newPage({ locale, timezoneId });
+  try {
+    page.setDefaultTimeout(5000);
+    await page.route(origin + '/**', servePhone);
+    await page.goto(origin + '/pos/index.html');
+    await page.getByRole('heading', { name: 'Crea il tuo account' }).waitFor();
+    assert.equal(await page.locator('#sf').getAttribute('lang'), 'it');
+    assert.equal(await page.getByLabel('Codice paese').inputValue(), country);
+    assert.equal(await page.getByLabel('Valuta').inputValue(), currency);
+    assert.equal(await page.getByLabel('Fuso orario').inputValue(), timezoneId);
+    await page.getByRole('button', { name: 'Crea account e inizia' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Inserisci il tuo nome.' }).waitFor();
+    await page.getByLabel('Il tuo nome').fill('Giulia');
+    await page.getByLabel('Nome del ristorante o del negozio').fill('Bistrot');
+    await page.getByLabel('Password').fill('local-test');
+    await page.getByRole('button', { name: 'Crea account e inizia' }).click();
+    await page.locator('[data-tab="sync"]').click();
+    const settings = page.getByRole('form', { name: 'Impostazioni regionali' });
+    assert.equal(await settings.getByLabel('Valuta').inputValue(), currency);
+    await settings.getByLabel('Valuta').fill('ZZZ');
+    await settings.getByRole('button', { name: 'Salva impostazioni regionali' }).click();
+    await page.locator('#toast').filter({ hasText: 'Inserisci un codice valuta valido' }).waitFor();
+    assert.equal(await page.locator('#toast').getAttribute('lang'), 'it');
+    await settings.getByLabel('Codice paese').fill('IN');
+    await settings.getByLabel('Valuta').focus();
+    await settings.getByLabel('ID UPI').fill('invalid');
+    await settings.getByRole('button', { name: 'Salva impostazioni regionali' }).click();
+    await page.locator('#toast').filter({ hasText: 'Un ID UPI ha il formato nome@banca.' }).waitFor();
+    await settings.getByLabel('Codice paese').fill('US');
+    await settings.getByLabel('Valuta').focus();
+    assert.equal(await settings.getByLabel('Valuta').inputValue(), 'USD');
+    await settings.getByLabel('Fuso orario').fill('America/New_York');
+    await settings.getByRole('button', { name: 'Salva impostazioni regionali' }).click();
+    await page.locator('#toast').filter({ hasText: 'Impostazioni regionali salvate.' }).waitFor();
+    const saved = await page.evaluate(async () => (await import('/pos/lib/store.js')).kv.get('snapshot'));
+    assert.equal(saved.branch.country, 'US');
+    assert.equal(saved.restaurant.currency, 'USD');
+    assert.equal(saved.restaurant.timezone, 'America/New_York');
+  } finally { await page.close(); }
+}
+
 async function run() {
   const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome' });
   try {
+    await italianSetup(browser, 'it-IT', 'IT', 'EUR', 'Europe/Rome');
+    await italianSetup(browser, 'it-CH', 'CH', 'CHF', 'Europe/Zurich');
     const page = await browser.newPage({ locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
     page.setDefaultTimeout(5000);
-    await page.route(origin + '/**', async (route) => {
-      const path = new URL(route.request().url()).pathname;
-      if (path.startsWith('/api/')) {
-        let json = {};
-        if (path.endsWith('/branches')) json = [branch];
-        if (path.endsWith('/setup-status')) json = { isSetup: true };
-        if (path.endsWith('/snapshot')) json = snapshot;
-        if (path.endsWith('/sales') && route.request().method() === 'POST') {
-          const { sales } = route.request().postDataJSON();
-          json = { results: sales.map((s) => ({ id: s.id, status: 'accepted', orderNumber: 42 })) };
-        }
-        if (path.endsWith('/server-info')) json = { product: 'orderrestro', capabilities: {} };
-        return route.fulfill({ json });
-      }
-      const contentType = /\.m?js$/.test(path) ? 'text/javascript' : path.endsWith('.css') ? 'text/css' : 'text/html';
-      try { await route.fulfill({ contentType, body: await readFile(join(__dirname, '../www', path)) }); }
-      catch { await route.fulfill({ status: 404 }); }
-    });
+    await page.route(origin + '/**', servePhone);
     await page.clock.setFixedTime(new Date('2026-03-08T03:30:00Z'));
     await page.goto(origin + '/pos/index.html');
     await page.getByRole('heading', { name: 'Create your account' }).waitFor();
@@ -117,7 +163,7 @@ async function run() {
     await page.evaluate(() => window.dispatchEvent(new Event('online')));
     await item.filter({ hasText: /R\$\s1\.234,50/ }).waitFor();
     assert.equal(await page.locator('#sheet').isVisible(), false);
-    console.log('Passed phone defaults, persisted settings, localized pricing, cross-currency refusal, matching sale upload and paired refresh.');
+    console.log('Passed Italian and Swiss Italian onboarding, phone defaults, persisted settings, localized pricing, cross-currency refusal, matching sale upload and paired refresh.');
   } finally { await browser.close(); }
 }
 run().catch((error) => { console.error(error); process.exitCode = 1; });

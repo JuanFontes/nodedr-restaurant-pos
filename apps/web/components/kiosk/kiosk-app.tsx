@@ -250,6 +250,7 @@ export function KioskApp({ token }: { token: string }) {
 
   return (
     <div
+      lang={localeTag}
       className="relative h-full select-none"
       style={{
         paddingTop: "env(safe-area-inset-top)",

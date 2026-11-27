@@ -63,6 +63,8 @@ During phone-only setup, confirm your country, currency and time zone. The phone
 
 </details>
 
+On a phone set to Italian, the account form and regional settings appear in Italian. Italy suggests EUR and Switzerland suggests CHF. You can change these choices after setup. The other offline POS screens currently use English.
+
 To check the regional setup and offline currency changes in Chrome, run `node mobile/test/regional.chrome.cjs` from the repository root. Set `CHROME` to the browser executable and make `playwright-core` available on `NODE_PATH`, as in the mobile CI job.
 
 Books (`lib/books.js`, unit tested in `lib/books.test.mjs`). On a phone account they stay on the phone. On a server-linked phone, refunds (money only), expenses, money collected on owed bills and the phone's own day-end cash count are also sent to the server through the event queue (`lib/journal.js`, each with its own id so a resend is harmless; a refund or collection waits until its sale is on the server). The cash counts appear in the web app under Accounting > Cash close > Phone tills.

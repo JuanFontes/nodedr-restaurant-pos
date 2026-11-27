@@ -4,6 +4,7 @@
 import { computeBill, round2, settle, upiLink } from './lib/bill.js';
 import { dayOf, daysAgo, storedZone, today } from './lib/calendar.js';
 import { currencyCode, formatMoney, saleCurrency, supportsUpi } from './lib/money.js';
+import { setupLanguage, setupText } from './lib/setup-language.js';
 import { suggestCurrency, suggestRegion } from './lib/region-currency.js';
 import { escposReceipt, htmlReceipt, toBase64 } from './lib/receipt.js';
 import { completeCheckout, events, reservations, expenses, kots, kv, newId, nextKotNumber, nextLocalNumber, nextOrderNumber, orders, readEverything, refunds, replaceEverything, sales, saveKotWithOrder, savePendingSale, shifts } from './lib/store.js';
@@ -97,8 +98,9 @@ const ICON = {
 /** A phone account can do everything; a server-linked phone only what its server says it takes (see sync.js). */
 const can = (cap) => !!(S.snap && S.snap.local) || !!(S.caps && S.caps[cap]);
 
-function toast(msg, ms = 2600) {
+function toast(msg, ms = 2600, lang = document.documentElement.lang) {
   const t = $('toast');
+  t.lang = lang;
   t.textContent = msg;
   t.hidden = false;
   clearTimeout(toast.t);
@@ -535,17 +537,17 @@ async function renderLogin(message) {
 // ------------------------------------------------- on this phone (no server) ---
 function regionFields({ country, currency, timezone, upiVpa }) {
   const options = (values) => values.map((v) => `<option value="${esc(v)}"></option>`).join('');
-  return `<label for="region-country">Country code</label>
-    <input id="region-country" maxlength="2" autocapitalize="characters" placeholder="e.g. BR" value="${esc(country)}">
-    <label for="region-currency">Currency</label>
-    <input id="region-currency" maxlength="3" list="currencies" autocapitalize="characters" placeholder="e.g. BRL" value="${esc(currency)}">
+  return `<label for="region-country">${setupText('Country code')}</label>
+    <input id="region-country" maxlength="2" autocapitalize="characters" placeholder="${setupText('e.g. BR')}" value="${esc(country)}">
+    <label for="region-currency">${setupText('Currency')}</label>
+    <input id="region-currency" maxlength="3" list="currencies" autocapitalize="characters" placeholder="${setupText('e.g. BRL')}" value="${esc(currency)}">
     <datalist id="currencies">${options(Intl.supportedValuesOf?.('currency') || [])}</datalist>
-    <label for="region-timezone">Time zone</label>
-    <input id="region-timezone" list="timezones" autocapitalize="none" placeholder="e.g. America/Sao_Paulo" value="${esc(timezone)}">
+    <label for="region-timezone">${setupText('Time zone')}</label>
+    <input id="region-timezone" list="timezones" autocapitalize="none" placeholder="${setupText('e.g. America/Sao_Paulo')}" value="${esc(timezone)}">
     <datalist id="timezones">${options(['UTC', ...(Intl.supportedValuesOf?.('timeZone') || [])])}</datalist>
     <div id="region-upi" ${supportsUpi(currency) ? '' : 'hidden'}>
-      <label for="u">UPI id <span class="mute">(optional, for Scan to pay)</span></label>
-      <input id="u" autocapitalize="none" placeholder="name@bank" value="${esc(upiVpa)}">
+      <label for="u">${setupText('UPI id')} <span class="mute">${setupText('(optional, for Scan to pay)')}</span></label>
+      <input id="u" autocapitalize="none" placeholder="${setupText('name@bank')}" value="${esc(upiVpa)}">
     </div>`;
 }
 
@@ -568,22 +570,22 @@ function renderSetup(message, v = {}) {
   const country = suggestRegion(navigator.languages);
   const region = { country, currency: suggestCurrency(country), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...v };
   $('app').innerHTML = `
-  <form class="login" id="sf" novalidate>
+  <form class="login" id="sf" lang="${setupLanguage}" novalidate>
     <img src="../assets/logo.png" alt="">
-    <h1 class="center">Create your account</h1>
-    <p class="mute center">No server needed. Your menu and sales stay on this phone. You can connect a restaurant server later and your sales will be sent to it.</p>
-    ${message ? `<div class="note bad" role="alert">${esc(message)}</div>` : ''}
-    <label for="n">Your name</label>
+    <h1 class="center">${setupText('Create your account')}</h1>
+    <p class="mute center">${setupText('No server needed. Your menu and sales stay on this phone. You can connect a restaurant server later and your sales will be sent to it.')}</p>
+    ${message ? `<div class="note bad" role="alert">${esc(setupText(message))}</div>` : ''}
+    <label for="n">${setupText('Your name')}</label>
     <input id="n" autocomplete="name" value="${esc(v.name)}">
-    <label for="e">Email <span class="mute">(optional)</span></label>
+    <label for="e">Email <span class="mute">${setupText('(optional)')}</span></label>
     <input id="e" type="email" autocomplete="email" autocapitalize="none" value="${esc(v.email)}">
-    <label for="r">Restaurant or shop name</label>
+    <label for="r">${setupText('Restaurant or shop name')}</label>
     <input id="r" value="${esc(v.restaurant)}">
     ${regionFields(region)}
-    <label for="p">Password <span class="mute">(at least 6 characters)</span></label>
+    <label for="p">Password <span class="mute">${setupText('(at least 6 characters)')}</span></label>
     <input id="p" type="password" autocomplete="new-password">
-    <button class="btn block mt" id="go" type="submit">Create account and start</button>
-    <p class="center mt"><a href="#" id="back" class="mute">I already have a server</a></p>
+    <button class="btn block mt" id="go" type="submit">${setupText('Create account and start')}</button>
+    <p class="center mt"><a href="#" id="back" class="mute">${setupText('I already have a server')}</a></p>
   </form>`;
   $('back').onclick = (e) => (e.preventDefault(), renderLogin());
   bindRegionFields();
@@ -2540,10 +2542,10 @@ async function settingsCard() {
       .join('')}</div>` : ''}
     ${!S.snap.local && !can('offlineOptions') ? `<div class="note warn mt" role="status">Your server${S.caps.version && S.caps.version !== 'unknown' ? ` (version ${esc(S.caps.version)})` : ''} is older than this app. Pay later, the service charge, half portions and add-ons, and sending refunds, expenses and cash counts need OrderRestro server 1.38 or newer. Refunds and expenses stay on this phone and are sent once the server is updated.</div>` : ''}
     <div class="card mt">
-      <h2 style="font-size:1.05rem">Shop settings</h2>
-      ${S.snap.local ? `<form id="st-region">
+      <h2 style="font-size:1.05rem" lang="${setupLanguage}">${setupText('Shop settings')}</h2>
+      ${S.snap.local ? `<form id="st-region" lang="${setupLanguage}" aria-label="${setupText('Regional settings')}">
         ${regionFields({ ...S.snap.restaurant, country: S.snap.branch.country })}
-        <button class="btn ghost block mt" type="submit">Save regional settings</button>
+        <button class="btn ghost block mt" type="submit">${setupText('Save regional settings')}</button>
       </form>` : ''}
       <button class="btn line block" id="st-staff">Staff &amp; PINs${S.staff.length ? ` (${S.staff.filter((p) => p.active !== false).length})` : ''}</button>
       <label for="st-sc" class="mt">Service charge offered (%)</label>
@@ -2560,12 +2562,12 @@ function bindSettings(redraw) {
     $('st-region').onsubmit = async (event) => {
       event.preventDefault();
       const region = readRegionFields();
-      if (!(await managerOK('Change the restaurant’s regional settings.'))) return;
+      if (!(await managerOK(setupText('Change the restaurant’s regional settings.')))) return;
       try {
         S.snap = await saveLocalRegion(S.snap, region);
-        toast('Regional settings saved.');
+        toast(setupText('Regional settings saved.'), undefined, setupLanguage);
         redraw();
-      } catch (e) { toast(e.message, 4500); }
+      } catch (e) { toast(setupText(e.message), 4500, setupLanguage); }
     };
   }
   if ($('st-staff')) $('st-staff').onclick = () => staffSheet();

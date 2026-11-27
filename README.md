@@ -208,7 +208,7 @@ a Settings area (restaurant + branch details, per-branch tax regime — India
 GST/US Sales Tax/EU VAT/Spain IVA, tax-inclusive or -exclusive menu
 pricing) and staff account management (create/deactivate staff, assign
 roles) under **Settings** in the sidebar, photo upload on menu items, and
-a language switcher for English, Spanish, French and Brazilian Portuguese in the staff dashboard
+a language switcher for English, Spanish, French, Italian and Brazilian Portuguese in the staff dashboard
 and on the guest QR ordering page. Staff can switch languages from the top bar while working.
 The browser remembers the choice. Restaurant records, including customer and dish names, keep
 the text entered by staff.
@@ -369,7 +369,7 @@ Postgres over the originally-specced SQLite — is in
 | Tables | TanStack Table |
 | Charts | Recharts |
 | Drag & drop | dnd-kit (floor designer, KDS columns) |
-| i18n | Lightweight client-side context (`apps/web/lib/i18n`) — English, Spanish, French and Brazilian Portuguese, no routing/middleware |
+| i18n | Lightweight client-side context (`apps/web/lib/i18n`) — English, Spanish, French, Italian and Brazilian Portuguese, no routing/middleware |
 | Auth | JWT (httpOnly cookie) + PIN quick-switch, optional TOTP 2FA |
 | Containers | Docker + Docker Compose |
 

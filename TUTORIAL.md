@@ -30,7 +30,7 @@ Open `http://<that machine's IP>:1995` from any till or tablet on the same netwo
 
 The first time you open the app, **Sign up** creates your restaurant and the owner account. After that, **Sign in** with the same email.
 
-Review **Regional settings** during signup. A browser configured for Brazilian Portuguese can suggest Brazil and BRL. The time zone comes separately from the device. A language without a country, such as `pt`, leaves the country open. Choose the currency yourself if several currencies circulate in that country, and confirm the first branch’s tax regime. Staff and guests can use different interface languages while viewing prices in the restaurant’s currency.
+Review **Regional settings** during signup. A browser configured for Brazilian Portuguese can suggest Brazil and BRL. An Italian (Italy) device suggests Italy and EUR, while Italian (Switzerland) suggests Switzerland and CHF. The time zone comes separately from the device. A language without a country, such as `pt`, leaves the country open. Choose the currency yourself if several currencies circulate in that country, and confirm the first branch’s tax regime. Staff and guests can use different interface languages while viewing prices in the restaurant’s currency. [View the Italian signup screen](docs/screenshots/tutorial/signup-italian.webp).
 
 <table>
 <tr>

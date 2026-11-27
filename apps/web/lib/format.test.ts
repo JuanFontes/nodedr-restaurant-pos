@@ -12,6 +12,8 @@ test("a staff screen waiting for settings never displays another restaurant's cu
 
 test("guest prices follow the selected language and the restaurant currency", () => {
   assert.match(formatCurrency(25, "BRL", LOCALE_TAGS.pt), /^R\$\s25,00$/);
+  assert.match(formatCurrency(25, "EUR", LOCALE_TAGS.it), /^25,00\s€$/);
+  assert.match(formatCurrency(25, "CHF", LOCALE_TAGS.it), /^25,00\sCHF$/);
   assert.equal(formatCurrency(25, "BRL", LOCALE_TAGS.en), "R$25.00");
   assert.match(formatCurrency(25, "EUR", LOCALE_TAGS.pt), /^€\s25,00$/);
   assert.match(formatCurrency(25, "EUR", LOCALE_TAGS.es), /^25,00\s€$/);
