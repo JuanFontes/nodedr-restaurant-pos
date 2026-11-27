@@ -11,6 +11,8 @@ import { BtPrinterDialog } from "@/components/native/bt-printer-dialog";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
 import { canOpen, firstAllowedHref } from "@/lib/route-access";
 import { setUnauthorizedHandler } from "@/lib/api";
+import { StaffLocaleProvider } from "@/lib/i18n/staff-provider";
+import { useI18n } from "@/lib/i18n/context";
 import { useQueryClient } from "@tanstack/react-query";
 
 // Subscribes every route in this layout group to realtime push (order/KOT/
@@ -28,6 +30,11 @@ function RealtimeBridge() {
 }
 
 export default function DashboardGroupLayout({ children }: { children: React.ReactNode }) {
+  return <StaffLocaleProvider><StaffDashboard>{children}</StaffDashboard></StaffLocaleProvider>;
+}
+
+function StaffDashboard({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -69,7 +76,7 @@ export default function DashboardGroupLayout({ children }: { children: React.Rea
   if (!allowed) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6 text-center text-sm text-muted-foreground">
-        {fallback ? "Redirecting…" : "Your role has no access to this page. Ask an administrator."}
+        {fallback ? t("Redirecting…") : t("Your role has no access to this page. Ask an administrator.")}
       </div>
     );
   }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus } from "lucide-react";
 import { useState } from "react";
@@ -7,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusNote, useStatusNote } from "@/components/ui/status-note";
 import { api, ApiError } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
 
 interface Line { id: string; quantity: number; nameSnapshot: string; lineTotal: string; status?: string }
 
@@ -27,6 +28,8 @@ export function SplitBillDialog({
   onOpenChange: (open: boolean) => void;
   onSplit: (newOrderId: string, newOrderNumber: string) => void;
 }) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const { note, show, clear } = useStatusNote();
   const [move, setMove] = useState<Record<string, number>>({});
@@ -48,7 +51,7 @@ export function SplitBillDialog({
       setKey(crypto.randomUUID());
       onSplit(r.id, r.orderNumber);
     },
-    onError: (e) => show("error", e instanceof ApiError ? e.message : "Could not split the bill"),
+    onError: (e) => show("error", e instanceof ApiError ? e.message : t("Could not split the bill")),
   });
   const step = (id: string, d: number, max: number) => setMove((m) => ({ ...m, [id]: Math.min(max, Math.max(0, (m[id] ?? 0) + d)) }));
 
@@ -56,27 +59,27 @@ export function SplitBillDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) clear(); onOpenChange(o); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Split this bill</DialogTitle>
-          <DialogDescription>Choose what goes on the new bill. Each bill is paid on its own, with any payment method.</DialogDescription>
+          <DialogTitle>{t("Split this bill")}</DialogTitle>
+          <DialogDescription>{t("Choose what goes on the new bill. Each bill is paid on its own, with any payment method.")}</DialogDescription>
         </DialogHeader>
         <ul className="divide-y divide-border rounded-lg border border-border text-sm">
           {lines.map((l) => (
             <li key={l.id} className="flex items-center justify-between gap-2 px-3 py-2">
               <span className="min-w-0">
                 <span className="font-medium">{l.nameSnapshot}</span>
-                <span className="block text-xs text-muted-foreground">{l.quantity} on this bill · {formatCurrency(l.lineTotal)}</span>
+                <span className="block text-xs text-muted-foreground">{t("{quantity} on this bill · {formatCurrency}", { quantity: l.quantity, formatCurrency: fmt.currency(l.lineTotal) })}</span>
               </span>
               <span className="flex items-center gap-1">
-                <Button type="button" size="icon" variant="outline" aria-label={`Move one fewer ${l.nameSnapshot}`} onClick={() => step(l.id, -1, l.quantity)}><Minus className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" aria-label={t("Move one fewer {nameSnapshot}", { nameSnapshot: l.nameSnapshot })} onClick={() => step(l.id, -1, l.quantity)}><Minus className="h-4 w-4" /></Button>
                 <span className="w-6 text-center tabular-nums" aria-live="polite">{move[l.id] ?? 0}</span>
-                <Button type="button" size="icon" variant="outline" aria-label={`Move one more ${l.nameSnapshot}`} onClick={() => step(l.id, 1, l.quantity)}><Plus className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" aria-label={t("Move one more {nameSnapshot}", { nameSnapshot: l.nameSnapshot })} onClick={() => step(l.id, 1, l.quantity)}><Plus className="h-4 w-4" /></Button>
               </span>
             </li>
           ))}
         </ul>
         <StatusNote note={note} onClear={clear} />
         <Button disabled={split.isPending || moving === 0 || moving >= total} onClick={() => split.mutate()}>
-          {moving === 0 ? "Choose items to move" : moving >= total ? "Leave at least one item" : `Move ${moving} to a new bill`}
+          {moving === 0 ? t("Choose items to move") : moving >= total ? t("Leave at least one item") : t("Move {moving} to a new bill", { moving })}
         </Button>
       </DialogContent>
     </Dialog>

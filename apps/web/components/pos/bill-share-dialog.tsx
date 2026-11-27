@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import { Copy, Share2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect } from "react";
@@ -27,6 +28,7 @@ export function BillShareDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useI18n();
   const createShare = useCreateBillShare(branchId);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function BillShareDialog({
       { orderId, adjustments },
       {
         onError: (err) =>
-          toast.error(err instanceof ApiError ? err.message : "Could not create a bill link"),
+          toast.error(err instanceof ApiError ? err.message : t("Could not create a bill link")),
       },
     );
     // Mint once per open, not on every render or adjustment keystroke.
@@ -56,12 +58,12 @@ export function BillShareDialog({
     billUrl &&
     navigator.clipboard
       .writeText(billUrl)
-      .then(() => toast.success("Link copied"))
-      .catch(() => toast.error("Copy failed — select the link and copy it"));
+      .then(() => toast.success(t("Link copied")))
+      .catch(() => toast.error(t("Copy failed — select the link and copy it")));
 
   const shareLink = () =>
     billUrl &&
-    navigator.share?.({ title: "Your bill", url: billUrl }).catch(() => {
+    navigator.share?.({ title: t("Your bill"), url: billUrl }).catch(() => {
       // Dismissing the native share sheet also rejects; not worth a toast.
     });
 
@@ -69,12 +71,12 @@ export function BillShareDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Share this bill</DialogTitle>
+          <DialogTitle>{t("Share this bill")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2">
           {createShare.isPending && (
-            <p className="py-8 text-sm text-muted-foreground">Creating a bill link…</p>
+            <p className="py-8 text-sm text-muted-foreground">{t("Creating a bill link…")}</p>
           )}
 
           {billUrl && (
@@ -83,22 +85,21 @@ export function BillShareDialog({
                 <QRCodeSVG value={billUrl} size={200} />
               </div>
               <p className="text-center text-xs text-muted-foreground">
-                The guest scans this with a phone camera to see the bill — no app needed. The link
-                works for two hours.
+                {t("The guest scans this with a phone camera to see the bill — no app needed. The link works for two hours.")}
               </p>
               <div className="flex w-full gap-2">
                 <input
                   readOnly
                   value={billUrl}
-                  aria-label="Bill link"
+                  aria-label={t("Bill link")}
                   onFocus={(e) => e.currentTarget.select()}
                   className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 font-mono text-xs text-foreground"
                 />
-                <Button variant="outline" size="icon" aria-label="Copy bill link" onClick={copyLink}>
+                <Button variant="outline" size="icon" aria-label={t("Copy bill link")} onClick={copyLink}>
                   <Copy className="h-4 w-4" />
                 </Button>
                 {typeof navigator !== "undefined" && !!navigator.share && (
-                  <Button variant="outline" size="icon" aria-label="Share bill link" onClick={shareLink}>
+                  <Button variant="outline" size="icon" aria-label={t("Share bill link")} onClick={shareLink}>
                     <Share2 className="h-4 w-4" />
                   </Button>
                 )}
@@ -108,7 +109,7 @@ export function BillShareDialog({
 
           {createShare.isError && !createShare.isPending && (
             <Button variant="outline" onClick={() => createShare.mutate({ orderId, adjustments })}>
-              Try again
+              {t("Try again")}
             </Button>
           )}
         </div>

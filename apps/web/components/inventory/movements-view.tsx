@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,8 @@ const TYPES: Record<string, string> = {
 type Mode = "receive" | "adjust" | null;
 
 export function MovementsView() {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const { branchId } = useBranch();
   const [ingredientId, setIngredientId] = useState("");
   const [type, setType] = useState("");
@@ -54,58 +58,58 @@ export function MovementsView() {
   const close = () => { setExpiry(""); setMode(null); setItem(""); setQty(""); setUnit(""); setText(""); setErr(null); };
   const submit = () => {
     const u = (unit || chosen?.unit) as never;
-    const onError = (e: unknown) => setErr(e instanceof ApiError ? e.message : "Could not save");
+    const onError = (e: unknown) => setErr(e instanceof ApiError ? e.message : t("Could not save"));
     if (mode === "receive") {
-      receive.mutate({ ingredientId: item, quantity: qty, unit: u, reference: text || undefined, expiryDate: expiry ? new Date(`${expiry}T00:00:00`).toISOString() : undefined }, { onSuccess: () => { toast.success("Stock received"); close(); }, onError });
+      receive.mutate({ ingredientId: item, quantity: qty, unit: u, reference: text || undefined, expiryDate: expiry ? new Date(`${expiry}T00:00:00`).toISOString() : undefined }, { onSuccess: () => { toast.success(t("Stock received")); close(); }, onError });
     } else {
-      adjust.mutate({ ingredientId: item, direction: dir, quantity: qty, unit: u, reason: text }, { onSuccess: () => { toast.success("Adjustment recorded"); close(); }, onError });
+      adjust.mutate({ ingredientId: item, direction: dir, quantity: qty, unit: u, reason: text }, { onSuccess: () => { toast.success(t("Adjustment recorded")); close(); }, onError });
     }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" onClick={() => setMode("adjust")}>Adjust stock</Button>
-        <Button onClick={() => setMode("receive")}>Receive stock</Button>
+        <Button variant="outline" onClick={() => setMode("adjust")}>{t("Adjust stock")}</Button>
+        <Button onClick={() => setMode("receive")}>{t("Receive stock")}</Button>
       </div>
 
       <Card className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-6">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="j-item">Item</Label>
-          <SearchSelect id="j-item" value={ingredientId} onChange={setIngredientId} placeholder="All items"
-            options={[{ value: "", label: "All items" }, ...stockItemOptions(items ?? [])]} />
+          <Label htmlFor="j-item">{t("Item")}</Label>
+          <SearchSelect id="j-item" value={ingredientId} onChange={setIngredientId} placeholder={t("All items")}
+            options={[{ value: "", label: t("All items") }, ...stockItemOptions(t, fmt, items ?? [])]} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="j-type">Type</Label>
-          <SearchSelect id="j-type" value={type} onChange={setType} placeholder="All"
-            options={[{ value: "", label: "All" }, ...Object.entries(TYPES).map(([k, v]) => ({ value: k, label: v }))]} />
+          <Label htmlFor="j-type">{t("Type")}</Label>
+          <SearchSelect id="j-type" value={type} onChange={setType} placeholder={t("All")}
+            options={[{ value: "", label: t("All") }, ...Object.entries(TYPES).map(([k, v]) => ({ value: k, label: v }))]} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="j-place">Place</Label>
-          <SearchSelect id="j-place" value={locationId} onChange={setLocationId} placeholder="All places"
-            options={[{ value: "", label: "All places" }, ...(places ?? []).map((p) => ({ value: p.id, label: p.name }))]} />
+          <Label htmlFor="j-place">{t("Place")}</Label>
+          <SearchSelect id="j-place" value={locationId} onChange={setLocationId} placeholder={t("All places")}
+            options={[{ value: "", label: t("All places") }, ...(places ?? []).map((p) => ({ value: p.id, label: p.name }))]} />
         </div>
-        <div className="flex flex-col gap-1.5"><Label htmlFor="j-from">From</Label><Input id="j-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-        <div className="flex flex-col gap-1.5"><Label htmlFor="j-to">To</Label><Input id="j-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
-        <div className="flex items-end"><a className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-muted" href={csvUrl("journal/export.csv", branchId, filters)}>Export CSV</a></div>
+        <div className="flex flex-col gap-1.5"><Label htmlFor="j-from">{t("From")}</Label><Input id="j-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+        <div className="flex flex-col gap-1.5"><Label htmlFor="j-to">{t("To")}</Label><Input id="j-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        <div className="flex items-end"><a className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-muted" href={csvUrl("journal/export.csv", branchId, filters)}>{t("Export CSV")}</a></div>
       </Card>
 
       <Card className="overflow-x-auto p-0">
         {isLoading ? (
           <div className="flex flex-col gap-2 p-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 rounded-lg" />)}</div>
         ) : isError ? (
-          <p className="p-6 text-sm text-destructive">Could not load the journal.</p>
+          <p className="p-6 text-sm text-destructive">{t("Could not load the journal.")}</p>
         ) : data && data.items.length > 0 ? (
           <Table>
-            <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Item</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Quantity</TableHead><TableHead>Place</TableHead><TableHead>By</TableHead><TableHead>Note</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{t("When")}</TableHead><TableHead>{t("Item")}</TableHead><TableHead>{t("Type")}</TableHead><TableHead className="text-right">{t("Quantity")}</TableHead><TableHead>{t("Place")}</TableHead><TableHead>{t("By")}</TableHead><TableHead>{t("Note")}</TableHead></TableRow></TableHeader>
             <TableBody>
               {data.items.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{new Date(m.createdAt).toLocaleString(fmt.localeTag)}</TableCell>
                   <TableCell className="font-medium">{m.ingredient.name}</TableCell>
-                  <TableCell><Badge variant="outline">{TYPES[m.type] ?? m.type}</Badge></TableCell>
-                  <TableCell className={`text-right tabular-nums ${Number(m.quantity) < 0 ? "text-destructive" : ""}`}>{Number(m.quantity) > 0 ? "+" : ""}{m.quantity} {m.ingredient.unit}</TableCell>
-                  <TableCell className="text-muted-foreground">{m.locationId ? (placeName.get(m.locationId) ?? "Place removed") : "–"}</TableCell>
+                  <TableCell><Badge variant="outline">{fmt.label(TYPES[m.type] ?? m.type)}</Badge></TableCell>
+                  <TableCell className={`text-right tabular-nums ${Number(m.quantity) < 0 ? "text-destructive" : ""}`}>{Number(m.quantity) > 0 ? "+" : ""}{fmt.quantity(m.quantity)} {fmt.unit(m.ingredient.unit)}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.locationId ? (placeName.get(m.locationId) ?? t("Place removed")) : "–"}</TableCell>
                   <TableCell className="text-muted-foreground">{m.createdBy.name}{m.deviceId ? ` (${m.deviceId})` : ""}</TableCell>
                   <TableCell className="max-w-64 truncate text-muted-foreground" title={m.note ?? ""}>{m.note}</TableCell>
                 </TableRow>
@@ -113,35 +117,35 @@ export function MovementsView() {
             </TableBody>
           </Table>
         ) : (
-          <p className="py-14 text-center text-sm text-muted-foreground">No stock movements match these filters.</p>
+          <p className="py-14 text-center text-sm text-muted-foreground">{t("No stock movements match these filters.")}</p>
         )}
       </Card>
-      <p className="text-xs text-muted-foreground">Every movement is kept. A mistake is fixed by a reversal or an adjustment, never by editing or deleting a line.</p>
+      <p className="text-xs text-muted-foreground">{t("Every movement is kept. A mistake is fixed by a reversal or an adjustment, never by editing or deleting a line.")}</p>
 
       <Dialog open={!!mode} onOpenChange={(o) => !o && close()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{mode === "receive" ? "Receive stock" : "Adjust stock"}</DialogTitle>
-            <DialogDescription>{mode === "receive" ? "Record raw material that arrived." : "Correct a count. A reason is required and stock cannot go below zero."}</DialogDescription>
+            <DialogTitle>{mode === "receive" ? t("Receive stock") : t("Adjust stock")}</DialogTitle>
+            <DialogDescription>{mode === "receive" ? t("Record raw material that arrived.") : t("Correct a count. A reason is required and stock cannot go below zero.")}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <SearchSelect aria-label="Item" value={item} onChange={(v) => { setItem(v); setUnit(""); }} placeholder="Search items…" emptyText="No item matches" options={stockItemOptions(items ?? [])} />
+            <SearchSelect aria-label={t("Item")} value={item} onChange={(v) => { setItem(v); setUnit(""); }} placeholder={t("Search items…")} emptyText={t("No item matches")} options={stockItemOptions(t, fmt, items ?? [])} />
             {mode === "adjust" && (
-              <SearchSelect aria-label="Direction" value={dir} onChange={(v) => v && setDir(v as "ADD" | "REMOVE")} options={[{ value: "REMOVE", label: "Remove from stock" }, { value: "ADD", label: "Add to stock" }]} />
+              <SearchSelect aria-label={t("Direction")} value={dir} onChange={(v) => v && setDir(v as "ADD" | "REMOVE")} options={[{ value: "REMOVE", label: t("Remove from stock") }, { value: "ADD", label: t("Add to stock") }]} />
             )}
             <div className="grid grid-cols-[1fr_6rem] gap-2">
-              <Input aria-label="Quantity" inputMode="decimal" placeholder="Quantity" value={qty} onChange={(e) => setQty(e.target.value)} />
-              <SearchSelect aria-label="Unit" value={unit || chosen?.unit || ""} onChange={(v) => v && setUnit(v)} placeholder="Unit" disabled={!chosen} options={(chosen?.units ?? []).map((u) => ({ value: u, label: u }))} />
+              <Input aria-label={t("Quantity")} inputMode="decimal" placeholder={t("Quantity")} value={qty} onChange={(e) => setQty(e.target.value)} />
+              <SearchSelect aria-label={t("Unit")} value={unit || chosen?.unit || ""} onChange={(v) => v && setUnit(v)} placeholder={t("Unit")} disabled={!chosen} options={(chosen?.units ?? []).map((u) => ({ value: u, label: fmt.unit(u) }))} />
             </div>
-            <Input aria-label={mode === "receive" ? "Supplier or invoice reference" : "Reason"} placeholder={mode === "receive" ? "Supplier / invoice reference (optional)" : "Reason (required)"} value={text} onChange={(e) => setText(e.target.value)} />
+            <Input aria-label={mode === "receive" ? t("Supplier or invoice reference") : t("Reason")} placeholder={mode === "receive" ? t("Supplier / invoice reference (optional)") : t("Reason (required)")} value={text} onChange={(e) => setText(e.target.value)} />
             {mode === "receive" && (
-              <label className="flex flex-col gap-1.5 text-sm">Use by / expiry date (optional)<Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} /></label>
+              <label className="flex flex-col gap-1.5 text-sm">{t("Use by / expiry date (optional)")}<Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} /></label>
             )}
             {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={close}>Cancel</Button>
-            <Button disabled={!item || !qty || (mode === "adjust" && text.trim().length < 3) || receive.isPending || adjust.isPending} onClick={submit}>Save</Button>
+            <Button variant="outline" onClick={close}>{t("Cancel")}</Button>
+            <Button disabled={!item || !qty || (mode === "adjust" && text.trim().length < 3) || receive.isPending || adjust.isPending} onClick={submit}>{t("Save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import * as React from "react";
 import { Check, ArrowRight, CornerDownLeft, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function QuestionCard({
   disabled = false,
   className,
 }: QuestionCardProps) {
+  const { t } = useI18n();
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null);
   const [showOtherInput, setShowOtherInput] = React.useState<boolean>(false);
   const [customText, setCustomText] = React.useState<string>("");
@@ -59,7 +61,7 @@ export function QuestionCard({
     if (onSubmitCustomAnswer) {
       onSubmitCustomAnswer(trimmed);
     } else {
-      onSelectOption({ label: trimmed, description: "Custom instruction" }, -1);
+      onSelectOption({ label: trimmed, description: t("Custom instruction") }, -1);
     }
   };
 
@@ -130,7 +132,7 @@ export function QuestionCard({
                       variant="default"
                       className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-medium rounded-full"
                     >
-                      Recommended
+                      {t("Recommended")}
                     </Badge>
                   )}
                 </div>
@@ -164,7 +166,7 @@ export function QuestionCard({
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-xs sm:text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                Other (type your own answer)…
+                {t("Other (type your own answer)…")}
               </span>
             </div>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors opacity-70 group-hover:opacity-100" />
@@ -176,7 +178,7 @@ export function QuestionCard({
                 {otherIndex}
               </div>
               <span className="text-xs font-semibold text-foreground">
-                Your custom instruction:
+                {t("Your custom instruction:")}
               </span>
             </div>
             <div className="flex items-end gap-2">
@@ -184,7 +186,7 @@ export function QuestionCard({
                 ref={textareaRef}
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
-                placeholder="Type how you want the assistant to proceed..."
+                placeholder={t("Type how you want the assistant to proceed...")}
                 rows={2}
                 disabled={disabled || selectedIndex !== null}
                 onKeyDown={(e) => {
@@ -201,7 +203,7 @@ export function QuestionCard({
                 disabled={!customText.trim() || disabled || selectedIndex !== null}
                 className="flex items-center justify-center h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary-hover active:scale-95 disabled:opacity-50 transition-all gap-1 shrink-0"
               >
-                <span>Submit</span>
+                <span>{t("Submit")}</span>
                 <CornerDownLeft className="h-3 w-3" />
               </button>
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, CloudOff, RefreshCw, TriangleAlert, WifiOff, X } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -46,6 +47,7 @@ function useNow(active: boolean) {
  * when the server is back, and opens the right screen when a notification is tapped.
  */
 export function NativeBridge({ userId }: { userId?: string }) {
+  const { t: translate } = useI18n();
   const router = useRouter();
   const qc = useQueryClient();
   const { resolvedTheme } = useTheme();
@@ -83,10 +85,10 @@ export function NativeBridge({ userId }: { userId?: string }) {
     wasDown.current = false;
     void flushOutbox().then((r) => {
       void qc.invalidateQueries();
-      setRestored(r.sent > 0 ? `Back online. ${r.sent} saved update${r.sent === 1 ? "" : "s"} sent.` : "Back online.");
+      setRestored(r.sent > 0 ? (r.sent === 1 ? translate("Back online. {sent} saved update sent.", { sent: r.sent }) : translate("Back online. {sent} saved updates sent.", { sent: r.sent })) : translate("Back online."));
       setTimeout(() => setRestored(null), 4000);
     });
-  }, [trouble, qc]);
+  }, [trouble, qc, translate]);
 
   // Clock and battery icons must stay readable: dark icons on the light theme,
   // light icons on the dark theme (Android 15+ draws the app under the status bar).
@@ -122,7 +124,7 @@ export function NativeBridge({ userId }: { userId?: string }) {
         try {
           // A build without a Firebase config would crash on register(), so ask first.
           if (link && !(await link.pushReady()).ready) return;
-          await push.createChannel?.({ id: "orders", name: "Orders and deliveries", importance: 5, vibration: true });
+          await push.createChannel?.({ id: "orders", name: translate("Orders and deliveries"), importance: 5, vibration: true });
           // Listeners first: a tap that opened the app from a closed state is delivered as soon as one exists.
           keep(
             push.addListener("pushNotificationActionPerformed", (a: never) => {
@@ -179,7 +181,7 @@ export function NativeBridge({ userId }: { userId?: string }) {
       alive = false;
       subs.forEach((s) => s.remove());
     };
-  }, [qc, router]);
+  }, [qc, router, translate]);
 
   if (!isNativeApp()) return null;
 
@@ -193,7 +195,7 @@ export function NativeBridge({ userId }: { userId?: string }) {
     }
   };
   const secs = retryAt > 0 ? Math.max(0, Math.ceil((retryAt - now) / 1000)) : 0;
-  const saved = waiting > 0 ? `${waiting} update${waiting === 1 ? "" : "s"} saved on this phone, not yet on the server.` : "";
+  const saved = waiting > 0 ? (waiting === 1 ? translate("{waiting} update saved on this phone, not yet on the server.", { waiting }) : translate("{waiting} updates saved on this phone, not yet on the server.", { waiting })) : "";
 
   let tone: "dark" | "warn" | "ok" | null = null;
   let icon = WifiOff;
@@ -202,19 +204,21 @@ export function NativeBridge({ userId }: { userId?: string }) {
   let canRetry = false;
   if (!network) {
     tone = "dark";
-    title = "No WiFi or mobile data";
-    detail = `Screens may be out of date. ${saved}`.trim();
+    title = translate("No WiFi or mobile data");
+    detail = translate("Screens may be out of date. {saved}", { saved }).trim();
   } else if (serverDown) {
     tone = "dark";
     icon = CloudOff;
-    title = "Can't reach the restaurant server";
-    detail = `${saved} ${secs > 0 ? `Trying again in ${secs}s.` : "Trying again…"} If it stays down, check the restaurant computer is on.`.trim();
+    title = translate("Can't reach the restaurant server");
+    detail = (secs > 0
+      ? translate("{saved} Trying again in {seconds}s. If it stays down, check the restaurant computer is on.", { saved, seconds: secs })
+      : translate("{saved} Trying again… If it stays down, check the restaurant computer is on.", { saved })).trim();
     canRetry = true;
   } else if (waiting > 0) {
     tone = "warn";
     icon = RefreshCw;
-    title = secs > 0 ? "Updates waiting to send" : "Sending saved updates…";
-    detail = `${saved}${secs > 0 ? ` Next try in ${secs}s.` : ""}`;
+    title = secs > 0 ? translate("Updates waiting to send") : translate("Sending saved updates…");
+    detail = secs > 0 ? translate("{saved} Next try in {seconds}s.", { saved, seconds: secs }) : saved;
     canRetry = secs > 0;
   } else if (restored && !trouble) {
     tone = "ok";
@@ -229,18 +233,16 @@ export function NativeBridge({ userId }: { userId?: string }) {
         <div role="alert" className="flex items-start gap-3 bg-destructive px-4 py-3 text-sm text-white">
           <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">The server did not accept {refused.length === 1 ? "an update" : `${refused.length} updates`}</p>
-            <p className="mt-0.5 opacity-90">{refused.join(" · ")}. Another screen probably changed it first; check the item and try again.</p>
+            <p className="font-semibold">{translate("The server did not accept")} {refused.length === 1 ? translate("an update") : translate("{count} updates", { count: refused.length })}</p>
+            <p className="mt-0.5 opacity-90">{translate("{join}. Another screen probably changed it first; check the item and try again.", { join: refused.join(" · ") })}</p>
           </div>
-          <button type="button" onClick={() => outbox.clearRefused()} className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-md" aria-label="Dismiss">
+          <button type="button" onClick={() => outbox.clearRefused()} className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-md" aria-label={translate("Dismiss")}>
             <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
       )}
       {others > 0 && !tone && (
-        <div role="status" className="bg-muted px-4 py-2.5 text-sm text-foreground">
-          {others} update{others === 1 ? "" : "s"} from another account on this phone will be sent when that person signs in again.
-        </div>
+        <div role="status" className="bg-muted px-4 py-2.5 text-sm text-foreground">{(others === 1 ? translate("{others} update from another account on this phone will be sent when that person signs in again.", { others }) : translate("{others} updates from another account on this phone will be sent when that person signs in again.", { others }))}</div>
       )}
       {tone && (
         <div
@@ -269,7 +271,7 @@ export function NativeBridge({ userId }: { userId?: string }) {
               disabled={busy}
               className="min-h-11 shrink-0 rounded-md border border-current px-3 text-sm font-semibold disabled:opacity-60"
             >
-              {busy ? "Trying…" : "Retry now"}
+              {busy ? translate("Trying…") : translate("Retry now")}
             </button>
           )}
         </div>

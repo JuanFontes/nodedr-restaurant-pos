@@ -369,6 +369,12 @@ reach it (tax code masters, delivery-platform rate cards, etc.).
 
 ## Session log
 
+- **2026-11-27 — Staff dashboard languages.** The top-bar language choice now applies
+  across the staff dashboard, including dialogs, forms and reports, in English, Spanish,
+  French and Brazilian Portuguese. The selected language controls display formatting.
+  Restaurant data keeps its original wording and monetary amounts keep their currency.
+  See the staff translation guidelines in [CONTRIBUTING.md](./CONTRIBUTING.md#staff-interface-translations).
+
 - **2026-09-27: Multi-region tax + English/Spanish/French i18n.** Two
   independent features.
 

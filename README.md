@@ -207,8 +207,10 @@ a Settings area (restaurant + branch details, per-branch tax regime — India
 GST/US Sales Tax/EU VAT/Spain IVA, tax-inclusive or -exclusive menu
 pricing) and staff account management (create/deactivate staff, assign
 roles) under **Settings** in the sidebar, photo upload on menu items, and
-a language switcher for English, Spanish, French and Brazilian Portuguese on the guest-facing QR
-ordering page and staff sidebar.
+a language switcher for English, Spanish, French and Brazilian Portuguese in the staff dashboard
+and on the guest QR ordering page. Staff can switch languages from the top bar while working.
+The browser remembers the choice. Restaurant records, including customer and dish names, keep
+the text entered by staff.
 
 ### What's new in 1.46.0
 

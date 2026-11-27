@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { ApiError } from "@/lib/api";
 import { CloudOff, Flame, Globe, Printer, Star, Timer, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -53,6 +55,8 @@ function customerPhone(order: KotTicket["order"]) {
 }
 
 export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: string | null }) {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const elapsed = useElapsedMinutes(ticket.createdAt);
   const updateStatus = useUpdateKotStatus(branchId);
   const setPriority = useSetKotPriority(branchId);
@@ -85,16 +89,16 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
       <ReasonDialog
         open={rejectOpen}
         onOpenChange={setRejectOpen}
-        title={`Reject ticket for order #${ticket.order.orderNumber}?`}
+        title={t("Reject ticket for order #{orderNumber}?", { orderNumber: ticket.order.orderNumber })}
         description={
           ticket.order.table
-            ? `Table ${ticket.order.table.number} will be told the kitchen cannot make this. The ticket stays on record with your name and reason.`
-            : "The guest will be told the kitchen cannot make this. The ticket stays on record with your name and reason."
+            ? t("Table {number} will be told the kitchen cannot make this. The ticket stays on record with your name and reason.", { number: ticket.order.table.number })
+            : t("The guest will be told the kitchen cannot make this. The ticket stays on record with your name and reason.")
         }
-        warning={started ? "This ticket is already being prepared. Rejecting it means the food in progress is wasted." : undefined}
-        reasons={REJECT_REASONS}
-        confirmLabel="Reject ticket"
-        keepLabel="Keep ticket"
+        warning={started ? t("This ticket is already being prepared. Rejecting it means the food in progress is wasted.") : undefined}
+        reasons={REJECT_REASONS.map((reason) => t(reason))}
+        confirmLabel={t("Reject ticket")}
+        keepLabel={t("Keep ticket")}
         onSubmit={(reason) =>
           reject.mutateAsync({ id: ticket.id, reason, confirmStarted: started ? true : undefined })
         }
@@ -102,28 +106,28 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
       <ContactDetailsDialog
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
-        title={`Order #${ticket.order.orderNumber}`}
+        title={t("Order #{orderNumber}", { orderNumber: ticket.order.orderNumber })}
         name={customerDisplayName(ticket.order)}
-        subtitle={ticket.order.table ? `Table ${ticket.order.table.number}` : ticket.order.type}
+        subtitle={ticket.order.table ? t("Table {number}", { number: ticket.order.table.number }) : fmt.code(ticket.order.type)}
         phone={customerPhone(ticket.order)}
-        waMessage={`Hi ${customerDisplayName(ticket.order) ?? ""}, this is regarding your order #${ticket.order.orderNumber}.`}
+        waMessage={t("Hi {name}, this is regarding your order #{orderNumber}.", { name: customerDisplayName(ticket.order) ?? "", orderNumber: ticket.order.orderNumber })}
       />
       <button
         type="button"
         onClick={() => setDetailsOpen(true)}
         className="flex items-center justify-between rounded-md text-left transition hover:opacity-80"
-        title="View customer details"
+        title={t("View customer details")}
       >
         <div>
           <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             #{ticket.order.orderNumber}
             {ticket.isPriority && <Star className="h-3.5 w-3.5 fill-warning text-warning" />}
             {ticket.order.channel === "ONLINE" && (
-              <Globe className="h-3.5 w-3.5 text-muted-foreground" aria-label="Online order" />
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" aria-label={t("Online order")} />
             )}
           </p>
           <p className="text-xs text-muted-foreground">
-            {ticket.order.table ? `Table ${ticket.order.table.number}` : ticket.order.type}
+            {ticket.order.table ? t("Table {number}", { number: ticket.order.table.number }) : fmt.code(ticket.order.type)}
             {ticket.station && ` · ${ticket.station.name}`}
             {customerDisplayName(ticket.order) && ` · ${customerDisplayName(ticket.order)}`}
           </p>
@@ -141,7 +145,7 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
 
       {ticket.savedOnPhone && (
         <p className="flex items-center gap-1.5 text-xs text-warning">
-          <CloudOff className="h-3 w-3" aria-hidden /> Saved on this phone - will be sent when the connection is back
+          <CloudOff className="h-3 w-3" aria-hidden /> {t("Saved on this phone - will be sent when the connection is back")}
         </p>
       )}
 
@@ -183,16 +187,16 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
                 {
                   onSuccess: (r) =>
                     r.call.state === "FAILED"
-                      ? toast.error(`The buzzer could not be reached (${r.call.error ?? "no answer"}). Call the guest by name.`)
+                      ? toast.error(t("The buzzer could not be reached ({value}). Call the guest by name.", { value: r.call.error ?? t("no answer") }))
                       : r.deviceOnline === false
-                        ? toast.error("The buzzer looks offline. The call is queued; call the guest by name too.")
-                        : toast.success(r.duplicate ? "Already paging this table" : `Paging table ${ticket.order.table?.number}`),
-                  onError: (e) => toast.error(e instanceof Error ? e.message : "Could not page the table"),
+                        ? toast.error(t("The buzzer looks offline. The call is queued; call the guest by name too."))
+                        : toast.success(r.duplicate ? t("Already paging this table") : t("Paging table {number}", { number: (ticket.order.table?.number) ?? "" })),
+                  onError: (e) => toast.error(e instanceof Error ? e.message : t("Could not page the table")),
                 },
               )
             }
           >
-            Call buzzer
+            {t("Call buzzer")}
           </Button>
         )}
         {nextStatus && (
@@ -207,16 +211,16 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
                     toast.error(
                       err instanceof ApiError
                         ? err.message
-                        : "Could not update the ticket. Check the connection and try again.",
+                        : t("Could not update the ticket. Check the connection and try again."),
                     ),
                   onSuccess: (res) => {
-                    if (res === null) toast.success("Saved on this phone - it will be sent when the connection is back");
+                    if (res === null) toast.success(t("Saved on this phone - it will be sent when the connection is back"));
                   },
                 },
               )
             }
           >
-            {updateStatus.isPending ? "Updating…" : STATUS_LABEL[ticket.status]}
+            {updateStatus.isPending ? t("Updating…") : fmt.label(STATUS_LABEL[ticket.status])}
           </Button>
         )}
         <div className="flex items-center gap-2">
@@ -225,18 +229,18 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
             variant="destructive"
             className="h-12 min-w-0 flex-1 px-4"
             onClick={() => setRejectOpen(true)}
-            aria-label={`Reject ticket for order ${ticket.order.orderNumber}`}
+            aria-label={t("Reject ticket for order {orderNumber}", { orderNumber: ticket.order.orderNumber })}
           >
             <X className="h-5 w-5" aria-hidden />
-            Reject
+            {t("Reject")}
           </Button>
         )}
         <Button
           variant="outline"
           size="icon"
           className="h-12 w-12 shrink-0"
-          title={ticket.isPriority ? "Unmark priority" : "Mark priority"}
-          aria-label={ticket.isPriority ? "Unmark priority" : "Mark priority"}
+          title={ticket.isPriority ? t("Unmark priority") : t("Mark priority")}
+          aria-label={ticket.isPriority ? t("Unmark priority") : t("Mark priority")}
           disabled={setPriority.isPending}
           onClick={() =>
             setPriority.mutate({ id: ticket.id, isPriority: !ticket.isPriority })
@@ -248,8 +252,8 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
           variant="outline"
           size="icon"
           className="h-12 w-12 shrink-0"
-          title={ticket.printedCount > 0 ? "Reprint ticket (marked REPRINT)" : "Print ticket"}
-          aria-label={ticket.printedCount > 0 ? "Reprint ticket" : "Print ticket"}
+          title={ticket.printedCount > 0 ? t("Reprint ticket (marked REPRINT)") : t("Print ticket")}
+          aria-label={ticket.printedCount > 0 ? t("Reprint ticket") : t("Print ticket")}
           disabled={reprint.isPending}
           onClick={() =>
             reprint.mutate(
@@ -257,11 +261,11 @@ export function TicketCard({ ticket, branchId }: { ticket: KotTicket; branchId: 
               {
                 onSuccess: () =>
                   toast.success(
-                    ticket.printedCount > 0 ? "Reprint sent to the kitchen printer" : "Ticket sent to the kitchen printer",
+                    ticket.printedCount > 0 ? t("Reprint sent to the kitchen printer") : t("Ticket sent to the kitchen printer"),
                   ),
                 onError: (err) =>
                   toast.error(
-                    err instanceof ApiError ? err.message : "Could not reach the server - printing needs the connection",
+                    err instanceof ApiError ? err.message : t("Could not reach the server - printing needs the connection"),
                   ),
               },
             )

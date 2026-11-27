@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ export function ThinkingStepsDisplay({
   running = false,
   className,
 }: ThinkingStepsDisplayProps) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
 
   // Split into distinct reasoning lines if bulleted or numbered
@@ -47,10 +49,10 @@ export function ThinkingStepsDisplay({
 
         <div className="flex items-center gap-1.5 font-medium">
           <span className={cn(running && "animate-pulse text-foreground font-semibold")}>
-            {running ? "Thinking…" : "Thought"}
+            {running ? t("Thinking…") : t("Thought")}
           </span>
           <span className="text-[11px] text-muted-foreground/70">
-            ({stepCount} {stepCount === 1 ? "step" : "steps"})
+            ({stepCount} {stepCount === 1 ? t("step") : t("steps")})
           </span>
         </div>
       </button>

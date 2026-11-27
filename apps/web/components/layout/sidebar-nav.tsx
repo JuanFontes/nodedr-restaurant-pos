@@ -108,7 +108,7 @@ export function SidebarNav({
   }
 
   return (
-    <nav aria-label="Sections" className={cn("flex flex-col gap-1", collapsed ? "px-2" : "px-3")}>
+    <nav aria-label={t("Sections")} className={cn("flex flex-col gap-1", collapsed ? "px-2" : "px-3")}>
       {top && renderItem(top, false)}
       {groups.map((g) => {
         const isOpen = open.includes(g.id);

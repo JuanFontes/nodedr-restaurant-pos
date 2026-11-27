@@ -1,5 +1,6 @@
 "use client";
 
+import { useStaffFormat, type StaffFormat } from "@/hooks/use-staff-format";
 import { useState } from "react";
 import { toast } from "@/lib/toast";
 import { BackupScheduleCard } from "@/components/settings/backup-schedule-card";
@@ -40,10 +41,10 @@ const STATUS_VARIANT: Record<BackupStatusValue, "outline" | "secondary" | "destr
   FAILED: "destructive",
 };
 
-function formatBytes(bytes: number | null): string {
+function formatBytes(fmt: StaffFormat, bytes: number | null): string {
   if (bytes === null) return "—";
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024) return `${fmt.number((bytes / 1024), 1)} KB`;
+  return `${fmt.number((bytes / (1024 * 1024)), 1)} MB`;
 }
 
 interface ConfigFormState {
@@ -63,6 +64,7 @@ const EMPTY_CONFIG_FORM: ConfigFormState = {
 };
 
 export default function BackupPage() {
+  const fmt = useStaffFormat();
   const { t, locale } = useI18n();
   const dateLocale = LOCALE_TAGS[locale];
   const { data: status, isLoading: statusLoading } = useBackupStatus();
@@ -224,7 +226,7 @@ export default function BackupPage() {
                 <Label htmlFor="b-region">{t("backup.region")}</Label>
                 <Input
                   id="b-region"
-                  placeholder="auto"
+                  placeholder={t("auto")}
                   value={configForm.region}
                   onChange={(e) => setConfigForm((f) => ({ ...f, region: e.target.value }))}
                 />
@@ -328,7 +330,7 @@ export default function BackupPage() {
                     ) : null}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatBytes(b.sizeBytes)}
+                    {formatBytes(fmt, b.sizeBytes)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">

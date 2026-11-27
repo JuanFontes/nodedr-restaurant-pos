@@ -189,6 +189,16 @@ on POS/KDS screens used under time pressure.
    repo's convention is to record deviations inline rather than let docs
    silently drift from the code.
 
+### Staff interface translations
+
+The language picker applies to dashboard pages and dialogs. Use `useI18n().t` for
+staff-facing labels. New staff messages use their English copy as the key, with matching
+entries in `apps/web/lib/i18n/staff/{es,fr,pt}.json`. Translate a whole message with named
+placeholders so each language can place the values naturally. For example,
+`t("Table {number}", { number: table.number })` displays the table number in each language.
+Use `useStaffFormat()` for displayed dates, amounts and predefined status or role labels.
+Keep customer-entered text, stored identifiers and form values in their original form.
+
 ## Commit messages
 
 Write for the *why*, not the *what* — the diff already shows what changed.

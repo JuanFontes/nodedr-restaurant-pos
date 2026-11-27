@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import { useState } from "react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ export function AddCustomerDialog({
   branchId: string | null;
   onCreated?: (customer: Customer) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -33,18 +35,19 @@ export function AddCustomerDialog({
   const [address, setAddress] = useState("");
   const [pincode, setPincode] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
-  const [pinError, setPinError] = useState<string | null>(null);
+  const [invalidPin, setInvalidPin] = useState(false);
+  const pinError = invalidPin ? t("Enter a valid PIN / postal code (3-10 letters or digits).") : null;
   const createCustomer = useCreateCustomer(branchId);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pincode.trim() && !PIN_RE.test(pincode.trim())) return setPinError("Enter a valid PIN / postal code (3-10 letters or digits).");
-    setPinError(null);
+    if (pincode.trim() && !PIN_RE.test(pincode.trim())) return setInvalidPin(true);
+    setInvalidPin(false);
     createCustomer.mutate(
       { name: name || undefined, phone: phone || undefined, email: email || undefined, address: address.trim() || undefined, pincode: pincode.trim() || undefined, status },
       {
         onSuccess: (customer) => {
-          toast.success(`${name || "Customer"} added`);
+          toast.success(t("{value} added", { value: name || t("Customer") }));
           setOpen(false);
           setName("");
           setPhone("");
@@ -55,29 +58,29 @@ export function AddCustomerDialog({
           onCreated?.(customer);
         },
         onError: (err) =>
-          toast.error(err instanceof ApiError ? err.message : "Could not add customer"),
+          toast.error(err instanceof ApiError ? err.message : t("Could not add customer")),
       },
     );
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm">New customer</Button>} />
+      <DialogTrigger render={<Button size="sm">{t("New customer")}</Button>} />
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-sm">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>New customer</DialogTitle>
+            <DialogTitle>{t("New customer")}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="c-name">Name</Label>
+            <Label htmlFor="c-name">{t("Name")}</Label>
             <Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="c-phone">Phone</Label>
+            <Label htmlFor="c-phone">{t("Phone")}</Label>
             <Input id="c-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="c-email">Email</Label>
+            <Label htmlFor="c-email">{t("Email")}</Label>
             <Input
               id="c-email"
               type="email"
@@ -86,26 +89,26 @@ export function AddCustomerDialog({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="c-address">Address</Label>
+            <Label htmlFor="c-address">{t("Address")}</Label>
             <Input id="c-address" value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="c-pin">PIN code</Label>
+              <Label htmlFor="c-pin">{t("PIN code")}</Label>
               <Input id="c-pin" value={pincode} onChange={(e) => setPincode(e.target.value)} inputMode="numeric" autoComplete="postal-code" aria-invalid={!!pinError} aria-describedby={pinError ? "c-pin-err" : undefined} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="c-status">Status</Label>
+              <Label htmlFor="c-status">{t("Status")}</Label>
               <select id="c-status" value={status} onChange={(e) => setStatus(e.target.value as "ACTIVE" | "INACTIVE")} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
+                <option value="ACTIVE">{t("Active")}</option>
+                <option value="INACTIVE">{t("Inactive")}</option>
               </select>
             </div>
           </div>
           {pinError && <p id="c-pin-err" role="alert" className="text-sm text-destructive">{pinError}</p>}
           <DialogFooter>
             <Button type="submit" disabled={createCustomer.isPending}>
-              {createCustomer.isPending ? "Adding…" : "Add customer"}
+              {createCustomer.isPending ? t("Adding…") : t("Add customer")}
             </Button>
           </DialogFooter>
         </form>

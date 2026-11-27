@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { selectClass } from "@/components/inventory/production-entry-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,10 +48,14 @@ function ScaledFrame({ src, w, h, title, maxH = 520 }: { src: string; w: number;
 interface BuzzPoll { call: { id: string } | null; buzzer: { name: string; number: string | null } }
 
 function BuzzerSim({ token }: { token: string }) {
+  const fmt = useStaffFormat();
+  const { t: translate } = useI18n();
   const [out, setOut] = useState(false); // "out of range": the device stops polling
   const [ringing, setRinging] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
-  const add = (t: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${t}`, ...l].slice(0, 8));
+  const add = useCallback((message: string) => {
+    setLog((lines) => [`${new Date().toLocaleTimeString(fmt.localeTag)} ${message}`, ...lines].slice(0, 8));
+  }, [fmt.localeTag]);
   useEffect(() => {
     if (out) return;
     let stop = false;
@@ -58,27 +64,27 @@ function BuzzerSim({ token }: { token: string }) {
         const r = await fetch(`/api/v1/public/buzzer/${encodeURIComponent(token)}/poll`, { cache: "no-store" });
         if (!r.ok) throw new Error(String(r.status));
         const j = (await r.json()) as BuzzPoll;
-        if (!stop) setRinging((cur) => { if (j.call && cur !== j.call.id) add("BZZZ: your order is ready"); return j.call ? j.call.id : null; });
-      } catch { if (!stop) add("could not reach the server"); }
+        if (!stop) setRinging((cur) => { if (j.call && cur !== j.call.id) add(translate("BZZZ: your order is ready")); return j.call ? j.call.id : null; });
+      } catch { if (!stop) add(translate("could not reach the server")); }
     };
     void tick();
     const i = setInterval(tick, 1500);
     return () => { stop = true; clearInterval(i); };
-  }, [token, out]);
+  }, [token, out, add, translate]);
   const ack = async () => {
     if (!ringing) return;
     await fetch(`/api/v1/public/buzzer/${encodeURIComponent(token)}/ack`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ callId: ringing }) });
-    add("collected: acknowledged");
+    add(translate("collected: acknowledged"));
     setRinging(null);
   };
   return (
     <div className="flex flex-col items-center gap-3">
-      <div role="img" aria-label={ringing ? "Buzzer ringing" : out ? "Buzzer out of range" : "Buzzer idle"} className={`flex h-28 w-28 items-center justify-center rounded-full border-4 text-center text-sm font-semibold ${ringing ? "animate-pulse border-red-500 bg-red-500/20" : out ? "border-border bg-muted text-muted-foreground" : "border-green-600 bg-green-600/10"}`}>
-        {ringing ? "RINGING" : out ? "OUT OF RANGE" : "IDLE"}
+      <div role="img" aria-label={ringing ? translate("Buzzer ringing") : out ? translate("Buzzer out of range") : translate("Buzzer idle")} className={`flex h-28 w-28 items-center justify-center rounded-full border-4 text-center text-sm font-semibold ${ringing ? "animate-pulse border-red-500 bg-red-500/20" : out ? "border-border bg-muted text-muted-foreground" : "border-green-600 bg-green-600/10"}`}>
+        {ringing ? translate("RINGING") : out ? translate("OUT OF RANGE") : translate("IDLE")}
       </div>
       <div className="flex gap-2">
-        <Button size="sm" disabled={!ringing} onClick={ack}>Guest presses to collect</Button>
-        <Button size="sm" variant="outline" onClick={() => { setOut((v) => !v); add(out ? "back in range" : "left range: polling stopped"); }}>{out ? "Back in range" : "Take out of range"}</Button>
+        <Button size="sm" disabled={!ringing} onClick={ack}>{translate("Guest presses to collect")}</Button>
+        <Button size="sm" variant="outline" onClick={() => { setOut((v) => !v); add(out ? translate("back in range") : translate("left range: polling stopped")); }}>{out ? translate("Back in range") : translate("Take out of range")}</Button>
       </div>
       <ul className="w-full text-xs text-muted-foreground">{log.map((l, i) => (<li key={i}>{l}</li>))}</ul>
     </div>
@@ -86,6 +92,7 @@ function BuzzerSim({ token }: { token: string }) {
 }
 
 export default function SimulatorPage() {
+  const { t: translate } = useI18n();
   const { branchId } = useBranch();
   const { data: terminals } = useTerminals(branchId);
   const { data: buzzers } = useBuzzers(branchId);
@@ -109,29 +116,29 @@ export default function SimulatorPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Hardware simulator</h1>
-        <p className="text-sm text-muted-foreground">Try the till, customer screen, table menu, kitchen and buzzer together before the real devices arrive.</p>
+        <h1 className="text-[32px] font-semibold tracking-tight text-foreground">{translate("Hardware simulator")}</h1>
+        <p className="text-sm text-muted-foreground">{translate("Try the till, customer screen, table menu, kitchen and buzzer together before the real devices arrive.")}</p>
       </div>
       <Card className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="flex flex-col gap-1 text-sm">Customer screen<select className={selectClass} value={term} onChange={(e) => pick(e.target.value)}><option value="">Choose…</option>{(terminals ?? []).filter((t) => t.isActive).map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}</select></label>
-        <label className="flex flex-col gap-1 text-sm">Screen size<select className={selectClass} value={size} onChange={(e) => setSize(e.target.value)}>{Object.entries(SIZES).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}</select></label>
-        <label className="flex flex-col gap-1 text-sm">Table (QR / NFC link)<select className={selectClass} value={table} onChange={(e) => setTable(e.target.value)}><option value="">Choose…</option>{tables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}</select></label>
-        <label className="flex flex-col gap-1 text-sm">Buzzer (polling type)<select className={selectClass} value={buzz} onChange={(e) => setBuzz(e.target.value)}><option value="">Choose…</option>{(buzzers ?? []).filter((b) => b.driver === "SIMULATED").map((b) => (<option key={b.id} value={b.id}>{b.name}{b.table ? ` (${b.table})` : ""}</option>))}</select></label>
-        <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Set up screens under Settings &gt; Customer screen, buzzers under Settings &gt; Buzzers (assign each to a table). Choosing a customer screen makes the till frame below drive it.</p>
+        <label className="flex flex-col gap-1 text-sm">{translate("Customer screen")}<select className={selectClass} value={term} onChange={(e) => pick(e.target.value)}><option value="">{translate("Choose…")}</option>{(terminals ?? []).filter((t) => t.isActive).map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}</select></label>
+        <label className="flex flex-col gap-1 text-sm">{translate("Screen size")}<select className={selectClass} value={size} onChange={(e) => setSize(e.target.value)}>{Object.entries(SIZES).map(([k, v]) => (<option key={k} value={k}>{translate(v.label)}</option>))}</select></label>
+        <label className="flex flex-col gap-1 text-sm">{translate("Table (QR / NFC link)")}<select className={selectClass} value={table} onChange={(e) => setTable(e.target.value)}><option value="">{translate("Choose…")}</option>{tables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}</select></label>
+        <label className="flex flex-col gap-1 text-sm">{translate("Buzzer (polling type)")}<select className={selectClass} value={buzz} onChange={(e) => setBuzz(e.target.value)}><option value="">{translate("Choose…")}</option>{(buzzers ?? []).filter((b) => b.driver === "SIMULATED").map((b) => (<option key={b.id} value={b.id}>{b.name}{b.table ? ` (${b.table})` : ""}</option>))}</select></label>
+        <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">{translate("Set up screens under Settings > Customer screen, buzzers under Settings > Buzzers (assign each to a table). Choosing a customer screen makes the till frame below drive it.")}</p>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-label="Staff till" className="flex flex-col gap-2"><h2 className="text-sm font-semibold">1. Staff till</h2><ScaledFrame src="/pos" w={1366} h={768} title="Staff till" /></section>
-        <section aria-label="Customer display" className="flex flex-col gap-2"><h2 className="flex items-center gap-2 text-sm font-semibold">2. Customer display {terminal ? <Badge variant="outline">{sz.label}</Badge> : null}</h2>
-          {terminal ? <ScaledFrame src={`/customer-display?t=${terminal.token}`} w={sz.w} h={sz.h} title="Customer display" /> : <Card className="py-16 text-center text-sm text-muted-foreground">Choose a customer screen above.</Card>}</section>
-        <section aria-label="Table web menu" className="flex flex-col gap-2"><h2 className="text-sm font-semibold">3. Guest phone (table QR / NFC)</h2>
-          {tbl ? <ScaledFrame src={`/order/${tbl.qr}`} w={390} h={844} title="Guest phone" maxH={640} /> : <Card className="py-16 text-center text-sm text-muted-foreground">Choose a table above.</Card>}</section>
-        <section aria-label="Kitchen" className="flex flex-col gap-2"><h2 className="text-sm font-semibold">4. Kitchen tablet</h2><ScaledFrame src="/kds" w={1280} h={800} title="Kitchen tablet" /></section>
+        <section aria-label={translate("Staff till")} className="flex flex-col gap-2"><h2 className="text-sm font-semibold">{translate("1. Staff till")}</h2><ScaledFrame src="/pos" w={1366} h={768} title={translate("Staff till")} /></section>
+        <section aria-label={translate("Customer display")} className="flex flex-col gap-2"><h2 className="flex items-center gap-2 text-sm font-semibold">{translate("2. Customer display")} {terminal ? <Badge variant="outline">{translate(sz.label)}</Badge> : null}</h2>
+          {terminal ? <ScaledFrame src={`/customer-display?t=${terminal.token}`} w={sz.w} h={sz.h} title={translate("Customer display")} /> : <Card className="py-16 text-center text-sm text-muted-foreground">{translate("Choose a customer screen above.")}</Card>}</section>
+        <section aria-label={translate("Table web menu")} className="flex flex-col gap-2"><h2 className="text-sm font-semibold">{translate("3. Guest phone (table QR / NFC)")}</h2>
+          {tbl ? <ScaledFrame src={`/order/${tbl.qr}`} w={390} h={844} title={translate("Guest phone")} maxH={640} /> : <Card className="py-16 text-center text-sm text-muted-foreground">{translate("Choose a table above.")}</Card>}</section>
+        <section aria-label={translate("Kitchen")} className="flex flex-col gap-2"><h2 className="text-sm font-semibold">{translate("4. Kitchen tablet")}</h2><ScaledFrame src="/kds" w={1280} h={800} title={translate("Kitchen tablet")} /></section>
       </div>
 
-      <section aria-label="Buzzer" className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">5. Table buzzer</h2>
-        <Card className="mx-auto w-full max-w-sm p-4">{bz ? <BuzzerSim token={bz.deviceToken} /> : <p className="py-8 text-center text-sm text-muted-foreground">Choose a polling buzzer above.</p>}</Card>
+      <section aria-label={translate("Buzzer")} className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">{translate("5. Table buzzer")}</h2>
+        <Card className="mx-auto w-full max-w-sm p-4">{bz ? <BuzzerSim token={bz.deviceToken} /> : <p className="py-8 text-center text-sm text-muted-foreground">{translate("Choose a polling buzzer above.")}</p>}</Card>
       </section>
     </div>
   );

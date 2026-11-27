@@ -1,5 +1,6 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
 import { ChevronLeft, MonitorSmartphone, ShoppingCart } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -7,7 +8,7 @@ import { StatusNote, useNoteToast } from "@/components/ui/status-note";
 import { publishDisplay } from "@/lib/customer-display";
 import { BranchNotice } from "@/components/layout/branch-notice";
 import { CartPanel, type DeliveryDetails, type PosOrderType } from "@/components/pos/cart-panel";
-import { cartLineKey, portionText, type CartLine, type Portion } from "@/components/pos/cart-line";
+import { cartLineKey, cartLineName, type CartLine, type Portion } from "@/components/pos/cart-line";
 import { clearDraft, switchTableDraft, type Drafts } from "@/lib/pos-drafts";
 import { CheckoutPanel } from "@/components/pos/checkout-panel";
 import { KitchenProgressWidget } from "@/components/pos/kitchen-progress-widget";
@@ -34,7 +35,6 @@ import {
 import { useFloors, type RestaurantTable } from "@/hooks/use-tables";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function PosPage() {
@@ -46,10 +46,11 @@ export default function PosPage() {
 }
 
 function PosPageInner() {
+  const fmt = useStaffFormat();
   const { branchId, isLoading: branchLoading } = useBranch();
   const menu = useMenuItems(branchId);
   const queryClient = useQueryClient();
-  const { t } = useI18n();
+  const { t: translate, t } = useI18n();
   const allItems = menu.data;
   const { data: settings } = useDisplaySettings(branchId);
   const pauseLabels = useMenuPauseLabels(allItems, settings?.restaurant.timezone);
@@ -103,7 +104,7 @@ function PosPageInner() {
         : {
             kind: "cart",
             lines: lines.map((l) => ({
-              name: l.modifierLabel ? `${l.name} (${l.modifierLabel})` : l.name,
+              name: l.modifierLabel ? `${cartLineName(l)} (${l.modifierLabel})` : cartLineName(l),
               quantity: l.quantity,
               total: l.unitPrice * l.quantity,
             })),
@@ -192,11 +193,11 @@ function PosPageInner() {
       e.preventDefault();
       const item = findItemByCode(r.items, code);
       if (item) r.select(item);
-      else r.toast.error(`No menu item with barcode ${code}. Add the barcode to the item or its stock ingredient.`);
+      else r.toast.error(translate("No menu item with barcode {code}. Add the barcode to the item or its stock ingredient.", { code }));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [translate]);
 
   const handleModifierConfirm = (modifierIds: string[], modifierLabel: string, portion?: Portion) => {
     if (!pickerItem || pauseLabels.has(pickerItem.id)) return;
@@ -211,7 +212,7 @@ function PosPageInner() {
       (portion?.kind === "HALF" ? Number(pickerItem.halfPrice) : Number(pickerItem.price));
     addLine(
       pickerItem.id,
-      portion ? `${pickerItem.name} (${portionText(portion)})` : pickerItem.name,
+      pickerItem.name,
       toInclusivePrice(
         base + modifierTotal,
         Number(pickerItem.taxRatePercent ?? 0),
@@ -273,9 +274,9 @@ function PosPageInner() {
             setActiveOrder(order);
             setJustSent(true);
             setCartOpen(true);
-            toast.success(`Added to order #${order.orderNumber} — sent to kitchen`);
+            toast.success(translate("Added to order #{orderNumber} — sent to kitchen", { orderNumber: order.orderNumber }));
           },
-          onError: (err) => handleOrderError(err, "Could not add items"),
+          onError: (err) => handleOrderError(err, translate("Could not add items")),
         },
       );
       return;
@@ -298,9 +299,9 @@ function PosPageInner() {
           setActiveOrder(order);
           setJustSent(true);
           setCartOpen(true);
-          toast.success(`Order #${order.orderNumber} sent to kitchen`);
+          toast.success(translate("Order #{orderNumber} sent to kitchen", { orderNumber: order.orderNumber }));
         },
-        onError: (err) => handleOrderError(err, "Could not create order"),
+        onError: (err) => handleOrderError(err, translate("Could not create order")),
       },
     );
   };
@@ -354,7 +355,7 @@ function PosPageInner() {
   // (?tableId=... pre-fills this and never shows the picker).
   const tableLabel = (() => {
     const t = tables.find((x) => x.id === tableId);
-    return t ? (t.name ?? `Table ${t.number}`) : "";
+    return t ? (t.name ?? translate("Table {number}", { number: t.number })) : "";
   })();
   const showTablePicker = orderType === "DINE_IN" && !tableId && !activeOrder;
 
@@ -370,10 +371,10 @@ function PosPageInner() {
           target="_blank"
           rel="noreferrer"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          title="Opens the customer-facing screen in a new window — drag it to the second monitor"
+          title={translate("Opens the customer-facing screen in a new window — drag it to the second monitor")}
         >
           <MonitorSmartphone className="h-3.5 w-3.5" />
-          Customer display
+          {translate("Customer display")}
         </a>
       </div>
 
@@ -418,7 +419,7 @@ function PosPageInner() {
               className="mb-3 -ml-1 flex items-center gap-1 text-sm font-medium text-muted-foreground lg:hidden"
             >
               <ChevronLeft className="h-4 w-4" />
-              Back to menu
+              {translate("Back to menu")}
             </button>
             {activeOrder && (
               <div
@@ -426,7 +427,7 @@ function PosPageInner() {
                 className="mb-3 flex flex-col gap-2 rounded-xl border border-success/30 bg-success/10 p-3"
               >
                 <p className="text-sm font-medium text-foreground">
-                  {justSent ? `Order #${activeOrder.orderNumber} sent to kitchen` : `Bill #${activeOrder.orderNumber}`}
+                  {justSent ? translate("Order #{orderNumber} sent to kitchen", { orderNumber: activeOrder.orderNumber }) : translate("Bill #{orderNumber}", { orderNumber: activeOrder.orderNumber })}
                   {orderType === "DINE_IN" && tableId && (
                     <span className="font-normal text-muted-foreground"> · {tableLabel}</span>
                   )}
@@ -434,7 +435,7 @@ function PosPageInner() {
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {orderType === "DINE_IN" && tableId && (
                     <Button type="button" variant="outline" className="h-11" onClick={backToTable}>
-                      Back to this table
+                      {translate("Back to this table")}
                     </Button>
                   )}
                   <Button
@@ -442,7 +443,7 @@ function PosPageInner() {
                     className={cn("h-11", !(orderType === "DINE_IN" && tableId) && "sm:col-span-2")}
                     onClick={resetForNewOrder}
                   >
-                    Back to POS menu
+                    {translate("Back to POS menu")}
                   </Button>
                 </div>
               </div>
@@ -496,14 +497,14 @@ function PosPageInner() {
           <span className="flex items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="h-5 w-5" />
             {activeOrder
-              ? `Order #${activeOrder.orderNumber} — pay`
+              ? translate("Order #{orderNumber} — pay", { orderNumber: activeOrder.orderNumber })
               : lines.length > 0
-                ? `View cart · ${lines.reduce((n, l) => n + l.quantity, 0)} items`
-                : `Open bill #${existingOrder?.orderNumber} — view`}
+                ? translate("View cart · {reduce} items", { reduce: lines.reduce((n, l) => n + l.quantity, 0) })
+                : translate("Open bill #{orderNumber} — view", { orderNumber: (existingOrder?.orderNumber) ?? "" })}
           </span>
           {!activeOrder && lines.length > 0 && (
             <span className="text-sm font-semibold tabular-nums">
-              {formatCurrency(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0))}
+              {fmt.currency(lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0))}
             </span>
           )}
         </button>

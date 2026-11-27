@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { hasPermission, useCurrentUser } from "@/hooks/use-auth";
@@ -26,12 +27,13 @@ const TABS = [
 const JOURNAL_TABS = new Set(["/inventory/journal", "/inventory/waste"]);
 
 export function InventoryTabs() {
+  const { t: translate } = useI18n();
   const pathname = usePathname();
   const { data: me } = useCurrentUser();
   const tabs = hasPermission(me?.user, "inventory.manage") ? TABS : TABS.filter((t) => JOURNAL_TABS.has(t.href));
 
   return (
-    <nav aria-label="Inventory sections" className="flex gap-1 overflow-x-auto border-b border-border">
+    <nav aria-label={translate("Inventory sections")} className="flex gap-1 overflow-x-auto border-b border-border">
       {tabs.map((tab) => {
         const isActive =
           tab.href === "/inventory" ? pathname === "/inventory" : pathname?.startsWith(tab.href);
@@ -46,7 +48,7 @@ export function InventoryTabs() {
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {tab.label}
+            {translate(tab.label)}
           </Link>
         );
       })}

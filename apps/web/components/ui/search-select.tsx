@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import { Combobox } from "@base-ui/react/combobox";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import * as React from "react";
@@ -41,14 +42,14 @@ export function SearchSelect({
   value,
   onChange,
   options,
-  placeholder = "Search…",
+  placeholder: providedPlaceholder,
   className,
   invalid,
   disabled,
   autoFocus,
   "aria-label": ariaLabel,
   "aria-describedby": describedBy,
-  emptyText = "Nothing matches",
+  emptyText: providedEmptyText,
 }: {
   id?: string;
   value: string;
@@ -64,6 +65,9 @@ export function SearchSelect({
   "aria-describedby"?: string;
   emptyText?: string;
 }) {
+  const { t } = useI18n();
+  const emptyText = providedEmptyText ?? t("Nothing matches");
+  const placeholder = providedPlaceholder ?? t("Search…");
   const selected = React.useMemo(() => options.find((o) => o.value === value) ?? null, [options, value]);
   const grouped = options.some((o) => o.group);
   const items = React.useMemo<SearchOption[] | Group[]>(() => {
@@ -123,7 +127,7 @@ export function SearchSelect({
           )}
         />
         <Combobox.Trigger
-          aria-label="Show all options"
+          aria-label={t("Show all options")}
           tabIndex={-1}
           className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-muted-foreground disabled:opacity-50"
         >

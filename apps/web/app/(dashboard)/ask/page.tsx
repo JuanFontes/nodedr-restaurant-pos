@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import * as React from "react";
 import Image from "next/image";
 import {
@@ -76,9 +78,14 @@ import { ThinkingStepsDisplay } from "@/components/ui/thinking-steps";
 interface ChatThread {
   id: string;
   title: string;
+  draft?: boolean;
   preview: string;
   time: string;
   status: "active" | "completed";
+}
+
+function isDraftThread(thread: ChatThread) {
+  return thread.draft ?? (thread.title === "New Conversation" && thread.preview === "Ready to assist…");
 }
 
 interface ChatMessagePart {
@@ -137,6 +144,8 @@ const efforts = [
 ];
 
 export default function AskAssistantPage() {
+  const fmt = useStaffFormat();
+  const { t: translate } = useI18n();
   const [model, setModel] = React.useState<string>(allModels[0].id);
   const [effort, setEffort] = React.useState<string>(efforts[1].id);
   const [threads, setThreads] = React.useState<ChatThread[]>([]);
@@ -243,9 +252,10 @@ export default function AskAssistantPage() {
     const newId = `thread-${Date.now()}`;
     const newThread: ChatThread = {
       id: newId,
-      title: "New Conversation",
-      preview: "Ready to assist…",
-      time: "Just now",
+      draft: true,
+      title: "",
+      preview: "",
+      time: "",
       status: "active",
     };
     const updated = [newThread, ...threads];
@@ -284,7 +294,7 @@ export default function AskAssistantPage() {
         ...prev,
         {
           id: crypto.randomUUID(),
-          name: file.name || "Pasted image",
+          name: file.name || translate("Pasted image"),
           mimeType: file.type || "image/png",
           data: base64Data,
           preview: result,
@@ -333,7 +343,7 @@ export default function AskAssistantPage() {
         parts: [
           {
             type: "text",
-            text: "❌ **Action Cancelled**\n\nNo changes were applied to your restaurant records. System remains in current state.",
+            text: translate("❌ **Action Cancelled**\n\nNo changes were applied to your restaurant records. System remains in current state."),
           },
         ],
       };
@@ -402,7 +412,7 @@ export default function AskAssistantPage() {
       persistMessages(threadId, updated);
 
       if (isFailed) {
-        const errorText = result.message || "Action execution failed. Please verify permissions and data requirements.";
+        const errorText = result.message || translate("Action execution failed. Please verify permissions and data requirements.");
         const isPermission = errorText.toLowerCase().includes("permission");
         const followUpError: MessageItem = {
           id: newMessageId(),
@@ -411,8 +421,8 @@ export default function AskAssistantPage() {
             {
               type: "text",
               text: isPermission
-                ? `⛔ **Permission Denied**\n\n${errorText}`
-                : `⚠️ **Action Rejected by Database**\n\n${errorText}`,
+                ? translate("⛔ **Permission Denied**\n\n{errorText}", { errorText })
+                : translate("⚠️ **Action Rejected by Database**\n\n{errorText}", { errorText }),
             },
           ],
         };
@@ -421,23 +431,23 @@ export default function AskAssistantPage() {
       }
 
       const itemsSummary = result.createdItems && result.createdItems.length > 0
-        ? result.createdItems.map((name: string) => `• Dish: **${name}**`).join("\n")
+        ? result.createdItems.map((name: string) => translate("• Dish: **{name}**", { name })).join("\n")
         : "";
 
       const ingSummary = result.createdIngredients && result.createdIngredients.length > 0
-        ? result.createdIngredients.map((name: string) => `• Stockroom Item: **${name}**`).join("\n")
+        ? result.createdIngredients.map((name: string) => translate("• Stockroom Item: **{name}**", { name })).join("\n")
         : "";
 
       const delSummary = result.deletedItems && result.deletedItems.length > 0
-        ? result.deletedItems.map((name: string) => `• Purged from Menu: ~${name}~`).join("\n")
+        ? result.deletedItems.map((name: string) => translate("• Purged from Menu: ~{name}~", { name })).join("\n")
         : "";
 
       const sections = [
-        result.message ? `✅ **Action Approved & Persisted to Database**\n\n${result.message}` : "✅ **Action Approved & Persisted to Database**",
-        itemsSummary ? `**Registered Menu Items:**\n${itemsSummary}` : null,
-        ingSummary ? `**Stockroom Inventory (Ingredients):**\n${ingSummary}` : null,
-        delSummary ? `**Removed from Sales Catalog:**\n${delSummary}` : null,
-        "You can view and audit changes anytime in [Menu Management](/menu), [Team Management](/team), or [Stockroom Inventory](/inventory).",
+        result.message ? translate("✅ **Action Approved & Persisted to Database**\n\n{message}", { message: result.message }) : translate("✅ **Action Approved & Persisted to Database**"),
+        itemsSummary ? translate("**Registered Menu Items:**\n{itemsSummary}", { itemsSummary }) : null,
+        ingSummary ? translate("**Stockroom Inventory (Ingredients):**\n{ingSummary}", { ingSummary }) : null,
+        delSummary ? translate("**Removed from Sales Catalog:**\n{delSummary}", { delSummary }) : null,
+        translate("You can view and audit changes anytime in [Menu Management](/menu), [Team Management](/team), or [Stockroom Inventory](/inventory)."),
       ].filter(Boolean).join("\n\n");
 
       const followUp: MessageItem = {
@@ -459,7 +469,7 @@ export default function AskAssistantPage() {
         parts: [
           {
             type: "text",
-            text: "⚠️ **Database Synchronization Error**: Could not complete write operation. Please check your network and session.",
+            text: translate("⚠️ **Database Synchronization Error**: Could not complete write operation. Please check your network and session."),
           },
         ],
       };
@@ -481,9 +491,9 @@ export default function AskAssistantPage() {
       currentThreadId = `thread-${Date.now()}`;
       const newThread: ChatThread = {
         id: currentThreadId,
-        title: text.trim().slice(0, 26) || "Photo Analysis",
-        preview: text.trim() || "Uploaded attachment",
-        time: "Just now",
+        title: text.trim().slice(0, 26),
+        preview: text.trim(),
+        time: "",
         status: "active",
       };
       saveThreads([newThread, ...threads]);
@@ -496,9 +506,10 @@ export default function AskAssistantPage() {
         t.id === currentThreadId
           ? {
               ...t,
-              title: t.title === "New Conversation" ? text.trim().slice(0, 26) || "Photo Analysis" : t.title,
-              preview: text.trim() || "Uploaded attachment",
-              time: "Just now",
+              draft: false,
+              title: isDraftThread(t) ? text.trim().slice(0, 26) : t.title,
+              preview: text.trim(),
+              time: "",
             }
           : t
       );
@@ -540,8 +551,8 @@ export default function AskAssistantPage() {
           {
             type: "reasoning",
             text: filesToSend.length > 0
-              ? "Inspecting visual document: extracting dish names, ingredients, spice samples, and commercial inventory portions..."
-              : `Analyzing: "${userText}" across restaurant floor tables, KDS queue, and ingredients inventory…`,
+              ? translate("Inspecting visual document: extracting dish names, ingredients, spice samples, and commercial inventory portions...")
+              : translate("Analyzing: \"{userText}\" across restaurant floor tables, KDS queue, and ingredients inventory…", { userText }),
             state: "streaming",
           },
         ],
@@ -586,7 +597,7 @@ export default function AskAssistantPage() {
       .then(async (res) => {
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(data?.message || `HTTP error ${res.status}`);
+          throw new Error(data?.message || translate("HTTP error {status}", { status: res.status }));
         }
         return data;
       })
@@ -595,15 +606,15 @@ export default function AskAssistantPage() {
           {
             type: "reasoning",
             text:
-              (data.reasoning || `Processed operational logic for "${userText || "Image"}"`) +
+              (data.reasoning || translate("Processed operational logic for \"{value}\"", { value: userText || translate("Image") })) +
               (data.modelFallback && data.modelUsed
-                ? ` (Answered with ${data.modelUsed}: the model you picked is not set up on this server.)`
+                ? translate(" (Answered with {modelUsed}: the model you picked is not set up on this server.)", { modelUsed: data.modelUsed })
                 : ""),
             state: "output-available" as const,
           },
           {
             type: "text",
-            text: data.text || "Processed successfully.",
+            text: data.text || translate("Processed successfully."),
           },
         ];
 
@@ -639,19 +650,19 @@ export default function AskAssistantPage() {
       })
       .catch((err) => {
         console.error("AI chat error:", err);
-        const errMsg = err?.message || "Failed to reach AI service";
+        const errMsg = err?.message || translate("Failed to reach AI service");
         const fallbackMsgs: MessageItem[] = msgsWithUser.concat({
           id: assistantMsgId,
           role: "assistant",
           parts: [
             {
               type: "reasoning",
-              text: `Processing query for "${userText || "Image"}".`,
+              text: translate("Processing query for \"{value}\".", { value: userText || translate("Image") }),
               state: "output-available" as const,
             },
             {
               type: "text",
-              text: `⚠️ **AI Service Notice**: ${errMsg}. If you are running Docker, ensure backend has \`GEMINI_API_KEY\` passed in \`docker-compose.yml\` and restart with \`docker compose up -d backend\`.`,
+              text: translate("⚠️ **AI Service Notice**: {errMsg}. If you are running Docker, ensure backend has `GEMINI_API_KEY` passed in `docker-compose.yml` and restart with `docker compose up -d backend`.", { errMsg }),
             },
           ],
         });
@@ -668,10 +679,13 @@ export default function AskAssistantPage() {
       });
   };
 
+  const threadTitle = (thread: ChatThread) => isDraftThread(thread) ? translate("New Conversation") : thread.title || translate("Photo Analysis");
+  const threadPreview = (thread: ChatThread) => isDraftThread(thread) ? translate("Ready to assist…") : thread.preview || translate("Uploaded attachment");
+  const currentThread = threads.find((thread) => thread.id === activeThreadId);
   const filteredThreads = threads.filter(
     (t) =>
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.preview.toLowerCase().includes(searchQuery.toLowerCase())
+      threadTitle(t).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      threadPreview(t).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -709,7 +723,7 @@ export default function AskAssistantPage() {
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold tracking-tight text-foreground">
-              Conversations
+              {translate("Conversations")}
             </span>
           </div>
           <Button
@@ -719,7 +733,7 @@ export default function AskAssistantPage() {
             className="h-7 px-2 text-xs gap-1 rounded-md"
           >
             <Plus className="h-3 w-3" />
-            New
+            {translate("New")}
           </Button>
         </div>
 
@@ -728,7 +742,7 @@ export default function AskAssistantPage() {
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search chats…"
+              placeholder={translate("Search chats…")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-8 pl-8 pr-2 text-xs rounded-md border border-border bg-background/50 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -739,7 +753,7 @@ export default function AskAssistantPage() {
         <div className="flex-1 overflow-y-auto divide-y divide-border/40 p-1">
           {filteredThreads.length === 0 ? (
             <div className="py-12 text-center text-xs text-muted-foreground">
-              No conversations yet.
+              {translate("No conversations yet.")}
             </div>
           ) : (
             filteredThreads.map((thread) => {
@@ -757,21 +771,21 @@ export default function AskAssistantPage() {
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className="truncate text-xs font-medium text-foreground">
-                      {thread.title}
+                      {threadTitle(thread)}
                     </span>
                     <span className="text-[10px] text-muted-foreground shrink-0">
-                      {thread.time}
+                      {thread.time && thread.time !== "Just now" ? thread.time : translate("Just now")}
                     </span>
                   </div>
                   <p className="line-clamp-1 text-[11px] text-muted-foreground">
-                    {thread.preview}
+                    {threadPreview(thread)}
                   </p>
                   <div className="flex items-center justify-between pt-1">
                     <Badge
                       variant={thread.status === "active" ? "default" : "secondary"}
                       className="text-[9px] px-1 py-0 h-3.5 font-normal"
                     >
-                      {thread.status}
+                      {fmt.code(thread.status)}
                     </Badge>
                     <button
                       type="button"
@@ -780,7 +794,7 @@ export default function AskAssistantPage() {
                         handleDeleteThread(thread.id);
                       }}
                       className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1 transition-opacity"
-                      title="Delete thread"
+                      title={translate("Delete thread")}
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -802,13 +816,13 @@ export default function AskAssistantPage() {
               size="icon"
               onClick={toggleSidebar}
               className="h-8 w-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground md:hidden"
-              title={sidebarOpen ? "Hide conversations" : "Show conversations"}
+              title={sidebarOpen ? translate("Hide conversations") : translate("Show conversations")}
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
 
             <span className="font-semibold text-xs sm:text-sm text-foreground truncate">
-              {threads.find((t) => t.id === activeThreadId)?.title || "Assistant Workspace"}
+              {currentThread ? threadTitle(currentThread) : translate("Assistant Workspace")}
             </span>
           </div>
 
@@ -825,7 +839,7 @@ export default function AskAssistantPage() {
             className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <RotateCwIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Reset</span>
+            <span className="hidden sm:inline">{translate("Reset")}</span>
           </Button>
         </header>
 
@@ -838,18 +852,18 @@ export default function AskAssistantPage() {
                   src="/ai-mascot.png"
                   width={80}
                   height={53}
-                  alt="OrderRestro Chef Robot"
+                  alt={translate("OrderRestro Chef Robot")}
                   className="w-full h-full object-contain pixelated"
                 />
               </div>
-              <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-background" title="Online" />
+              <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-background" title={translate("Online")} />
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              How can I help you today?
+              {translate("How can I help you today?")}
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 mb-6 max-w-md">
-              Ask about live floor tables, KDS orders, recipe ingredients, or paste an invoice image directly with <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border">Ctrl+V</kbd>.
+              {translate("Ask about live floor tables, KDS orders, recipe ingredients, or paste an invoice image directly with")} <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border">Ctrl+V</kbd>.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full text-left">
@@ -885,7 +899,7 @@ export default function AskAssistantPage() {
                     key={index}
                     type="button"
                     onClick={() => {
-                      setText(item.prompt);
+                      setText(translate(item.prompt));
                     }}
                     className="flex items-start gap-3 p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/40 hover:border-primary/40 transition-all text-left shadow-2xs group active:scale-[0.99]"
                   >
@@ -894,10 +908,10 @@ export default function AskAssistantPage() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs font-medium text-foreground block group-hover:text-primary transition-colors">
-                        {item.title}
+                        {translate(item.title)}
                       </span>
                       <span className="text-[11px] text-muted-foreground block truncate mt-0.5">
-                        {item.desc}
+                        {translate(item.desc)}
                       </span>
                     </div>
                   </button>
@@ -931,7 +945,7 @@ export default function AskAssistantPage() {
                                     {/* eslint-disable-next-line @next/next/no-img-element -- FileReader data URL with unknown intrinsic dimensions. */}
                                     <img
                                       src={p.imageData}
-                                      alt="Uploaded file"
+                                      alt={translate("Uploaded file")}
                                       className="w-full h-auto max-h-60 object-contain bg-black/5"
                                     />
                                   </div>
@@ -968,15 +982,15 @@ export default function AskAssistantPage() {
                             src="/ai-mascot.png"
                             width={32}
                             height={21}
-                            alt="OrderRestro Assistant"
+                            alt={translate("OrderRestro Assistant")}
                             className="h-8 w-8 object-contain pixelated shrink-0"
                           />
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-foreground leading-tight">
-                              OrderRestro Assistant
+                              {translate("OrderRestro Assistant")}
                             </span>
                             <span className="text-[11px] text-muted-foreground">
-                              Kitchen & Operations Copilot
+                              {translate("Kitchen & Operations Copilot")}
                             </span>
                           </div>
                         </div>
@@ -1009,7 +1023,7 @@ export default function AskAssistantPage() {
                                 data={part.questionData}
                                 onSelectOption={(option) => {
                                   // Send the selected choice directly to the chat
-                                  setText(`Selected: ${option.label}`);
+                                  setText(translate("Selected: {label}", { label: option.label }));
                                   setTimeout(() => {
                                     formRef.current?.requestSubmit();
                                   }, 50);
@@ -1053,10 +1067,10 @@ export default function AskAssistantPage() {
                                   </ItemMedia>
                                   <ItemContent>
                                     <ItemTitle className="font-semibold text-xs sm:text-sm">
-                                      {part.actionTitle || `Run ${part.command}?`}
+                                      {part.actionTitle || translate("Run {command}?", { command: (part.command) ?? "" })}
                                     </ItemTitle>
                                     <ItemDescription className="text-xs">
-                                      {part.actionDescription || "Pushes actions to OrderRestro kitchen & menu records."}
+                                      {part.actionDescription || translate("Pushes actions to OrderRestro kitchen & menu records.")}
                                     </ItemDescription>
                                   </ItemContent>
                                   <ItemActions>
@@ -1066,7 +1080,7 @@ export default function AskAssistantPage() {
                                       disabled={executingToolId === part.toolCallId}
                                       onClick={() => handleToolApproval(part.toolCallId!, false)}
                                     >
-                                      Deny
+                                      {translate("Deny")}
                                     </Button>
                                     <Button
                                       size="sm"
@@ -1077,7 +1091,7 @@ export default function AskAssistantPage() {
                                       {executingToolId === part.toolCallId && (
                                         <LoaderCircleIcon className="h-3.5 w-3.5 animate-spin" />
                                       )}
-                                      <span>{executingToolId === part.toolCallId ? "Saving…" : "Approve"}</span>
+                                      <span>{executingToolId === part.toolCallId ? translate("Saving…") : translate("Approve")}</span>
                                     </Button>
                                   </ItemActions>
                                 </Item>
@@ -1101,7 +1115,7 @@ export default function AskAssistantPage() {
                                 </ItemMedia>
                                 <ItemContent>
                                   <ItemTitle className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-                                    <span>{part.actionTitle || "Proposed Action"}</span>
+                                    <span>{part.actionTitle || translate("Proposed Action")}</span>
                                     <Badge
                                       variant={denied ? "destructive" : "default"}
                                       className={cn(
@@ -1109,7 +1123,7 @@ export default function AskAssistantPage() {
                                         !denied && "bg-emerald-600 hover:bg-emerald-600 text-white"
                                       )}
                                     >
-                                      {denied ? "Denied" : "Approved & Recorded"}
+                                      {denied ? translate("Denied") : translate("Approved & Recorded")}
                                     </Badge>
                                   </ItemTitle>
                                   <ItemDescription className="text-xs font-mono opacity-80">
@@ -1151,7 +1165,7 @@ export default function AskAssistantPage() {
                       </AttachmentContent>
                       <AttachmentActions>
                         <AttachmentAction
-                          aria-label={`Remove ${file.name}`}
+                          aria-label={translate("Remove {name}", { name: file.name })}
                           onClick={() =>
                             setAttachedFiles((current) =>
                               current.filter((item) => item.id !== file.id)
@@ -1183,8 +1197,8 @@ export default function AskAssistantPage() {
                     }
                   }
                 }}
-                placeholder="Ask the agent or paste an invoice/recipe image (Ctrl+V)..."
-                aria-label="Message"
+                placeholder={translate("Ask the agent or paste an invoice/recipe image (Ctrl+V)...")}
+                aria-label={translate("Message")}
                 className="min-h-12 sm:min-h-14 text-xs sm:text-sm px-3 pt-2.5"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -1200,10 +1214,10 @@ export default function AskAssistantPage() {
                   size="icon-sm"
                   variant="outline"
                   className="rounded-full shrink-0 h-7 w-7"
-                  aria-label="Attach files"
+                  aria-label={translate("Attach files")}
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  title="Upload receipt or recipe image"
+                  title={translate("Upload receipt or recipe image")}
                 >
                   <PlusIcon className="h-3.5 w-3.5" />
                 </InputGroupButton>
@@ -1217,7 +1231,7 @@ export default function AskAssistantPage() {
                         <InputGroupButton
                           size="sm"
                           variant="outline"
-                          aria-label={`Model: ${currentModel.name}`}
+                          aria-label={translate("Model: {name}", { name: currentModel.name })}
                           className="h-7 px-2 text-xs shrink-0 gap-1 rounded-lg"
                         >
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -1249,13 +1263,13 @@ export default function AskAssistantPage() {
                         <InputGroupButton
                           size="sm"
                           variant="outline"
-                          aria-label={`Effort: ${currentEffort.name}`}
+                          aria-label={translate("Effort: {name}", { name: translate(currentEffort.name) })}
                           className="h-7 px-2 text-xs shrink-0 gap-1 rounded-lg"
                         >
                           <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
                           <span className="hidden sm:inline">
-                            <span className="text-muted-foreground mr-1">Effort</span>
-                            {currentEffort.name}
+                            <span className="text-muted-foreground mr-1">{translate("Effort")}</span>
+                            {translate(currentEffort.name)}
                           </span>
                           <ChevronDownIcon className="h-3 w-3 text-muted-foreground" />
                         </InputGroupButton>
@@ -1263,7 +1277,7 @@ export default function AskAssistantPage() {
                     />
                     <DropdownMenuContent align="end" className="w-36 text-xs">
                       <DropdownMenuGroup>
-                        <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase">Effort</DropdownMenuLabel>
+                        <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase">{translate("Effort")}</DropdownMenuLabel>
                         <DropdownMenuRadioGroup
                           value={effort}
                           onValueChange={setEffort}
@@ -1275,7 +1289,7 @@ export default function AskAssistantPage() {
                               closeOnClick
                               className="text-xs"
                             >
-                              {item.name}
+                              {translate(item.name)}
                             </DropdownMenuRadioItem>
                           ))}
                         </DropdownMenuRadioGroup>
@@ -1290,7 +1304,7 @@ export default function AskAssistantPage() {
                     variant="default"
                     className="rounded-full shrink-0 h-7 w-7 bg-primary text-primary-foreground disabled:opacity-40"
                     disabled={!canSend}
-                    aria-label="Send"
+                    aria-label={translate("Send")}
                   >
                     <ArrowUpIcon className="h-3.5 w-3.5" />
                   </InputGroupButton>

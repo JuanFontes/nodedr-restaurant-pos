@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import { AlertTriangle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -24,9 +26,10 @@ import { useBranch } from "@/hooks/use-branch";
 import { useIngredients, useTrackingStatus } from "@/hooks/use-inventory";
 import { useExpiring } from "@/hooks/use-stock-journal";
 import { rank, STOCK_CATEGORIES, STORAGE_AREAS } from "@/lib/restaurant-stock";
-import { formatCurrency } from "@/lib/format";
 
 function InventoryView() {
+  const fmt = useStaffFormat();
+  const { t: translate } = useI18n();
   const { branchId } = useBranch();
   const { data: me } = useCurrentUser();
   const canImport = hasPermission(me?.user, "inventory.manage");
@@ -62,20 +65,21 @@ function InventoryView() {
         (view === "low" && (isLowish(i) || (isOut(i) && Number(i.reorderLevel) > 0))) ||
         (view === "out" && isOut(i) && i.kind !== "PREPARED")),
   );
-  const byCat = new Map<string, typeof filtered>();
+  const preparedGroup = Symbol("prepared");
+  const byCat = new Map<string | typeof preparedGroup, typeof filtered>();
   for (const i of filtered) {
-    const c = i.kind === "PREPARED" ? "Made in the kitchen" : i.category || "Other";
+    const c = i.kind === "PREPARED" ? preparedGroup : i.category || "";
     byCat.set(c, [...(byCat.get(c) ?? []), i]);
   }
-  const groups = [...byCat.entries()].sort(([a], [b]) => (a === "Made in the kitchen" ? 1 : b === "Made in the kitchen" ? -1 : rank(STOCK_CATEGORIES, a) - rank(STOCK_CATEGORIES, b) || a.localeCompare(b)));
+  const groups = [...byCat.entries()].sort(([a], [b]) => (a === preparedGroup ? 1 : b === preparedGroup ? -1 : rank(STOCK_CATEGORIES, a) - rank(STOCK_CATEGORIES, b) || a.localeCompare(b)));
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Inventory</h1>
+          <h1 className="text-[32px] font-semibold tracking-tight text-foreground">{translate("Inventory")}</h1>
           <p className="text-sm text-muted-foreground">
-            Stock, daily production, purchasing, and food waste
+            {translate("Stock, daily production, purchasing, and food waste")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -90,22 +94,17 @@ function InventoryView() {
         <div role="alert" className="flex gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div className="flex flex-col gap-1">
-            <p className="font-medium text-foreground">
-              {trackingStatus.problems.length} stock-tracked menu item{trackingStatus.problems.length === 1 ? "" : "s"} will deduct nothing when sold
-            </p>
-            <p className="text-muted-foreground">
-              Add a recipe or pick the stock item (Menu → Edit item → Stock when sold):{" "}
-              {trackingStatus.problems.map((p) => p.name).join(", ")}
-            </p>
+            <p className="font-medium text-foreground">{(trackingStatus.problems.length === 1 ? translate("{count} stock-tracked menu item will deduct nothing when sold", { count: trackingStatus.problems.length }) : translate("{count} stock-tracked menu items will deduct nothing when sold", { count: trackingStatus.problems.length }))}</p>
+            <p className="text-muted-foreground">{translate("Add a recipe or pick the stock item (Menu → Edit item → Stock when sold): {join}", { join: trackingStatus.problems.map((p) => p.name).join(", ") })}</p>
           </div>
         </div>
       )}
 
-      <section aria-label="Today" className="grid grid-cols-3 gap-3">
+      <section aria-label={translate("Today")} className="grid grid-cols-3 gap-3">
         {[
-          { label: "Running low", n: lowCount, on: view === "low", set: "low" as const, tone: "text-warning" },
-          { label: "Out of stock", n: outCount, on: view === "out", set: "out" as const, tone: "text-destructive" },
-          { label: "Expiring in 3 days", n: expiring?.length ?? 0, on: false, set: null, tone: "text-destructive", href: "/inventory/shopping-list#expiring" },
+          { label: translate("Running low"), n: lowCount, on: view === "low", set: "low" as const, tone: "text-warning" },
+          { label: translate("Out of stock"), n: outCount, on: view === "out", set: "out" as const, tone: "text-destructive" },
+          { label: translate("Expiring in 3 days"), n: expiring?.length ?? 0, on: false, set: null, tone: "text-destructive", href: "/inventory/shopping-list#expiring" },
         ].map((t) => (
           <button key={t.label} type="button" aria-pressed={t.on}
             onClick={() => (t.href ? router.push(t.href) : setView(view === t.set ? "all" : t.set!))}
@@ -117,16 +116,16 @@ function InventoryView() {
       </section>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input placeholder="Search items…" aria-label="Search items" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+        <Input placeholder={translate("Search items…")} aria-label={translate("Search items")} value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
         {([["all", "All"], ["raw", "Raw materials"], ["made", "Finished food"]] as const).map(([k, label]) => (
           <button key={k} type="button" aria-pressed={view === k} onClick={() => setView(k)}
-            className={"rounded-full border px-3.5 py-1.5 text-sm " + (view === k ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-secondary")}>{label}</button>
+            className={"rounded-full border px-3.5 py-1.5 text-sm " + (view === k ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-secondary")}>{translate(label)}</button>
         ))}
-        <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={showValue} onChange={(e) => setShowValue(e.target.checked)} /> Show purchase values</label>
+        <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={showValue} onChange={(e) => setShowValue(e.target.checked)} /> {translate("Show purchase values")}</label>
       </div>
       {areas.length > 1 && (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Storage area">
-          <button type="button" aria-pressed={!area} onClick={() => setArea("")} className={"rounded-full border px-3 py-1 text-xs " + (!area ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>Everywhere</button>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={translate("Storage area")}>
+          <button type="button" aria-pressed={!area} onClick={() => setArea("")} className={"rounded-full border px-3 py-1 text-xs " + (!area ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>{translate("Everywhere")}</button>
           {areas.map((a) => (
             <button key={a} type="button" aria-pressed={area === a} onClick={() => setArea(area === a ? "" : a)} className={"rounded-full border px-3 py-1 text-xs " + (area === a ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>{a}</button>
           ))}
@@ -136,18 +135,19 @@ function InventoryView() {
       {isLoading ? (
         <div className="flex flex-col gap-2">{Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-12 rounded-lg" />))}</div>
       ) : groups.length > 0 ? (
-        groups.map(([cat, rows]) => (
-          <section key={cat} aria-label={cat} className="flex flex-col gap-2">
+        groups.map(([key, rows]) => {
+          const cat = key === preparedGroup ? translate("Made in the kitchen") : key || translate("Other");
+          return <section key={key === preparedGroup ? "prepared" : `category-${key}`} aria-label={cat} className="flex flex-col gap-2">
             <h2 className="text-sm font-semibold text-foreground">{cat} <span className="font-normal text-muted-foreground">({rows.length})</span></h2>
             <Card className="overflow-x-auto p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="text-right">In stock</TableHead>
-                    <TableHead className="text-right">Minimum</TableHead>
-                    {showValue && <TableHead className="text-right">Avg. cost / unit</TableHead>}
-                    {showValue && <TableHead className="text-right">Stock value</TableHead>}
+                    <TableHead>{translate("Item")}</TableHead>
+                    <TableHead className="text-right">{translate("In stock")}</TableHead>
+                    <TableHead className="text-right">{translate("Minimum")}</TableHead>
+                    {showValue && <TableHead className="text-right">{translate("Avg. cost / unit")}</TableHead>}
+                    {showValue && <TableHead className="text-right">{translate("Stock value")}</TableHead>}
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -160,16 +160,16 @@ function InventoryView() {
                         <TableCell className="font-medium text-foreground">
                           <div className="flex flex-wrap items-center gap-2">
                             {i.name}
-                            {i.kind === "PREPARED" && <Badge variant="outline">Made here</Badge>}
-                            {out && <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Out</Badge>}
-                            {low && <Badge variant="outline" className="gap-1 border-warning text-warning"><AlertTriangle className="h-3 w-3" />Low</Badge>}
+                            {i.kind === "PREPARED" && <Badge variant="outline">{translate("Made here")}</Badge>}
+                            {out && <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />{translate("Out")}</Badge>}
+                            {low && <Badge variant="outline" className="gap-1 border-warning text-warning"><AlertTriangle className="h-3 w-3" />{translate("Low")}</Badge>}
                           </div>
                           {i.storageLocation && <span className="text-xs font-normal text-muted-foreground">{i.storageLocation}</span>}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{i.currentStock} <span className="text-muted-foreground">{i.unit}</span></TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt.quantity(i.currentStock)} <span className="text-muted-foreground">{fmt.unit(i.unit)}</span></TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">{i.reorderLevel}</TableCell>
-                        {showValue && <TableCell className="text-right tabular-nums">{formatCurrency(i.costPerUnit)}</TableCell>}
-                        {showValue && <TableCell className="text-right tabular-nums">{formatCurrency(Number(i.currentStock) * Number(i.costPerUnit))}</TableCell>}
+                        {showValue && <TableCell className="text-right tabular-nums">{fmt.currency(i.costPerUnit)}</TableCell>}
+                        {showValue && <TableCell className="text-right tabular-nums">{fmt.currency(Number(i.currentStock) * Number(i.costPerUnit))}</TableCell>}
                         <TableCell><AdjustStockDialog branchId={branchId} ingredient={i} /></TableCell>
                       </TableRow>
                     );
@@ -177,12 +177,12 @@ function InventoryView() {
                 </TableBody>
               </Table>
             </Card>
-          </section>
-        ))
+          </section>;
+        })
       ) : (
         <Card className="flex flex-col items-center gap-2 py-16 text-center">
-          <p className="text-sm font-medium text-foreground">{ingredients && ingredients.length ? "Nothing matches" : "No stock items yet"}</p>
-          <p className="text-sm text-muted-foreground">{ingredients && ingredients.length ? "Clear the filters to see everything." : "Add your raw materials and the dishes you make in the kitchen to start tracking stock."}</p>
+          <p className="text-sm font-medium text-foreground">{ingredients && ingredients.length ? translate("Nothing matches") : translate("No stock items yet")}</p>
+          <p className="text-sm text-muted-foreground">{ingredients && ingredients.length ? translate("Clear the filters to see everything.") : translate("Add your raw materials and the dishes you make in the kitchen to start tracking stock.")}</p>
         </Card>
       )}
     </div>

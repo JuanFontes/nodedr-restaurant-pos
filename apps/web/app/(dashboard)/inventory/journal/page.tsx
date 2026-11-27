@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
 import type { StockJournalType } from "@nodedr-restaurant/types";
 import { ArrowLeftRight, ChefHat, ClipboardCheck, Trash2 } from "lucide-react";
 import { Suspense, useState } from "react";
@@ -35,6 +36,7 @@ const PICK: { type: NewType; label: string; help: string; Icon: typeof ChefHat; 
 ];
 
 function JournalShell() {
+  const { t } = useI18n();
   const { branchId } = useBranch();
   const { data: me } = useCurrentUser();
   const canManage = hasPermission(me?.user, "journal.manage");
@@ -63,7 +65,7 @@ function JournalShell() {
     setEditing(null);
     setEditingProd(null);
     setFormKey((n) => n + 1);
-    show("success", posted ? `${entryNo} posted. Stock is updated.` : `${entryNo} saved as a draft. Stock has not changed; post it from the journal when ready.`);
+    show("success", posted ? t("{entryNo} posted. Stock is updated.", { entryNo }) : t("{entryNo} saved as a draft. Stock has not changed; post it from the journal when ready.", { entryNo }));
     go("journal");
   };
   const formType: NewType | null = editing ? editing.type : newType;
@@ -72,13 +74,13 @@ function JournalShell() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Inventory</h1>
-          <p className="text-sm text-muted-foreground">Stock, daily production, purchasing, and food waste</p>
+          <h1 className="text-[32px] font-semibold tracking-tight text-foreground">{t("Inventory")}</h1>
+          <p className="text-sm text-muted-foreground">{t("Stock, daily production, purchasing, and food waste")}</p>
         </div>
-        {view !== "new" && <Button onClick={() => { setEditing(null); setEditingProd(null); go("new"); }}>New stock journal</Button>}
+        {view !== "new" && <Button onClick={() => { setEditing(null); setEditingProd(null); go("new"); }}>{t("New stock journal")}</Button>}
       </div>
       <InventoryTabs />
-      <div role="tablist" aria-label="Stock journal views" className="flex w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1 sm:w-fit">
+      <div role="tablist" aria-label={t("Stock journal views")} className="flex w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1 sm:w-fit">
         {VIEWS.map((v) => (
           <button
             key={v.id}
@@ -88,7 +90,7 @@ function JournalShell() {
             onClick={() => { if (v.id === "new") { setEditing(null); setEditingProd(null); } go(v.id); }}
             className={cn("whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50", view === v.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
           >
-            {v.label}
+            {t(v.label)}
           </button>
         ))}
       </div>
@@ -106,15 +108,15 @@ function JournalShell() {
       {view === "new" && !formType && (
         <section aria-labelledby="pick-title" className="flex flex-col gap-3">
           <div>
-            <h2 id="pick-title" className="text-lg font-semibold">What do you want to record?</h2>
-            <p className="text-sm text-muted-foreground">Each kind moves stock differently, so pick the one that matches what happened. Nothing changes until you post.</p>
+            <h2 id="pick-title" className="text-lg font-semibold">{t("What do you want to record?")}</h2>
+            <p className="text-sm text-muted-foreground">{t("Each kind moves stock differently, so pick the one that matches what happened. Nothing changes until you post.")}</p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
             {PICK.filter((p) => canManage || !p.needsManage).map((p) => (
               <li key={p.type}>
                 <button type="button" onClick={() => go("new", p.type)} className="flex h-full w-full items-start gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                   <span className="rounded-lg bg-muted p-2"><p.Icon aria-hidden className="size-5" /></span>
-                  <span><span className="block font-medium">{p.label}</span><span className="mt-0.5 block text-sm text-muted-foreground">{p.help}</span></span>
+                  <span><span className="block font-medium">{t(p.label)}</span><span className="mt-0.5 block text-sm text-muted-foreground">{t(p.help)}</span></span>
                 </button>
               </li>
             ))}
@@ -125,11 +127,11 @@ function JournalShell() {
       {view === "new" && formType && (
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">{editing || prodDraft ? `Edit draft ${(editing ?? prodDraft)!.entryNo}` : `New ${formType === "PRODUCTION" ? "production entry" : JOURNAL_TYPES[formType].label.toLowerCase()}`}</h2>
-            {!editing && !editingProd && <Button variant="ghost" size="sm" onClick={() => go("new")}>Change type</Button>}
+            <h2 className="text-lg font-semibold">{editing || prodDraft ? t("Edit draft {entryNo}", { entryNo: (editing ?? prodDraft)!.entryNo }) : t("New {value}", { value: formType === "PRODUCTION" ? t("production entry") : JOURNAL_TYPES[formType].label.toLowerCase() })}</h2>
+            {!editing && !editingProd && <Button variant="ghost" size="sm" onClick={() => go("new")}>{t("Change type")}</Button>}
           </div>
           {formType === "PRODUCTION" && editingProd && (prodLoading || prodError || !prodDraft) ? (
-            prodError ? <p role="alert" className="text-sm text-destructive">Could not load that draft. Nothing was changed.</p> : <Skeleton className="h-64 rounded-xl" />
+            prodError ? <p role="alert" className="text-sm text-destructive">{t("Could not load that draft. Nothing was changed.")}</p> : <Skeleton className="h-64 rounded-xl" />
           ) : formType === "PRODUCTION" ? (
             <StockJournalVoucher
               key={`p-${formKey}-${prodDraft?.id ?? "new"}`}

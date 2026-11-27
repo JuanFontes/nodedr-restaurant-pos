@@ -1,5 +1,7 @@
 "use client";
 
+import { useStaffFormat } from "@/hooks/use-staff-format";
+import { useI18n } from "@/lib/i18n/context";
 import type { IngredientUnit } from "@nodedr-restaurant/types";
 import { useState } from "react";
 import { InventoryTabs } from "@/components/inventory/inventory-tabs";
@@ -23,6 +25,8 @@ let k = 1;
 // Saved bills of materials: what a base output quantity of a finished product takes. A voucher copies the recipe it
 // used, so editing one here (which bumps its version) never rewrites a batch already posted.
 export default function RecipesPage() {
+  const fmt = useStaffFormat();
+  const { t } = useI18n();
   const { branchId } = useBranch();
   const { data: me } = useCurrentUser();
   const canEdit = hasPermission(me?.user, "inventory.manage");
@@ -48,10 +52,10 @@ export default function RecipesPage() {
   };
   const used = rows.filter((r) => r.ingredientId || r.quantity);
   const save = () => {
-    if (!product || !name.trim() || !(Number(base) > 0) || !used.length || used.some((r) => !r.ingredientId || !(Number(r.quantity) > 0))) return setErr("Choose the product, name the recipe, give a base output above zero, and a quantity for every ingredient.");
+    if (!product || !name.trim() || !(Number(base) > 0) || !used.length || used.some((r) => !r.ingredientId || !(Number(r.quantity) > 0))) return setErr(t("Choose the product, name the recipe, give a base output above zero, and a quantity for every ingredient."));
     const body = { outputIngredientId: product, name: name.trim(), baseOutputQty: base.trim(), notes: notes.trim() || undefined, lines: used.map((r) => ({ ingredientId: r.ingredientId, quantity: r.quantity.trim(), unit: (r.unit || byId.get(r.ingredientId)?.unit) as IngredientUnit })) };
-    const done = () => { toast.success("Recipe saved"); setEdit(null); };
-    const onError = (e: unknown) => setErr(e instanceof ApiError ? e.message : "Could not save");
+    const done = () => { toast.success(t("Recipe saved")); setEdit(null); };
+    const onError = (e: unknown) => setErr(e instanceof ApiError ? e.message : t("Could not save"));
     if (edit === "new") m.create.mutate(body, { onSuccess: done, onError });
     else if (edit) m.update.mutate({ id: edit.id, body }, { onSuccess: done, onError });
   };
@@ -60,20 +64,20 @@ export default function RecipesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[32px] font-semibold tracking-tight text-foreground">Inventory</h1>
-          <p className="text-sm text-muted-foreground">Stock, daily production, purchasing, and food waste</p>
+          <h1 className="text-[32px] font-semibold tracking-tight text-foreground">{t("Inventory")}</h1>
+          <p className="text-sm text-muted-foreground">{t("Stock, daily production, purchasing, and food waste")}</p>
         </div>
-        {canEdit && <Button onClick={() => open("new")}>New recipe</Button>}
+        {canEdit && <Button onClick={() => open("new")}>{t("New recipe")}</Button>}
       </div>
       <InventoryTabs />
-      <p className="text-sm text-muted-foreground">A recipe says what a base quantity of a finished product takes. In the manufacturing voucher, choose it and press <b>Fill from recipe</b>: ingredient quantities scale to the quantity you plan, and you type what was actually used.</p>
-      {(recipes ?? []).length === 0 ? <Card className="py-10 text-center text-sm text-muted-foreground">No saved recipes yet.</Card> : (
+      <p className="text-sm text-muted-foreground">{t("A recipe says what a base quantity of a finished product takes. In the manufacturing voucher, choose it and press")} <b>{t("Fill from recipe")}</b>{t(": ingredient quantities scale to the quantity you plan, and you type what was actually used.")}</p>
+      {(recipes ?? []).length === 0 ? <Card className="py-10 text-center text-sm text-muted-foreground">{t("No saved recipes yet.")}</Card> : (
         <ul className="flex flex-col gap-2">
           {(recipes ?? []).map((r) => (
             <li key={r.id}><Card className="flex flex-col gap-2 p-4 text-sm">
-              <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{r.name}</span><Badge variant="outline">v{r.version}</Badge>{!r.isActive && <Badge variant="outline">Retired</Badge>}<span className="text-muted-foreground">makes {r.baseOutputQty} {r.outputUnit.toLowerCase()} of {r.outputName}</span>
-                {canEdit && <span className="ml-auto flex gap-2"><Button variant="outline" size="sm" onClick={() => open(r)}>Edit</Button><Button variant="ghost" size="sm" onClick={() => m.setActive.mutate({ id: r.id, isActive: !r.isActive })}>{r.isActive ? "Retire" : "Restore"}</Button></span>}</div>
-              <ul className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">{r.lines.map((l) => <li key={l.ingredientId} className="flex justify-between border-b border-border/60 py-1"><span>{l.name}</span><span className="tabular-nums">{l.quantity} {l.unit}</span></li>)}</ul>
+              <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{r.name}</span><Badge variant="outline">v{r.version}</Badge>{!r.isActive && <Badge variant="outline">{t("Retired")}</Badge>}<span className="text-muted-foreground">{t("makes {baseOutputQty} {value} of {outputName}", { baseOutputQty: r.baseOutputQty, value: fmt.unit(r.outputUnit), outputName: r.outputName })}</span>
+                {canEdit && <span className="ml-auto flex gap-2"><Button variant="outline" size="sm" onClick={() => open(r)}>{t("Edit")}</Button><Button variant="ghost" size="sm" onClick={() => m.setActive.mutate({ id: r.id, isActive: !r.isActive })}>{r.isActive ? t("Retire") : t("Restore")}</Button></span>}</div>
+              <ul className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">{r.lines.map((l) => <li key={l.ingredientId} className="flex justify-between border-b border-border/60 py-1"><span>{l.name}</span><span className="tabular-nums">{fmt.quantity(l.quantity)} {fmt.unit(l.unit)}</span></li>)}</ul>
               {r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}
             </Card></li>
           ))}
@@ -81,27 +85,27 @@ export default function RecipesPage() {
       )}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader><DialogTitle>{edit === "new" ? "New recipe" : "Edit recipe"}</DialogTitle><DialogDescription>Editing creates the next version. Vouchers already posted keep the version they used.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{edit === "new" ? t("New recipe") : t("Edit recipe")}</DialogTitle><DialogDescription>{t("Editing creates the next version. Vouchers already posted keep the version they used.")}</DialogDescription></DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-[1fr_1fr_8rem]">
-              <div className="flex flex-col gap-1.5"><Label htmlFor="r-prod">Finished product</Label><select id="r-prod" className={selectClass} value={product} disabled={edit !== "new"} onChange={(e) => setProduct(e.target.value)}><option value="">Choose…</option>{products.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></div>
-              <div className="flex flex-col gap-1.5"><Label htmlFor="r-name">Recipe name</Label><Input id="r-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Chicken momo" /></div>
-              <div className="flex flex-col gap-1.5"><Label htmlFor="r-base">Base output ({byId.get(product)?.unit.toLowerCase() ?? "units"})</Label><Input id="r-base" inputMode="decimal" value={base} onChange={(e) => setBase(e.target.value)} /></div>
+              <div className="flex flex-col gap-1.5"><Label htmlFor="r-prod">{t("Finished product")}</Label><select id="r-prod" className={selectClass} value={product} disabled={edit !== "new"} onChange={(e) => setProduct(e.target.value)}><option value="">{t("Choose…")}</option>{products.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></div>
+              <div className="flex flex-col gap-1.5"><Label htmlFor="r-name">{t("Recipe name")}</Label><Input id="r-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("e.g. Chicken momo")} /></div>
+              <div className="flex flex-col gap-1.5"><Label htmlFor="r-base">{t("Base output (")}{byId.get(product)?.unit.toLowerCase() ?? t("units")})</Label><Input id="r-base" inputMode="decimal" value={base} onChange={(e) => setBase(e.target.value)} /></div>
             </div>
-            <Label>Ingredients for the base output</Label>
+            <Label>{t("Ingredients for the base output")}</Label>
             {rows.map((r) => (
               <div key={r.key} className="grid grid-cols-[1fr_6rem_6rem_2rem] gap-2">
-                <select aria-label="Ingredient" className={selectClass} value={r.ingredientId} onChange={(e) => setRows((x) => x.map((y) => (y.key === r.key ? { ...y, ingredientId: e.target.value, unit: byId.get(e.target.value)?.unit ?? "" } : y)))}><option value="">Choose…</option>{raw.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select>
-                <Input aria-label="Quantity" inputMode="decimal" value={r.quantity} onChange={(e) => setRows((x) => x.map((y) => (y.key === r.key ? { ...y, quantity: e.target.value } : y)))} />
-                <select aria-label="Unit" className={selectClass} value={r.unit} onChange={(e) => setRows((x) => x.map((y) => (y.key === r.key ? { ...y, unit: e.target.value as IngredientUnit } : y)))}>{(byId.get(r.ingredientId)?.units ?? []).map((u) => <option key={u}>{u}</option>)}</select>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove row" disabled={rows.length === 1} onClick={() => setRows((x) => x.filter((y) => y.key !== r.key))}>×</Button>
+                <select aria-label={t("Ingredient")} className={selectClass} value={r.ingredientId} onChange={(e) => setRows((x) => x.map((y) => (y.key === r.key ? { ...y, ingredientId: e.target.value, unit: byId.get(e.target.value)?.unit ?? "" } : y)))}><option value="">{t("Choose…")}</option>{raw.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select>
+                <Input aria-label={t("Quantity")} inputMode="decimal" value={r.quantity} onChange={(e) => setRows((x) => x.map((y) => (y.key === r.key ? { ...y, quantity: e.target.value } : y)))} />
+                <select aria-label={t("Unit")} className={selectClass} value={r.unit} onChange={(e) => setRows((x) => x.map((y) => (y.key === r.key ? { ...y, unit: e.target.value as IngredientUnit } : y)))}>{(byId.get(r.ingredientId)?.units ?? []).map((u) => <option key={u} value={u}>{fmt.unit(u)}</option>)}</select>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={t("Remove row")} disabled={rows.length === 1} onClick={() => setRows((x) => x.filter((y) => y.key !== r.key))}>×</Button>
               </div>
             ))}
-            <div><Button type="button" variant="ghost" size="sm" onClick={() => setRows([...rows, { key: k++, ingredientId: "", quantity: "", unit: "" }])}>+ Add ingredient</Button></div>
-            <div className="flex flex-col gap-1.5"><Label htmlFor="r-notes">Notes (optional)</Label><Input id="r-notes" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+            <div><Button type="button" variant="ghost" size="sm" onClick={() => setRows([...rows, { key: k++, ingredientId: "", quantity: "", unit: "" }])}>{t("+ Add ingredient")}</Button></div>
+            <div className="flex flex-col gap-1.5"><Label htmlFor="r-notes">{t("Notes (optional)")}</Label><Input id="r-notes" value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
             {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setEdit(null)}>Cancel</Button><Button onClick={save} disabled={m.create.isPending || m.update.isPending}>Save recipe</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setEdit(null)}>{t("Cancel")}</Button><Button onClick={save} disabled={m.create.isPending || m.update.isPending}>{t("Save recipe")}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
