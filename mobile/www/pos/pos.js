@@ -1982,7 +1982,7 @@ async function viewSales() {
       ${books.refundTotal ? `<dt>Refunds</dt><dd>&minus;${money(books.refundTotal)}</dd><dt>Net sales</dt><dd><b>${money(books.net)}</b></dd>` : ''}${books.expenseTotal ? `<dt>Expenses</dt><dd>&minus;${money(books.expenseTotal)}</dd>` : ''}
       ${rep.voids ? `<dt>Cancelled orders</dt><dd>${rep.voids} (${money(rep.voidValue)})</dd>` : ''}</dl>
     ${rep.top.length ? `<p class="mute" style="margin:.5rem 0 0">Top: ${rep.top.map((t) => `${esc(t.name)} &times;${t.qty}`).join(', ')}</p>` : ''}
-    <p class="mute" style="margin:.5rem 0 0">Only sales taken on this phone, for today by the phone's clock.${S.snap.local ? '' : ' It is not the server total.'}${rep.notSynced ? ` ${rep.notSynced} not on the server yet.` : ''}</p></div>`;
+    <p class="mute" style="margin:.5rem 0 0">Sales taken on this phone today in ${esc(restaurantZone())}.${rep.notSynced ? ` ${rep.notSynced} not on the server yet.` : ''}</p></div>`;
   const owed = dueSales(all);
   const owedTotal = owed.reduce((n, x) => n + dueOf(x), 0);
   $('view').innerHTML = `
