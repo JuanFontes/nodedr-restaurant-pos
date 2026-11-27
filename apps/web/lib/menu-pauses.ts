@@ -40,6 +40,16 @@ export function menuPausesAt(items: readonly MenuPauseItem[] | undefined, now: n
   return { paused, nextExpiry };
 }
 
+export function pausedItemsByReturn<T extends MenuPauseItem & { isActive: boolean }>(
+  items: readonly T[],
+  pauses: ReadonlyMap<string, string>,
+): T[] {
+  return items
+    .filter((item): item is T & { pausedUntil: string } =>
+      item.isActive && typeof item.pausedUntil === "string" && pauses.has(item.id))
+    .sort((a, b) => Date.parse(a.pausedUntil) - Date.parse(b.pausedUntil));
+}
+
 /** Include the date for pauses crossing midnight in the restaurant's timezone. */
 export function formatPauseTime(until: string, locale: string, timezone?: string | null): string {
   const date = new Date(until);
