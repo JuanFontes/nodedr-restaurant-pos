@@ -23,7 +23,7 @@ services:
       - nodedr-restaurant-pos
 
   backend:
-    image: ghcr.io/raktim94/nodedr-restaurant-pos-backend:1.46.0
+    image: ghcr.io/raktim94/nodedr-restaurant-pos-backend:1.47.0
     container_name: nodedr-restaurant-pos-backend
     hostname: nodedr-restaurant-pos-backend
     restart: unless-stopped
@@ -85,7 +85,7 @@ services:
             en_US: Auto-generated login security key. Created automatically on first launch — leave it alone.
 
   web:
-    image: ghcr.io/raktim94/nodedr-restaurant-pos-web:1.46.0
+    image: ghcr.io/raktim94/nodedr-restaurant-pos-web:1.47.0
     container_name: nodedr-restaurant-pos-web
     hostname: nodedr-restaurant-pos-web
     restart: unless-stopped
@@ -187,6 +187,8 @@ x-casaos:
   update_at: "2026-11-27"
   release_notes:
     en_US: |-
+      1.47.0: The staff dashboard now follows the language picker on every page (English, Spanish, French, Brazilian Portuguese). Menu has a Paused view listing dishes by return time. Paid bills, refunds, supplier payments and points entries are kept when an order, invoice or customer is deleted. Includes two database changes; update straight from 1.46.0. Android 1.47.0 keeps Nearby phone-to-phone copies.
+
       1.46.0: Pause a dish until a return time. Server sync fixed: a large backlog could skip rows (update both ends). Disagreeing edits between devices are kept for a manager to review, and the sync page says plainly what is only saved on this PC. Restores check backup checksums. Three additive database migrations.
 
       1.45.0: Split a bill by guest, purchase returns with supplier credit, a price-variance check and a smarter shopping list, expense approvals and a petty cash box, a balanced accounting journal export, a customer delivery tracking link, and reports that reach back five years with a read-only bill view. Two additive database migrations.

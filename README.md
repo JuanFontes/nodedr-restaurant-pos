@@ -212,6 +212,10 @@ and on the guest QR ordering page. Staff can switch languages from the top bar w
 The browser remembers the choice. Restaurant records, including customer and dish names, keep
 the text entered by staff.
 
+### What's new in 1.47.0
+
+The staff dashboard follows the language picker on every page; a Paused view in Menu; paid bills, refunds, supplier payments and points history are never lost when an order, invoice or customer is deleted. See [CHANGELOG-1.47.0](docs/CHANGELOG-1.47.0.md).
+
 ### What's new in 1.46.0
 
 Pause a dish until a return time; safer offline sync (a paging bug that could skip rows is fixed, and edits two devices disagree on are kept for review); backup restores verify checksums. See [CHANGELOG-1.46.0](docs/CHANGELOG-1.46.0.md) and [OFFLINE-ARCHITECTURE](docs/OFFLINE-ARCHITECTURE.md).
